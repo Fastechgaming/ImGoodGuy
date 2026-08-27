@@ -27,6 +27,7 @@ async function loadCheckout() {
   }
 
   const supportHandle = cfg.supportTelegram || "";
+  const khqrSrc = cfg.khqrImage || "/images/site/khqr.png";
   content.innerHTML = `
     <div class="checkout-summary">
       <img class="checkout-item-img" src="${escapeHtml(order.itemImage || "")}" alt="${escapeHtml(order.itemName)}" onerror="this.style.display='none'" />
@@ -44,8 +45,14 @@ async function loadCheckout() {
     <div class="checkout-step">
       <h3>1. Scan to pay</h3>
       <p class="checkout-hint">Scan this KHQR with any Cambodian banking app and pay exactly <strong>$${Number(order.amount).toFixed(2)}</strong>.</p>
-      <img class="checkout-khqr" src="${escapeHtml(cfg.khqrImage || "/images/site/khqr.png")}" alt="KHQR payment code"
+      <img class="checkout-khqr" src="${escapeHtml(khqrSrc)}" alt="KHQR payment code"
            onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty-note',textContent:'KHQR image not uploaded yet — add it at public/images/site/khqr.png'}))" />
+      <div class="khqr-actions">
+        <a class="save-khqr-btn" id="save-khqr" href="${escapeHtml(khqrSrc)}" download="AngkorSMP-KHQR.png">
+          💾 Save KHQR
+        </a>
+        <span class="checkout-hint khqr-save-hint">Save it, then scan from your banking app's photo library.</span>
+      </div>
     </div>
 
     <div class="checkout-step">

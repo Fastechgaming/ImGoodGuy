@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Games — AngkorSMP</title>
+<link rel="icon" href="/images/site/logo-icon.png" />
+<link rel="stylesheet" href="/css/style.css" />
+<script>
+// Apply the saved theme before first paint so there's no flash. Dark is default.
+try { if (localStorage.getItem("angkorsmp-theme") === "light") document.documentElement.setAttribute("data-theme","light"); } catch (e) {}
+</script>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="nav-vine" aria-hidden="true"></div>
+    <div class="container">
+      <a class="brand" href="/">
+        <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
+        AngkorSMP
+      </a>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+      <ul class="nav-links">
+        <li><a href="/">🏠 Home</a></li>
+        <li><a href="/games.html" class="active">🎮 Games</a></li>
+        <li><a href="/store.html">💰 Store</a></li>
+        <li><a href="/map.html">🗺️ Map</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+    </div>
+  </nav>
+  <div class="khmer-strip" aria-hidden="true"></div>
+
+  <main>
+    <section class="section">
+      <div class="container games-wrap">
+        <h2 class="no-rule">🌿 AngkorSMP 🌿</h2>
+        <p class="section-subtitle">GAMES</p>
+
+        <!-- Step 1: who's playing -->
+        <div class="checkout-panel games-gate" id="games-gate">
+          <div class="games-gate-icon">🎮</div>
+          <h3>Play &amp; earn coins</h3>
+          <p class="checkout-hint centered">
+            Play mini-games right here on the website and earn Angkor Coins you
+            can withdraw straight into the server. Enter your Minecraft name to
+            open your play session.
+          </p>
+
+          <div class="field">
+            <label for="games-name">Minecraft username</label>
+            <input type="text" id="games-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label>Edition</label>
+            <div class="edition-toggle">
+              <button type="button" data-edition="java" class="active">Java</button>
+              <button type="button" data-edition="bedrock">Bedrock</button>
+            </div>
+            <span class="preview-name" id="games-name-preview"></span>
+          </div>
+
+          <button class="continue-btn" id="games-start-btn">Start Playing</button>
+          <p class="checkout-hint centered games-disclaimer">
+            Nothing is saved yet — this is a preview while the games are being built.
+          </p>
+        </div>
+
+        <!-- Step 2: the hub -->
+        <div id="games-hub" hidden>
+          <div class="player-bar checkout-panel">
+            <div class="player-id">
+              <span class="player-avatar">🧑‍🌾</span>
+              <div>
+                <div class="player-label">Playing as</div>
+                <div class="player-name" id="hub-player-name">—</div>
+              </div>
+            </div>
+            <button class="back-link" id="games-switch-btn">Change name</button>
+          </div>
+
+          <div class="info-grid games-stats">
+            <div class="info-card stacked">
+              <div class="value" id="stat-playtime">0m 0s</div>
+              <div class="label">Playtime</div>
+              <div class="stat-divider"></div>
+              <div class="sub-value">This session</div>
+              <div class="sub-label">Not saved yet</div>
+            </div>
+            <div class="info-card stacked">
+              <div class="value" id="stat-coins">0</div>
+              <div class="label">Coins Earned</div>
+              <div class="stat-divider"></div>
+              <div class="sub-value">Withdraw soon</div>
+              <div class="sub-label">Not saved yet</div>
+            </div>
+          </div>
+
+          <div class="withdraw-row checkout-panel">
+            <div>
+              <h3>Withdraw to in-game</h3>
+              <p class="checkout-hint">
+                Once the games launch, your earned coins will be sent to your
+                in-game balance from here.
+              </p>
+            </div>
+            <button class="continue-btn withdraw-btn" disabled>Withdraw — Coming Soon</button>
+          </div>
+
+          <h3 class="games-list-heading">Mini-games</h3>
+          <div class="item-grid" id="games-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="khmer-strip" aria-hidden="true"></div>
+  <footer class="site-footer">
+    <p>&copy; <span id="year"></span> AngkorSMP &middot; Cambodia Minecraft Server 🇰🇭</p>
+  </footer>
+
+  <script src="/js/playername.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/games.js"></script>
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>
