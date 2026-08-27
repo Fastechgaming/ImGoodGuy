@@ -1,9 +1,9 @@
 :root {
-  --gold: #c9a24b;
-  --stone: #efe6d3;
-  --ink: #2b2317;
-  --jungle: #2f4a35;
-  --danger: #a33b2c;
+  --gold: #f7b537;
+  --stone: #ffe4ad;
+  --ink: #3a2210;
+  --jungle: #40230f;
+  --danger: #d9542f;
 }
 
 * { box-sizing: border-box; }

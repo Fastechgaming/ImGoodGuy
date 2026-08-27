@@ -10,6 +10,7 @@ const https = require("https");
 const TelegramBot = require("node-telegram-bot-api");
 const { nanoid } = require("nanoid");
 const store = require("../lib/store");
+const { runCommand } = require("../lib/rcon");
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
@@ -36,7 +37,7 @@ function slugify(text) {
 
 // --- Guided "/additem" wizard state, per chat ---
 const sessions = new Map();
-const STEPS = ["category", "name", "price", "shortDesc", "infoText", "videoUrl", "image"];
+const STEPS = ["category", "name", "price", "shortDesc", "infoText", "videoUrl", "deliveryCommand", "image"];
 
 function startAddWizard(chatId) {
   sessions.set(chatId, { step: 0, item: {} });
@@ -56,6 +57,8 @@ function stepPrompt(step) {
       return "Full info text (shown in the \"!\" popup). You can use multiple lines.";
     case "videoUrl":
       return "Kit video URL (YouTube/embeddable link), or send \"skip\"";
+    case "deliveryCommand":
+      return 'Delivery command to run when you Accept an order.\nUse {player} for the in-server name, e.g.\n`lp user {player} parent add apsara`\nOr send "skip" to deliver this item manually.';
     case "image":
       return "Send a photo for this item, or send \"skip\" to use a placeholder image.";
     default:
@@ -114,6 +117,8 @@ async function handleWizardMessage(msg) {
     session.item.infoText = text;
   } else if (field === "videoUrl") {
     session.item.videoUrl = text.toLowerCase() === "skip" ? "" : text;
+  } else if (field === "deliveryCommand") {
+    session.item.deliveryCommand = text.toLowerCase() === "skip" ? "" : text;
   } else if (field === "image") {
     if (msg.photo && msg.photo.length) {
       const largest = msg.photo[msg.photo.length - 1];
@@ -175,9 +180,11 @@ function initBot() {
         "/additem - add a new store item (guided, supports photo upload)",
         "/listitems [ranks|coins|other] - list items and their IDs",
         "/edititem <id> <field> <value> - edit one field",
-        "  fields: name, price, shortDesc, infoText, videoUrl, category",
+        "  fields: name, price, shortDesc, infoText, videoUrl, category, deliveryCommand",
         "/edititem <id> image - then send a photo to replace the image",
         "/delitem <id> - delete an item",
+        "",
+        "Orders arrive here as a photo of the payment receipt with Accept / Reject buttons.",
       ].join("\n"),
       { parse_mode: "Markdown" }
     );
@@ -220,7 +227,7 @@ function initBot() {
   bot.onText(/^\/edititem (\S+) (\S+) ([\s\S]+)/, (msg, match) => {
     if (!isAdmin(msg)) return bot.sendMessage(msg.chat.id, "This bot is private.");
     const [, id, field, value] = match;
-    const allowed = ["name", "price", "shortDesc", "infoText", "videoUrl", "category"];
+    const allowed = ["name", "price", "shortDesc", "infoText", "videoUrl", "category", "deliveryCommand"];
     const item = store.findItem(id);
     if (!item) return bot.sendMessage(msg.chat.id, "No item with that ID.");
     if (!allowed.includes(field)) {
@@ -268,26 +275,132 @@ function initBot() {
     await handleWizardMessage(msg);
   });
 
+  // Accept / Reject buttons on the order review messages.
+  bot.on("callback_query", handleOrderDecision);
+
   bot.on("polling_error", (err) => console.error("[telegram] polling error:", err.message));
 
   console.log("[telegram] Bot started and listening for admin commands.");
   return bot;
 }
 
-async function notifyPurchase(order) {
-  if (!bot || !ADMIN_CHAT_ID) return;
-  const text = [
-    "🛒 *New AngkorSMP purchase!*",
-    `Item: ${order.itemName}`,
-    `Player: \`${order.playerName}\` (${order.edition})`,
-    `Amount: $${order.amount} ${order.currency}`,
-    `Order: \`${order.id}\``,
+/* ---------------- Order review (payment approval) ---------------- */
+
+function orderSummaryText(order) {
+  return [
+    "🛒 *New AngkorSMP order*",
+    "",
+    `*Item:* ${order.itemName}`,
+    `*Price:* $${Number(order.amount).toFixed(2)} ${order.currency}`,
+    `*In-server name:* \`${order.playerName}\``,
+    `*Edition:* ${order.edition === "bedrock" ? "Bedrock" : "Java"}`,
+    `*Order:* \`${order.id}\``,
+    "",
+    "Check the receipt above, then Accept to deliver or Reject to dismiss.",
   ].join("\n");
+}
+
+// Called by the website when a customer submits their payment screenshot.
+async function sendOrderForReview(order, proofPath) {
+  if (!bot || !ADMIN_CHAT_ID) {
+    return { ok: false, reason: "Telegram bot is not configured (token / admin chat id missing)." };
+  }
   try {
-    await bot.sendMessage(ADMIN_CHAT_ID, text, { parse_mode: "Markdown" });
+    await bot.sendPhoto(ADMIN_CHAT_ID, fs.createReadStream(proofPath), {
+      caption: orderSummaryText(order),
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Accept", callback_data: `ord:accept:${order.id}` },
+            { text: "❌ Reject", callback_data: `ord:reject:${order.id}` },
+          ],
+        ],
+      },
+    });
+    return { ok: true };
   } catch (err) {
-    console.error("[telegram] failed to send purchase notification:", err.message);
+    return { ok: false, reason: err.message };
   }
 }
 
-module.exports = { initBot, notifyPurchase };
+async function handleOrderDecision(query) {
+  const data = String(query.data || "");
+  if (!data.startsWith("ord:")) return;
+
+  // Only the configured admin may approve orders.
+  if (!ADMIN_CHAT_ID || String(query.from.id) !== ADMIN_CHAT_ID) {
+    return bot.answerCallbackQuery(query.id, { text: "Not authorized.", show_alert: true });
+  }
+
+  const [, action, orderId] = data.split(":");
+  const order = store.findOrder(orderId);
+  if (!order) {
+    return bot.answerCallbackQuery(query.id, { text: "Order not found.", show_alert: true });
+  }
+  if (order.status === "delivered" || order.status === "rejected") {
+    return bot.answerCallbackQuery(query.id, { text: `Already ${order.status}.`, show_alert: true });
+  }
+
+  const chatId = query.message.chat.id;
+  const messageId = query.message.message_id;
+  const clearButtons = () =>
+    bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: messageId }).catch(() => {});
+
+  if (action === "reject") {
+    store.updateOrder(orderId, { status: "rejected", decidedAt: Date.now() });
+    await clearButtons();
+    await bot.answerCallbackQuery(query.id, { text: "Order rejected." });
+    return bot.sendMessage(chatId, `❌ Rejected order \`${orderId}\` — nothing was delivered.`, {
+      parse_mode: "Markdown",
+    });
+  }
+
+  if (action !== "accept") return;
+
+  await bot.answerCallbackQuery(query.id, { text: "Delivering…" });
+  const item = store.findItem(order.itemId);
+  const result = await runCommand(item && item.deliveryCommand, {
+    player: order.playerName,
+    itemName: order.itemName,
+    orderId: order.id,
+  });
+
+  if (result.ok) {
+    store.updateOrder(orderId, {
+      status: "delivered",
+      decidedAt: Date.now(),
+      deliveredCommand: result.command,
+    });
+    await clearButtons();
+    return bot.sendMessage(
+      chatId,
+      [
+        `✅ *Delivered* order \`${orderId}\``,
+        `Ran: \`${result.command}\``,
+        result.response ? `Server said: _${result.response}_` : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      { parse_mode: "Markdown" }
+    );
+  }
+
+  // Delivery failed - leave the buttons in place so you can retry after fixing
+  // the cause, and keep the order marked as still pending review.
+  return bot.sendMessage(
+    chatId,
+    [
+      `⚠️ *Could not deliver* order \`${orderId}\``,
+      result.command ? `Command: \`${result.command}\`` : "",
+      `Reason: ${result.reason}`,
+      "",
+      "The order was left pending — fix the issue and press Accept again, or run the command manually in-game.",
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    { parse_mode: "Markdown" }
+  );
+}
+
+module.exports = { initBot, sendOrderForReview };

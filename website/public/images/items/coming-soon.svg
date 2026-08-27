@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#4a3a22"/><stop offset="100%" stop-color="#1d1409"/>
+  </linearGradient></defs>
+  <rect width="300" height="300" fill="url(#bg)"/>
+  <g shape-rendering="crispEdges" opacity="0.55">
+    <rect x="96" y="86" width="108" height="108" fill="#8a6a3f" stroke="#4a3418" stroke-width="4"/>
+    <rect x="96" y="86" width="108" height="20" fill="#a8834f"/>
+    <rect x="140" y="86" width="20" height="108" fill="#4a3418" opacity="0.35"/>
+  </g>
+  <text x="150" y="158" text-anchor="middle" font-family="Verdana" font-size="58" font-weight="bold" fill="#ffd873">?</text>
+  <rect x="46" y="248" width="208" height="34" rx="8" fill="rgba(0,0,0,0.45)"/>
+  <text x="150" y="271" text-anchor="middle" font-family="Verdana" font-size="17" font-weight="bold"
+        letter-spacing="2" fill="#cdb28a">COMING SOON</text>
+</svg>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Store — AngkorSMP</title>
+<title>Complete your Purchase — AngkorSMP</title>
 <link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="stylesheet" href="/css/style.css" />
 <script>
@@ -26,7 +26,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
       <ul class="nav-links">
         <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
         <li><a href="/games.html" data-i18n="nav.games">🎮 Games</a></li>
-        <li><a href="/store.html" class="active" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
         <li><a href="/map.html" data-i18n="nav.map">🗺️ Map</a></li>
       </ul>
       <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
@@ -36,11 +36,12 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <main>
     <section class="section">
-      <div class="container">
-        <h2 class="no-rule">🌿 AngkorSMP 🌿</h2>
-        <p class="section-subtitle" data-i18n="store.subtitle">STORE</p>
-        <div class="store-tabs" id="store-tabs"></div>
-        <div class="item-grid" id="item-grid"></div>
+      <div class="container checkout-wrap">
+        <h2 data-i18n="checkout.title">🌿 Complete your Purchase 🌿</h2>
+
+        <div id="checkout-content" class="checkout-panel">
+          <p class="empty-note" data-i18n="checkout.loading">Loading your order…</p>
+        </div>
       </div>
     </section>
   </main>
@@ -50,25 +51,9 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
     <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
 
-  <!-- Info ("!") modal -->
-  <div class="modal-overlay" id="info-modal">
-    <div class="modal-box wide">
-      <button class="modal-close" id="info-modal-close">&times;</button>
-      <div id="info-modal-body"></div>
-    </div>
-  </div>
-
-  <!-- Buy flow modal -->
-  <div class="modal-overlay" id="buy-modal">
-    <div class="modal-box">
-      <button class="modal-close" id="buy-modal-close">&times;</button>
-      <div id="buy-modal-body"></div>
-    </div>
-  </div>
-
   <script src="/js/playername.js"></script>
   <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
-  <script src="/js/store.js"></script>
+  <script src="/js/checkout.js"></script>
 </body>
 </html>

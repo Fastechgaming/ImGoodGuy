@@ -5,79 +5,119 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AngkorSMP</title>
 <meta name="description" content="AngkorSMP — a Khmer-inspired Minecraft Survival Multiplayer server." />
-<link rel="icon" href="/images/site/logo.svg" />
+<link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<script>
+// Apply the saved theme before first paint so there's no flash. Dark is default.
+try { if (localStorage.getItem("angkorsmp-theme") === "light") document.documentElement.setAttribute("data-theme","light"); } catch (e) {}
+</script>
 </head>
 <body>
   <nav class="site-nav">
+    <div class="nav-vine" aria-hidden="true"></div>
     <div class="container">
       <a class="brand" href="/">
-        <img src="/images/site/logo.svg" alt="logo" onerror="this.style.display='none'" />
+        <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
         AngkorSMP
       </a>
+      <div class="nav-tools">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
+      </div>
       <ul class="nav-links">
-        <li><a href="/">Home</a></li>
-        <li><a href="/store.html">Store</a></li>
-        <li><a href="/map.html">Map</a></li>
+        <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
+        <li><a href="/games.html" data-i18n="nav.games">🎮 Games</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/map.html" data-i18n="nav.map">🗺️ Map</a></li>
       </ul>
-      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
   </nav>
+  <div class="khmer-strip" aria-hidden="true"></div>
 
   <header class="hero">
-    <img id="hero-logo" class="hero-logo" src="/images/site/logo.svg" alt="AngkorSMP logo" />
-    <h1 id="hero-title">AngkorSMP</h1>
+    <img class="leaf-corner left" src="/images/site/leaf-corner.svg" alt="" aria-hidden="true" />
+    <img class="leaf-corner right" src="/images/site/leaf-corner.svg" alt="" aria-hidden="true" />
+    <img class="flower-accent" src="/images/site/flower.svg" alt="" aria-hidden="true" style="left:6%; top:32%; animation-delay:0.5s;" />
+    <img class="flower-accent" src="/images/site/flower.svg" alt="" aria-hidden="true" style="right:7%; top:40%; animation-delay:2s;" />
+    <span class="firefly" style="left:12%; top:20%; animation-delay:0s;"></span>
+    <span class="firefly" style="left:24%; top:55%; animation-delay:1.4s;"></span>
+    <span class="firefly" style="left:80%; top:15%; animation-delay:2.6s;"></span>
+    <span class="firefly" style="left:88%; top:48%; animation-delay:0.8s;"></span>
+    <span class="firefly" style="left:65%; top:65%; animation-delay:3.6s;"></span>
+    <span class="firefly" style="left:38%; top:12%; animation-delay:4.8s;"></span>
+
+    <h1 id="hero-title" class="sr-only">AngkorSMP</h1>
+    <img id="hero-logo" class="hero-logo-full" src="/images/site/logo-full.png" alt="AngkorSMP" />
     <p class="tagline" id="hero-tagline"></p>
 
     <div class="hero-actions">
-      <a id="discord-btn" class="action-btn discord" href="#" target="_blank" rel="noopener">
-        <span>🗨️ Discord</span>
-        <small>Join our community</small>
+      <a id="telegram-btn" class="action-btn telegram" href="#" target="_blank" rel="noopener">
+        <span class="btn-icon">✈️</span>
+        <span class="btn-text">
+          <span class="btn-title" data-i18n="home.telegram">Telegram</span>
+          <small data-i18n="home.telegramSub">Join our community</small>
+        </span>
       </a>
       <a id="ip-btn" class="action-btn server-ip" href="#">
-        <span class="ip-text">play.angkorsmp.com</span>
-        <small>Click to copy IP</small>
+        <span class="btn-icon">📋</span>
+        <span class="btn-text">
+          <span class="btn-title ip-text">play.angkorsmp.com</span>
+          <small data-i18n="home.copyIp">Click to copy IP</small>
+        </span>
+      </a>
+      <a class="action-btn store" href="/store.html">
+        <span class="btn-icon">🛒</span>
+        <span class="btn-text">
+          <span class="btn-title" data-i18n="home.store">Store</span>
+          <small data-i18n="home.storeSub">Ranks, coins &amp; more</small>
+        </span>
       </a>
     </div>
 
     <div class="status-pill">
       <span id="status-dot" class="status-dot"></span>
-      <span id="status-text">Checking server status…</span>
+      <span id="status-text" data-i18n="home.checking">Checking server status…</span>
     </div>
 
-    <img class="hero-silhouette" src="/images/site/temple-silhouette.svg" alt="" aria-hidden="true" />
+    <img class="hero-silhouette" src="/images/site/forest-silhouette.svg" alt="" aria-hidden="true" />
   </header>
 
   <main>
     <section class="section">
       <div class="container">
-        <h2>Welcome</h2>
+        <h2 data-i18n="home.welcome">🌿 Welcome 🌿</h2>
         <p class="welcome-box" id="welcome-message"></p>
 
+        <div class="feature-grid" id="feature-grid"></div>
+
         <div class="info-grid">
-          <div class="info-card">
+          <div class="info-card stacked">
             <div class="value" id="release-value">—</div>
-            <div class="label">Released</div>
+            <div class="label" data-i18n="home.released">Released</div>
+            <div class="stat-divider"></div>
+            <div class="sub-value" id="server-age-value">—</div>
+            <div class="sub-label" data-i18n="home.serverAge">Server Age</div>
           </div>
-          <div class="info-card">
+          <div class="info-card stacked">
             <div class="value" id="season-value">—</div>
-            <div class="label">Current season</div>
-          </div>
-          <div class="info-card">
-            <div class="value" id="uptime-value">—</div>
-            <div class="label">Server age</div>
+            <div class="label" data-i18n="home.currentSeason">Current Season</div>
+            <div class="stat-divider"></div>
+            <div class="sub-value" id="season-age-value">—</div>
+            <div class="sub-label" data-i18n="home.seasonAge">Season Age</div>
           </div>
         </div>
       </div>
     </section>
   </main>
 
+  <div class="khmer-strip" aria-hidden="true"></div>
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> AngkorSMP. Not affiliated with Mojang or Microsoft.</p>
+    <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/home.js"></script>
-  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>

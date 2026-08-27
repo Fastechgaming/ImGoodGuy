@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Games — AngkorSMP</title>
+<link rel="icon" href="/images/site/logo-icon.png" />
+<link rel="stylesheet" href="/css/style.css" />
+<script>
+// Apply the saved theme before first paint so there's no flash. Dark is default.
+try { if (localStorage.getItem("angkorsmp-theme") === "light") document.documentElement.setAttribute("data-theme","light"); } catch (e) {}
+</script>
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="nav-vine" aria-hidden="true"></div>
+    <div class="container">
+      <a class="brand" href="/">
+        <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
+        AngkorSMP
+      </a>
+      <div class="nav-tools">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
+      </div>
+      <ul class="nav-links">
+        <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
+        <li><a href="/games.html" class="active" data-i18n="nav.games">🎮 Games</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/map.html" data-i18n="nav.map">🗺️ Map</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
+    </div>
+  </nav>
+  <div class="khmer-strip" aria-hidden="true"></div>
+
+  <main>
+    <section class="section">
+      <div class="container games-wrap">
+        <h2 class="no-rule">🌿 AngkorSMP 🌿</h2>
+        <p class="section-subtitle" data-i18n="games.subtitle">GAMES</p>
+
+        <!-- Step 1: who's playing -->
+        <div class="checkout-panel games-gate" id="games-gate">
+          <div class="games-gate-icon">🎮</div>
+          <h3 data-i18n="games.gateTitle">Play &amp; earn coins</h3>
+          <p class="checkout-hint centered" data-i18n="games.gateHint">
+            Play mini-games right here on the website and earn Angkor Coins for
+            your in-game balance. Enter your Minecraft name once — we'll
+            remember it next time.
+          </p>
+
+          <div class="field">
+            <label for="games-name" data-i18n="buy.username">Minecraft username</label>
+            <input type="text" id="games-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label data-i18n="buy.edition">Edition</label>
+            <div class="edition-toggle">
+              <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>
+              <button type="button" data-edition="bedrock" data-i18n="buy.bedrock">Bedrock</button>
+            </div>
+            <span class="preview-name" id="games-name-preview"></span>
+          </div>
+
+          <button class="continue-btn" id="games-start-btn" data-i18n="games.start">Start Playing</button>
+          <p class="checkout-hint centered games-disclaimer" data-i18n="games.disclaimer">
+            Your name is saved on this device, so you only enter it once. Coins
+            and points are stored on the server.
+          </p>
+        </div>
+
+        <!-- Step 2: the hub -->
+        <div id="games-hub" hidden>
+          <div class="player-bar checkout-panel">
+            <div class="player-id">
+              <span class="player-avatar">🧑‍🌾</span>
+              <div>
+                <div class="player-label" data-i18n="games.playingAs">Playing as</div>
+                <div class="player-name" id="hub-player-name">—</div>
+              </div>
+            </div>
+            <button class="back-link" id="games-switch-btn" data-i18n="games.changeName">Change name</button>
+          </div>
+
+          <div class="info-grid games-stats">
+            <div class="info-card stacked">
+              <div class="value" id="stat-points">0</div>
+              <div class="label" data-i18n="games.points">Points</div>
+              <div class="stat-divider"></div>
+              <div class="sub-value" id="stat-rounds">0</div>
+              <div class="sub-label" data-i18n="games.pointsSub">Rounds this session</div>
+            </div>
+            <div class="info-card stacked">
+              <div class="value" id="stat-coins">0</div>
+              <div class="label" data-i18n="games.coinsToday">Coins Today</div>
+              <div class="stat-divider"></div>
+              <div class="sub-value" id="stat-coins-cap">—</div>
+              <div class="sub-label" id="stat-reset">—</div>
+            </div>
+          </div>
+
+          <div class="checkout-panel board-panel">
+            <div class="board-head">
+              <h3 data-i18n="games.leaderboard">Points Leaderboard</h3>
+              <button class="back-link" id="board-open" data-i18n="games.leaderboardOpen">Open Leaderboard</button>
+            </div>
+            <ol class="board-list" id="board-top5"></ol>
+            <p class="checkout-hint centered" id="board-your-rank"></p>
+          </div>
+
+          <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
+          <p class="checkout-hint centered" data-i18n="games.listHint">
+            Every game is unlimited to play. Each one can pay up to 500 Coins per day —
+            2,500 Coins across all five. Resets at midnight (UTC+7).
+          </p>
+          <div class="item-grid" id="games-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="khmer-strip" aria-hidden="true"></div>
+  <footer class="site-footer">
+    <p id="footer-copy" data-i18n="footer.copy"></p>
+  </footer>
+
+  <!-- Change-name modal -->
+  <div class="modal-overlay" id="name-modal">
+    <div class="modal-box">
+      <button class="modal-close" id="name-modal-close" aria-label="Close">&times;</button>
+      <h3 data-i18n="games.changeTitle">Change your name</h3>
+      <p class="checkout-hint" data-i18n="games.changeHint">
+        Your name is what your coins and points are saved under, so it can only
+        be changed once a day.
+      </p>
+      <div class="field">
+        <label for="change-name" data-i18n="buy.username">Minecraft username</label>
+        <input type="text" id="change-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label data-i18n="buy.edition">Edition</label>
+        <div class="edition-toggle" id="change-edition">
+          <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>
+          <button type="button" data-edition="bedrock" data-i18n="buy.bedrock">Bedrock</button>
+        </div>
+        <span class="preview-name" id="change-name-preview"></span>
+      </div>
+      <button class="continue-btn" id="change-name-save" data-i18n="games.changeConfirm">Save new name</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard modal -->
+  <div class="modal-overlay" id="board-modal">
+    <div class="modal-box wide">
+      <button class="modal-close" id="board-modal-close" aria-label="Close">&times;</button>
+      <h3 data-i18n="games.leaderboardTitle">🏆 Points Leaderboard</h3>
+      <p class="checkout-hint centered" data-i18n="games.leaderboardSub">Top 50 players by lifetime points.</p>
+      <div class="board-table-wrap">
+        <table class="board-table">
+          <thead>
+            <tr>
+              <th data-i18n="games.leaderboardRank">#</th>
+              <th data-i18n="games.leaderboardPlayer">Player</th>
+              <th data-i18n="games.leaderboardPoints">Points</th>
+            </tr>
+          </thead>
+          <tbody id="board-full"></tbody>
+        </table>
+      </div>
+      <p class="checkout-hint centered" id="board-modal-rank"></p>
+    </div>
+  </div>
+
+  <!-- Fullscreen mini-game panel -->
+  <div class="modal-overlay game-overlay" id="game-overlay">
+    <div class="game-panel">
+      <div class="game-panel-head">
+        <h3 id="game-title">Game</h3>
+        <button class="modal-close" id="game-close" aria-label="Close game">&times;</button>
+      </div>
+      <div class="game-panel-body" id="game-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/playername.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/arcade.js"></script>
+  <script src="/js/games.js"></script>
+</body>
+</html>

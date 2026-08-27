@@ -4,49 +4,60 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Map — AngkorSMP</title>
-<link rel="icon" href="/images/site/logo.svg" />
+<link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<script>
+// Apply the saved theme before first paint so there's no flash. Dark is default.
+try { if (localStorage.getItem("angkorsmp-theme") === "light") document.documentElement.setAttribute("data-theme","light"); } catch (e) {}
+</script>
 </head>
 <body>
   <nav class="site-nav">
+    <div class="nav-vine" aria-hidden="true"></div>
     <div class="container">
       <a class="brand" href="/">
-        <img src="/images/site/logo.svg" alt="logo" onerror="this.style.display='none'" />
+        <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
         AngkorSMP
       </a>
+      <div class="nav-tools">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
+      </div>
       <ul class="nav-links">
-        <li><a href="/">Home</a></li>
-        <li><a href="/store.html">Store</a></li>
-        <li><a href="/map.html" class="active">Map</a></li>
+        <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
+        <li><a href="/games.html" data-i18n="nav.games">🎮 Games</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/map.html" class="active" data-i18n="nav.map">🗺️ Map</a></li>
       </ul>
-      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
   </nav>
+  <div class="khmer-strip" aria-hidden="true"></div>
 
   <main class="map-wrap">
     <div class="container">
-      <h2>Cambodia Map — Live BlueMap</h2>
-      <p style="text-align:center; color: var(--ink-soft); margin-top:-1rem;">
-        Explore AngkorSMP in real time. Having trouble viewing it below?
-        <a id="map-open-link" href="#" target="_blank" rel="noopener">Open the map in a new tab ↗</a>
+      <h2 data-i18n="map.title">🌿 Cambodia Map — Live BlueMap 🌿</h2>
+      <p class="map-age" id="map-age-text"></p>
+      <p style="text-align:center; color: var(--ink-soft); margin-top:-0.5rem;">
+        <span data-i18n="map.explain">Explore AngkorSMP in real time. Having trouble viewing it below?</span>
+        <a id="map-open-link" href="#" target="_blank" rel="noopener" data-i18n="map.openNew">Open the map in a new tab ↗</a>
       </p>
       <div class="map-frame-holder" id="map-frame-holder">
         <div class="map-fallback" id="map-fallback">
-          <p>The live map couldn't be embedded here.</p>
-          <a href="#" id="map-open-link-2" target="_blank" rel="noopener">Open BlueMap in a new tab</a>
+          <p data-i18n="map.fallback">The live map couldn't be embedded here.</p>
+          <a href="#" id="map-open-link-2" target="_blank" rel="noopener" data-i18n="map.openBluemap">Open BlueMap in a new tab</a>
         </div>
       </div>
     </div>
   </main>
 
+  <div class="khmer-strip" aria-hidden="true"></div>
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> AngkorSMP.</p>
+    <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/map.js"></script>
-  <script>
-    document.getElementById("year").textContent = new Date().getFullYear();
-  </script>
 </body>
 </html>

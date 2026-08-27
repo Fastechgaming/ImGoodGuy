@@ -2,7 +2,7 @@ let allItems = { ranks: [], coins: [], other: [] };
 let activeCategory = "ranks";
 let supportTelegram = "";
 
-const CATEGORY_LABELS = { ranks: "Ranks", coins: "Coins", other: "Other" };
+const CATEGORY_KEYS = { ranks: "store.tab.ranks", coins: "store.tab.coins", other: "store.tab.other" };
 
 async function initStore() {
   const cfg = await getSiteConfig();
@@ -16,9 +16,9 @@ async function initStore() {
 function renderTabs() {
   const wrap = document.getElementById("store-tabs");
   wrap.innerHTML = "";
-  Object.keys(CATEGORY_LABELS).forEach((cat) => {
+  Object.keys(CATEGORY_KEYS).forEach((cat) => {
     const btn = document.createElement("button");
-    btn.textContent = CATEGORY_LABELS[cat];
+    btn.textContent = t(CATEGORY_KEYS[cat]);
     btn.className = cat === activeCategory ? "active" : "";
     btn.addEventListener("click", () => {
       activeCategory = cat;
@@ -39,25 +39,36 @@ function renderGrid() {
   const grid = document.getElementById("item-grid");
   const items = allItems[activeCategory] || [];
   if (!items.length) {
-    grid.innerHTML = '<p class="empty-note">No items here yet — check back soon!</p>';
+    grid.innerHTML = `<p class="empty-note">${escapeHtml(t("store.empty"))}</p>`;
     return;
   }
   grid.innerHTML = items
-    .map(
-      (item) => `
-    <div class="item-card">
-      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
+    .map((item) => {
+      const soon = Boolean(item.comingSoon);
+      return `
+    <div class="item-card${soon ? " coming-soon" : ""}">
+      <div class="item-image-wrap">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
+        ${soon ? "" : `<span class="sparkle sparkle-1" aria-hidden="true"></span>
+        <span class="sparkle sparkle-2" aria-hidden="true"></span>
+        <span class="sparkle sparkle-3" aria-hidden="true"></span>
+        <span class="sparkle sparkle-4" aria-hidden="true"></span>`}
+      </div>
       <div class="item-body">
         <h3>${escapeHtml(item.name)}</h3>
         <p>${escapeHtml(item.shortDesc)}</p>
-        <div class="price">$${Number(item.price).toFixed(2)}</div>
+        <div class="price">${soon ? "—" : escapeHtml(formatPrice(item.price))}</div>
         <div class="item-actions">
-          <button class="buy-btn" data-buy="${item.id}">Buy Now</button>
-          <button class="info-btn" data-info="${item.id}" title="Item info & kit video">!</button>
+          ${
+            soon
+              ? `<button class="buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
+              : `<button class="buy-btn" data-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
+          }
+          <button class="info-btn" data-info="${item.id}" title="${escapeHtml(t("store.infoTitle"))}">!</button>
         </div>
       </div>
-    </div>`
-    )
+    </div>`;
+    })
     .join("");
 
   grid.querySelectorAll("[data-buy]").forEach((btn) =>
@@ -92,60 +103,85 @@ function openInfoModal(item) {
     ${embed ? `<iframe class="video-embed" src="${escapeHtml(embed)}" allowfullscreen></iframe>` : ""}
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
+    <div class="info-buy-row">
+      <span class="price">${item.comingSoon ? "—" : escapeHtml(formatPrice(item.price))}</span>
+      ${
+        item.comingSoon
+          ? `<button class="continue-btn info-buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
+          : `<button class="continue-btn info-buy-btn" data-info-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
+      }
+    </div>
   `;
+  // Buying straight from the info popup: swap this modal for the buy modal.
+  const infoBuy = overlay.querySelector("[data-info-buy]");
+  if (infoBuy) {
+    infoBuy.addEventListener("click", () => {
+      closeInfoModal();
+      openBuyModal(item);
+    });
+  }
   overlay.classList.add("open");
 }
 
-document.getElementById("info-modal-close").addEventListener("click", () => {
+function closeInfoModal() {
   document.getElementById("info-modal").classList.remove("open");
   document.getElementById("info-modal-body").innerHTML = "";
+}
+document.getElementById("info-modal-close").addEventListener("click", closeInfoModal);
+// Clicking the dimmed backdrop (not the box itself) also closes it.
+document.getElementById("info-modal").addEventListener("click", (e) => {
+  if (e.target.id === "info-modal") closeInfoModal();
 });
 
-/* ---------------- Buy flow modal ---------------- */
+
+/* ---------------- Buy flow modal (step 1: who is this for?) ----------------
+   Payment itself happens on /checkout.html - the customer scans our KHQR,
+   uploads their receipt, and we approve it from Telegram. */
 const buyModal = document.getElementById("buy-modal");
 const buyModalBody = document.getElementById("buy-modal-body");
 let buyState = null;
-let pollTimer = null;
 
 function closeBuyModal() {
   buyModal.classList.remove("open");
-  clearInterval(pollTimer);
   buyState = null;
 }
 document.getElementById("buy-modal-close").addEventListener("click", closeBuyModal);
+buyModal.addEventListener("click", (e) => {
+  if (e.target.id === "buy-modal") closeBuyModal();
+});
 
 function openBuyModal(item) {
   if (!item) return;
   buyState = { item, edition: "java", name: "" };
-  renderBuyStep1();
+  renderBuyForm();
   buyModal.classList.add("open");
 }
 
-function renderBuyStep1() {
+function renderBuyForm() {
   const { item, edition, name } = buyState;
   buyModalBody.innerHTML = `
-    <h3>Buy: ${escapeHtml(item.name)}</h3>
-    <p class="price">$${Number(item.price).toFixed(2)}</p>
+    <h3>${escapeHtml(t("buy.title", { item: item.name }))}</h3>
+    <p class="price">${escapeHtml(formatPrice(item.price))}</p>
     <div class="field">
-      <label for="buy-name">Minecraft username</label>
-      <input type="text" id="buy-name" placeholder="Steve123" maxlength="20" value="${escapeHtml(name)}" autocomplete="off" />
+      <label for="buy-name">${escapeHtml(t("buy.username"))}</label>
+      <input type="text" id="buy-name" placeholder="Steve123" maxlength="24" value="${escapeHtml(name)}" autocomplete="off" />
     </div>
     <div class="field">
-      <label>Edition</label>
+      <label>${escapeHtml(t("buy.edition"))}</label>
       <div class="edition-toggle">
-        <button type="button" data-edition="java" class="${edition === "java" ? "active" : ""}">Java</button>
-        <button type="button" data-edition="bedrock" class="${edition === "bedrock" ? "active" : ""}">Bedrock</button>
+        <button type="button" data-edition="java" class="${edition === "java" ? "active" : ""}">${escapeHtml(t("buy.java"))}</button>
+        <button type="button" data-edition="bedrock" class="${edition === "bedrock" ? "active" : ""}">${escapeHtml(t("buy.bedrock"))}</button>
       </div>
       <span class="preview-name" id="name-preview"></span>
     </div>
-    <button class="continue-btn" id="continue-btn">Continue</button>
+    <button class="continue-btn" id="continue-btn">${escapeHtml(t("buy.continue"))}</button>
   `;
 
   const nameInput = document.getElementById("buy-name");
   const preview = document.getElementById("name-preview");
   const updatePreview = () => {
-    const clean = nameInput.value.trim();
-    preview.textContent = clean ? `Will be shown as: ${buyState.edition === "bedrock" ? "." + clean : clean}` : "";
+    const shown = normalizeServerName(nameInput.value, buyState.edition);
+    preview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
   };
   nameInput.addEventListener("input", () => {
     buyState.name = nameInput.value;
@@ -166,13 +202,13 @@ function renderBuyStep1() {
 
 async function startCheckout() {
   const name = buyState.name.trim();
-  if (!/^[A-Za-z0-9_]{2,16}$/.test(name)) {
-    showToast("Enter a valid Minecraft username (letters, numbers, underscore).");
+  if (!isValidRawName(name, buyState.edition)) {
+    showToast(t(buyState.edition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
     return;
   }
   const continueBtn = document.getElementById("continue-btn");
   continueBtn.disabled = true;
-  continueBtn.textContent = "Generating KHQR…";
+  continueBtn.textContent = t("buy.wait");
 
   try {
     const result = await fetchJSON("/api/checkout", {
@@ -180,84 +216,20 @@ async function startCheckout() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId: buyState.item.id, playerName: name, edition: buyState.edition }),
     });
-    buyState.order = result;
-    renderBuyStep2();
-    updateQrStatusCountdown();
-    pollTimer = setInterval(pollPaymentStatus, 4000);
+    window.location.href = `/checkout.html?order=${encodeURIComponent(result.orderId)}`;
   } catch (err) {
     showToast(err.message);
     continueBtn.disabled = false;
-    continueBtn.textContent = "Continue";
+    continueBtn.textContent = t("buy.continue");
   }
 }
 
-function renderBuyStep2() {
-  const { order } = buyState;
-  buyModalBody.innerHTML = `
-    <button class="back-link" id="back-to-form">&larr; Back</button>
-    <div class="qr-box">
-      <h3>Scan to pay with KHQR</h3>
-      <img src="${order.qrDataUrl}" alt="KHQR code" />
-      <div class="qr-meta"><span>Item</span><strong>${escapeHtml(order.itemName)}</strong></div>
-      <div class="qr-meta"><span>Player</span><strong>${escapeHtml(order.playerName)}</strong></div>
-      <div class="qr-meta"><span>Amount</span><strong>$${Number(order.amount).toFixed(2)} ${escapeHtml(order.currency)}</strong></div>
-      <p class="qr-status" id="qr-status">Waiting for payment…</p>
-    </div>
-  `;
-  document.getElementById("back-to-form").addEventListener("click", () => {
-    clearInterval(pollTimer);
-    renderBuyStep1();
-  });
-}
-
-function updateQrStatusCountdown() {
-  const statusEl = document.getElementById("qr-status");
-  const expiresAt = buyState?.order?.expiresAt;
-  if (!statusEl || !expiresAt) return;
-  const msLeft = expiresAt - Date.now();
-  if (msLeft <= 0) {
-    statusEl.textContent = "This KHQR has expired. Go back and try again.";
-    clearInterval(pollTimer);
-    return;
-  }
-  const mins = Math.floor(msLeft / 60000);
-  const secs = Math.floor((msLeft % 60000) / 1000);
-  statusEl.textContent = `Waiting for payment… expires in ${mins}:${String(secs).padStart(2, "0")}`;
-}
-
-async function pollPaymentStatus() {
-  if (!buyState?.order) return;
-  updateQrStatusCountdown();
-  if (buyState.order.expiresAt && Date.now() > buyState.order.expiresAt) return;
-  try {
-    const res = await fetchJSON(`/api/checkout/${buyState.order.orderId}/status`);
-    if (res.status === "paid") {
-      clearInterval(pollTimer);
-      renderBuySuccess();
-    }
-  } catch {
-    /* keep polling silently */
-  }
-}
-
-function renderBuySuccess() {
-  const { order } = buyState;
-  buyModalBody.innerHTML = `
-    <div class="success-box">
-      <div class="success-icon">✅</div>
-      <h3>Purchase successful!</h3>
-      <div class="receipt">
-        <div><span>Item</span><strong>${escapeHtml(order.itemName)}</strong></div>
-        <div><span>Player</span><strong>${escapeHtml(order.playerName)}</strong></div>
-        <div><span>Amount paid</span><strong>$${Number(order.amount).toFixed(2)} ${escapeHtml(order.currency)}</strong></div>
-        <div><span>Order ID</span><strong>${escapeHtml(order.orderId)}</strong></div>
-      </div>
-      <p>Your item will be delivered in-game shortly. Need help? Contact support:</p>
-      ${supportTelegram ? `<a class="tg-support-btn" href="https://t.me/${encodeURIComponent(supportTelegram)}" target="_blank" rel="noopener">💬 Telegram Support</a>` : ""}
-      <br /><button class="back-link" id="back-to-store" style="margin-top:1rem;">&larr; Back to store</button>
-    </div>
-  `;
-  document.getElementById("back-to-store").addEventListener("click", closeBuyModal);
-}
+// Re-render everything when the language button is pressed.
+document.addEventListener("i18n:change", () => {
+  if (!allItems) return;
+  renderTabs();
+  renderGrid();
+  if (buyState) renderBuyForm();
+});
 
 initStore();
