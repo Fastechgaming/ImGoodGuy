@@ -4,6 +4,11 @@ async function loadMap() {
   const fallback = document.getElementById("map-fallback");
   const openLinks = [document.getElementById("map-open-link"), document.getElementById("map-open-link-2")];
 
+  const mapAgeText = document.getElementById("map-age-text");
+  if (mapAgeText) {
+    mapAgeText.textContent = cfg.mapStartDate ? `Map Age: ${formatDaysHours(daysHoursSince(cfg.mapStartDate))}` : "";
+  }
+
   if (!cfg.bluemapUrl || cfg.bluemapUrl.includes("map.angkorsmp.com")) {
     // Still the placeholder from site.config.json - nothing real to embed yet.
     fallback.classList.add("show");

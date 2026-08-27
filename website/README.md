@@ -75,7 +75,8 @@ BlueMap's web app doesn't send restrictive framing headers by default, so embedd
 
 ## 6. Server status & the Home page IP button
 
-- Server status (online/offline + player count) is fetched server-side via `minecraft-server-util`, tried as **Java** first, then **Bedrock** — cached for 10 seconds so a burst of visitors doesn't hammer your server.
+- Server status (online/offline + player count) is fetched server-side via `minecraft-server-util`, checking **Java and Bedrock at the same time** (whichever answers first "wins") — cached for 10 seconds so a burst of visitors doesn't hammer your server.
+- **If it shows offline while the server is actually online:** this is almost always the *website's* host blocking the outbound connection, not the Minecraft server. Check the server console/logs for a line like `[minecraft-status] java(...): ... | bedrock(...): ...` — it prints the real error for both checks every time. `"offline or unreachable"` after a full timeout usually means the machine running this website can't reach that port at all (many cheap web hosts only allow outbound 80/443, and outbound UDP for Bedrock in particular is often blocked). To fix it: host the website somewhere that allows outbound TCP to your `javaPort` and outbound UDP to your `bedrockPort`, or double-check those two values in `config/site.config.json` actually match your real server ports.
 - The **Server IP** button behaves differently by device, per your request:
   - **Desktop/laptop:** click → copies the Java IP:port to the clipboard.
   - **Mobile:** tap → copies the IP too, *and* tries to open the Minecraft Bedrock app directly to your server via a `minecraft://` deep link (only works if the visitor has Minecraft Bedrock installed; there's no equivalent official deep link for Java Edition, which is why desktop uses copy).

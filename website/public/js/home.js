@@ -1,13 +1,3 @@
-function formatUptime(releaseDateISO) {
-  const start = new Date(releaseDateISO).getTime();
-  const now = Date.now();
-  if (Number.isNaN(start) || now < start) return { days: 0, hours: 0 };
-  const diffMs = now - start;
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
-  return { days, hours };
-}
-
 async function loadHome() {
   const cfg = await getSiteConfig();
 
@@ -42,13 +32,15 @@ async function loadHome() {
     }
   });
 
-  document.getElementById("season-value").textContent = cfg.season || "—";
-  document.getElementById("release-value").textContent = cfg.releaseDate
-    ? new Date(cfg.releaseDate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
+  document.getElementById("release-value").textContent = formatConfigDate(cfg.releaseDate);
+  document.getElementById("server-age-value").textContent = cfg.releaseDate
+    ? formatDaysHours(daysHoursSince(cfg.releaseDate))
     : "—";
 
-  const { days, hours } = formatUptime(cfg.releaseDate);
-  document.getElementById("uptime-value").textContent = `${days}d ${hours}h`;
+  document.getElementById("season-value").textContent = cfg.season || "—";
+  document.getElementById("season-age-value").textContent = cfg.seasonStartDate
+    ? formatDaysHours(daysHoursSince(cfg.seasonStartDate))
+    : "—";
 
   refreshStatus();
   setInterval(refreshStatus, 30000);

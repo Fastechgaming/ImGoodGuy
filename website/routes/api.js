@@ -23,6 +23,8 @@ router.get("/config", (req, res) => {
     bedrockPort: cfg.bedrockPort,
     releaseDate: cfg.releaseDate,
     season: cfg.season,
+    seasonStartDate: cfg.seasonStartDate,
+    mapStartDate: cfg.mapStartDate,
     bluemapUrl: cfg.bluemapUrl,
     socials: cfg.socials,
     supportTelegram: process.env.TELEGRAM_SUPPORT_USERNAME || "",

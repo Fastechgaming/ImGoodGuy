@@ -17,6 +17,38 @@ function showToast(message) {
   toast._hideTimer = setTimeout(() => toast.classList.remove("show"), 2500);
 }
 
+// Days/hours elapsed since a given ISO date - used for "server age",
+// "season age" and "map age" stats.
+function daysHoursSince(sinceISO) {
+  const start = new Date(sinceISO).getTime();
+  const now = Date.now();
+  if (Number.isNaN(start) || now < start) return { days: 0, hours: 0 };
+  const diffMs = now - start;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+  return { days, hours };
+}
+
+function formatDaysHours({ days, hours }) {
+  return `${days}d ${hours}h`;
+}
+
+// Formats just the calendar date (Y-M-D) from a config ISO string, ignoring
+// the visitor's own timezone - so "2025-05-31T00:00:00+07:00" always reads
+// as May 31, never May 30 for someone browsing from the Americas.
+function formatConfigDate(iso) {
+  if (!iso) return "—";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return "—";
+  const [, y, mo, d] = m;
+  return new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function isMobileDevice() {
   return /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
 }

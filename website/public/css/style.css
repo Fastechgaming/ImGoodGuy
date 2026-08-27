@@ -183,6 +183,7 @@ button { font-family: inherit; }
 .action-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--brown-darkest); }
 .action-btn.discord { background: #5865f2; color: #fff; }
 .action-btn.server-ip { background: linear-gradient(180deg, var(--gold-light), var(--gold)); color: var(--brown-darkest); }
+.action-btn.store { background: linear-gradient(180deg, #4fbf6a, var(--jungle)); color: #fff; }
 .action-btn small { font-weight: 600; opacity: 0.85; font-size: 0.72rem; }
 .action-btn .ip-text { font-size: 1.1rem; }
 
@@ -248,8 +249,11 @@ button { font-family: inherit; }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 340px));
   gap: 1.1rem;
+  justify-content: center;
+  max-width: 760px;
+  margin: 0 auto;
 }
 .info-card {
   background: #fff;
@@ -263,6 +267,9 @@ button { font-family: inherit; }
 .info-card:hover { transform: translateY(-3px); }
 .info-card .value { font-family: "Baloo 2", serif; font-weight: 800; font-size: 1.6rem; color: var(--terracotta); }
 .info-card .label { color: var(--ink-soft); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+.info-card.stacked .stat-divider { height: 2px; background: var(--cream-dark); border-radius: 2px; margin: 0.9rem 0; }
+.info-card.stacked .sub-value { font-family: "Baloo 2", serif; font-weight: 700; font-size: 1.2rem; color: var(--jungle); }
+.info-card.stacked .sub-label { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
 
 .welcome-box {
   max-width: 720px;
@@ -477,6 +484,14 @@ button { font-family: inherit; }
 
 /* ---------- Map page ---------- */
 .map-wrap { padding: 1.25rem; }
+.map-age {
+  text-align: center;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+  color: var(--terracotta);
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem;
+}
 .map-frame-holder {
   position: relative;
   width: 100%;

@@ -96,9 +96,14 @@ function openInfoModal(item) {
   overlay.classList.add("open");
 }
 
-document.getElementById("info-modal-close").addEventListener("click", () => {
+function closeInfoModal() {
   document.getElementById("info-modal").classList.remove("open");
   document.getElementById("info-modal-body").innerHTML = "";
+}
+document.getElementById("info-modal-close").addEventListener("click", closeInfoModal);
+// Clicking the dimmed backdrop (not the box itself) also closes it.
+document.getElementById("info-modal").addEventListener("click", (e) => {
+  if (e.target.id === "info-modal") closeInfoModal();
 });
 
 /* ---------------- Buy flow modal ---------------- */
