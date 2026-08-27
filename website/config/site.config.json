@@ -1,0 +1,19 @@
+{
+  "serverName": "AngkorSMP",
+  "tagline": "A Khmer-inspired Minecraft Survival Multiplayer world",
+  "welcomeMessage": "Welcome to AngkorSMP! Build among the ruins, survive the jungle, and write your own chapter of the empire.",
+  "logo": "/images/site/logo.svg",
+  "discordInvite": "https://discord.gg/your-invite-code",
+  "javaIp": "play.angkorsmp.com",
+  "javaPort": 25565,
+  "bedrockIp": "play.angkorsmp.com",
+  "bedrockPort": 19132,
+  "releaseDate": "2025-01-01T00:00:00+07:00",
+  "season": "Season 1: Rise of Angkor",
+  "bluemapUrl": "https://map.angkorsmp.com",
+  "socials": {
+    "discord": "https://discord.gg/your-invite-code",
+    "youtube": "",
+    "tiktok": ""
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "ranks": [
+    {
+      "id": "rank-devata",
+      "name": "Devata Rank",
+      "price": 4.99,
+      "currency": "USD",
+      "image": "/images/items/placeholder-rank.svg",
+      "shortDesc": "A great starting rank with extra homes and a colored name.",
+      "infoText": "The Devata Rank gives you:\n- /home x3\n- Colored name tag in chat\n- Access to /kit devata (once every 24h)\n- 2 extra sethomes",
+      "videoUrl": "",
+      "category": "ranks"
+    },
+    {
+      "id": "rank-apsara",
+      "name": "Apsara Rank",
+      "price": 9.99,
+      "currency": "USD",
+      "image": "/images/items/placeholder-rank.svg",
+      "shortDesc": "For the dedicated builder. More homes, more perks.",
+      "infoText": "The Apsara Rank includes everything in Devata, plus:\n- /home x6\n- /kit apsara (once every 12h)\n- Particle trail cosmetics\n- Priority queue on join",
+      "videoUrl": "",
+      "category": "ranks"
+    }
+  ],
+  "coins": [
+    {
+      "id": "coins-500",
+      "name": "500 Angkor Coins",
+      "price": 2.5,
+      "currency": "USD",
+      "image": "/images/items/placeholder-coins.svg",
+      "shortDesc": "Spend at the in-game /shop for cosmetics and crates.",
+      "infoText": "500 Angkor Coins are added to your in-game balance within a few minutes of payment. Use /coins to check your balance in-game.",
+      "videoUrl": "",
+      "category": "coins"
+    },
+    {
+      "id": "coins-1200",
+      "name": "1200 Angkor Coins",
+      "price": 5,
+      "currency": "USD",
+      "image": "/images/items/placeholder-coins.svg",
+      "shortDesc": "Best value coin pack.",
+      "infoText": "1200 Angkor Coins (includes bonus coins) are added to your in-game balance within a few minutes of payment.",
+      "videoUrl": "",
+      "category": "coins"
+    }
+  ],
+  "other": [
+    {
+      "id": "other-vote-crate-key",
+      "name": "Vote Crate Key x5",
+      "price": 1.5,
+      "currency": "USD",
+      "image": "/images/items/placeholder-other.svg",
+      "shortDesc": "5 keys for the Vote Crate at spawn.",
+      "infoText": "Delivered straight to your in-game inventory/mailbox. Use /crates to open them at any crate location.",
+      "videoUrl": "",
+      "category": "other"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Map — AngkorSMP</title>
+<link rel="icon" href="/images/site/logo.svg" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a class="brand" href="/">
+        <img src="/images/site/logo.svg" alt="logo" onerror="this.style.display='none'" />
+        AngkorSMP
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/store.html">Store</a></li>
+        <li><a href="/map.html" class="active">Map</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+    </div>
+  </nav>
+
+  <main class="map-wrap">
+    <div class="container">
+      <h2>Cambodia Map — Live BlueMap</h2>
+      <p style="text-align:center; color: var(--ink-soft); margin-top:-1rem;">
+        Explore AngkorSMP in real time. Having trouble viewing it below?
+        <a id="map-open-link" href="#" target="_blank" rel="noopener">Open the map in a new tab ↗</a>
+      </p>
+      <div class="map-frame-holder" id="map-frame-holder">
+        <div class="map-fallback" id="map-fallback">
+          <p>The live map couldn't be embedded here.</p>
+          <a href="#" id="map-open-link-2" target="_blank" rel="noopener">Open BlueMap in a new tab</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; <span id="year"></span> AngkorSMP.</p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/map.js"></script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
