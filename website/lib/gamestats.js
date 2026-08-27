@@ -23,11 +23,11 @@ const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 // `maxPointsPerSecond` is the plausibility ceiling: no honest player can score
 // faster than this, so anything above it gets clamped rather than paid out.
 const GAMES = {
-  "creeper-clicker": { name: "Creeper Clicker", coinsPerPoint: 0.6, maxPointsPerSecond: 22, maxCoinsPerRound: 200 },
+  "bow-shot": { name: "Bow Shot", coinsPerPoint: 0.2, maxPointsPerSecond: 45, maxCoinsPerRound: 200 },
   "block-breaker": { name: "Block Breaker", coinsPerPoint: 0.45, maxPointsPerSecond: 24, maxCoinsPerRound: 200 },
   "wind-charge-dodge": { name: "Wind Charge Dodge", coinsPerPoint: 0.5, maxPointsPerSecond: 12, maxCoinsPerRound: 200 },
-  "zombie-survival": { name: "Zombie Survival", coinsPerPoint: 0.16, maxPointsPerSecond: 60, maxCoinsPerRound: 200 },
-  "minecraft-memory": { name: "Minecraft Memory", coinsPerPoint: 0.3, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
+  "diamond-rush": { name: "Diamond Rush", coinsPerPoint: 0.35, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
+  "build-it": { name: "Build It!", coinsPerPoint: 0.3, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
 };
 
 const GAME_IDS = Object.keys(GAMES);

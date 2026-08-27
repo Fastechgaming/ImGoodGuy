@@ -1278,36 +1278,39 @@ body.game-open { overflow: hidden; }
 }
 .game-canvas { display: block; width: 100%; height: 100%; }
 
-/* --- Creeper Click --- */
-.creeper-stage { background: linear-gradient(180deg, #6fa8dc 0%, #3f7a3a 55%, #2f5a2a 100%); cursor: crosshair; }
-.creeper {
+/* --- Bow Shot --- */
+.bow-stage {
+  background:
+    radial-gradient(circle at 50% 78%, rgba(255,255,255,0.10) 0%, transparent 55%),
+    linear-gradient(180deg, #7fb7dd 0%, #a8cf7e 52%, #4e8a3c 100%);
+  cursor: crosshair;
+}
+.target {
   position: absolute;
-  border: 0;
+  top: 0;
+  left: 0;
   padding: 0;
-  background: #4caf50;
-  border-radius: 5px;
-  cursor: pointer;
-  box-shadow: inset -4px -4px 0 rgba(0,0,0,0.28), inset 4px 4px 0 rgba(255,255,255,0.18), 0 3px 6px rgba(0,0,0,0.35);
-  animation: creeper-in 0.16s ease-out;
+  border: 3px solid #6d2318;
+  border-radius: 50%;
+  cursor: crosshair;
+  background: radial-gradient(circle,
+    #fffdf3 0 16%, #e04a3a 16% 34%, #fffdf3 34% 52%,
+    #e04a3a 52% 70%, #fffdf3 70% 86%, #e04a3a 86% 100%);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  animation: target-in 0.16s ease-out;
   touch-action: manipulation;
+  will-change: transform;
 }
-.creeper.charged { background: #4fd8e8; box-shadow: inset -4px -4px 0 rgba(0,0,0,0.28), inset 4px 4px 0 rgba(255,255,255,0.25), 0 0 14px 4px rgba(120,230,255,0.7); }
-.creeper-face { position: relative; display: block; width: 100%; height: 100%; }
-.creeper-face i {
-  position: absolute; top: 26%; width: 22%; height: 22%;
-  background: #16321a; border-radius: 2px;
-}
-.creeper-face i:first-child { left: 16%; }
-.creeper-face i:nth-child(2) { right: 16%; }
-.creeper-face b {
-  position: absolute; left: 32%; top: 50%; width: 36%; height: 32%;
-  background: #16321a; border-radius: 2px;
-}
-.creeper.popped { animation: creeper-pop 0.16s ease-in forwards; }
-.creeper.boom { animation: creeper-boom 0.26s ease-out forwards; }
-@keyframes creeper-in { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-@keyframes creeper-pop { to { transform: scale(1.5); opacity: 0; } }
-@keyframes creeper-boom { 0% { background: #ff8a3c; } 100% { transform: scale(1.8); opacity: 0; background: #ff3c1f; } }
+.target-face { display: block; width: 100%; height: 100%; }
+/* Small targets read as further away; moving ones get a golden rim. */
+.target.small { border-color: #3f6d21; box-shadow: 0 3px 6px rgba(0,0,0,0.45), 0 0 10px 2px rgba(180,255,140,0.5); }
+.target.moving { border-color: var(--gold-deep); box-shadow: 0 3px 8px rgba(0,0,0,0.45), 0 0 14px 4px rgba(255,205,90,0.65); }
+.target.target-hit { animation: target-hit 0.22s ease-out forwards; pointer-events: none; }
+.target.target-gone { animation: target-gone 0.22s ease-in forwards; pointer-events: none; }
+@keyframes target-in { from { transform: scale(0.35); opacity: 0; } }
+@keyframes target-hit { to { transform: scale(1.6); opacity: 0; } }
+@keyframes target-gone { to { transform: scale(0.5); opacity: 0; } }
+
 .float-text {
   position: absolute;
   transform: translate(-50%, -50%);
@@ -1408,16 +1411,6 @@ body.game-open { overflow: hidden; }
   line-height: 1.35;
 }
 
-/* ---------- Creeper Clicker: golden variant ---------- */
-.creeper.golden {
-  background: #f7c948;
-  box-shadow:
-    inset -4px -4px 0 rgba(0,0,0,0.28),
-    inset 4px 4px 0 rgba(255,255,255,0.35),
-    0 0 14px 4px rgba(255, 214, 92, 0.75);
-}
-.creeper.golden .creeper-face i, .creeper.golden .creeper-face b { background: #6b4a05; }
-
 /* ---------- Wind Charge Dodge ---------- */
 .dodge-stage {
   background:
@@ -1426,113 +1419,135 @@ body.game-open { overflow: hidden; }
   cursor: none;
 }
 
-/* ---------- Zombie Survival ---------- */
-.zombie-stage {
-  background: linear-gradient(180deg, #1c2a3d 0%, #2c3d2a 55%, #3a4a2a 100%);
-  cursor: crosshair;
-}
-.zombie-stage.stage-hurt { animation: stage-hurt 0.22s; }
-@keyframes stage-hurt {
-  0%, 100% { box-shadow: inset 0 0 0 0 rgba(255,60,40,0); }
-  50% { box-shadow: inset 0 0 60px 10px rgba(255,60,40,0.55); }
-}
-/* The gate the mobs are walking toward. */
-.zombie-gate {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 16px;
-  background:
-    repeating-linear-gradient(90deg, #6b4a26 0 14px, #573a1c 14px 28px);
-  border-top: 3px solid var(--stone-darkest);
-}
-.mob {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  touch-action: manipulation;
-  will-change: transform;
-}
-.mob-emoji { font-size: 1.9rem; line-height: 1; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.5)); }
-.mob.armored .mob-emoji { filter: drop-shadow(0 0 6px #9fd0ff) drop-shadow(0 3px 3px rgba(0,0,0,0.5)); }
-.mob.burning .mob-emoji { filter: drop-shadow(0 0 8px #ff8a3c); animation: mob-flicker 0.4s infinite alternate; }
-.mob.boss .mob-emoji { font-size: 2.9rem; filter: drop-shadow(0 0 10px #ff4d6d) drop-shadow(0 3px 4px rgba(0,0,0,0.6)); }
-@keyframes mob-flicker { from { opacity: 0.75; } to { opacity: 1; } }
-.mob.hurt { animation: mob-hurt 0.14s; }
-@keyframes mob-hurt { 50% { transform: scale(1.25); } }
-.mob.mob-dead { animation: mob-dead 0.22s ease-in forwards; pointer-events: none; }
-@keyframes mob-dead { to { opacity: 0; transform: scale(0.4) rotate(25deg); } }
-.mob-hp {
-  position: absolute;
-  left: 10%;
-  right: 10%;
-  bottom: -6px;
-  height: 5px;
-  border: 2px solid var(--stone-darkest);
-  border-radius: 999px;
-  background: rgba(0,0,0,0.5);
-  overflow: hidden;
-}
-.mob-hp i { display: block; height: 100%; background: #6bd36b; transition: width 0.14s; }
-
-/* ---------- Minecraft Memory ---------- */
-.mem-board {
+/* ---------- Diamond Rush ---------- */
+.mine-grid {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  max-width: 460px;
-  margin: 0 auto;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 3px solid var(--stone-darkest);
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 3px, transparent 3px 22px),
+    linear-gradient(180deg, #4a4038, #322a24);
+  transition: transform 0.12s;
 }
-.mem-card {
-  aspect-ratio: 1;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  perspective: 600px;
-  touch-action: manipulation;
+.mine-grid.mine-boom { animation: mine-boom 0.3s; }
+@keyframes mine-boom {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(255,80,40,0); }
+  40% { box-shadow: inset 0 0 50px 12px rgba(255,90,40,0.7); transform: translateX(-4px); }
+  70% { transform: translateX(4px); }
 }
-.mem-inner {
-  position: relative;
-  display: block;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.28s cubic-bezier(.34,1.4,.64,1);
-  transform-style: preserve-3d;
-}
-.mem-card.open .mem-inner, .mem-card.matched .mem-inner { transform: rotateY(180deg); }
-.mem-back, .mem-front {
-  position: absolute;
-  inset: 0;
+.mine-grid.mine-shift .mine-cell:not(.mined) { animation: mine-shift 0.26s; }
+@keyframes mine-shift { from { transform: translateY(-8px) scale(0.9); opacity: 0.4; } }
+.mine-cell {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  aspect-ratio: 1;
+  padding: 0;
+  cursor: pointer;
+  border: 3px solid #241d18;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #6f6157, #55483f);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,0.16), 0 3px 0 #241d18;
+  transition: transform 0.1s, opacity 0.15s, background 0.15s;
+  touch-action: manipulation;
+}
+.mine-cell:hover:not(.mined) { transform: translateY(-2px) scale(1.04); }
+.mine-cell:active:not(.mined) { transform: translateY(2px); box-shadow: inset 0 2px 0 rgba(255,255,255,0.16), 0 1px 0 #241d18; }
+.mine-cell.mined {
+  cursor: default;
+  background: linear-gradient(180deg, #1d1713, #120e0b);
+  box-shadow: inset 0 3px 8px rgba(0,0,0,0.8);
+}
+.mine-cell.tnt { background: linear-gradient(180deg, #8a4030, #5f2a1e); border-color: #3d160f; }
+.mine-emoji { font-size: 1.7rem; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.55)); }
+
+/* ---------- Build It! ---------- */
+.build-banner {
+  text-align: center;
+  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+  min-height: 1.6em;
+}
+.build-banner.memorise { color: var(--gold-light); }
+.build-banner.building { color: var(--moss-light); }
+.build-banner.review { color: var(--ink-soft); }
+.build-banner.perfect { color: var(--gold); animation: build-pop 0.4s; }
+@keyframes build-pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.18); } }
+.build-grid {
+  display: grid;
+  gap: 0.35rem;
+  max-width: 340px;
+  margin: 0 auto;
+  padding: 0.45rem;
+  border: 3px solid var(--stone-darkest);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.22);
+}
+.build-grid.showing { box-shadow: 0 0 18px 4px rgba(255, 205, 90, 0.45); }
+.build-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 3px solid var(--stone-darkest);
+  border-radius: 7px;
+  background: rgba(255,255,255,0.05);
+  cursor: pointer;
+  transition: transform 0.1s, background 0.12s;
+  touch-action: manipulation;
+}
+.build-cell.filled { background: var(--stone-surface); box-shadow: inset 0 2px 0 rgba(255,255,255,0.2); }
+.build-cell:hover:not(:disabled) { transform: scale(1.06); }
+.build-cell:disabled { cursor: default; }
+.build-cell.mark-right { border-color: var(--moss); box-shadow: 0 0 10px rgba(107,181,68,0.8); }
+.build-cell.mark-wrong { border-color: #ff4d3d; box-shadow: 0 0 10px rgba(255,77,61,0.8); }
+.build-cell.mark-missed { border-style: dashed; border-color: var(--gold); }
+.build-emoji { font-size: 1.5rem; line-height: 1; }
+
+.build-palette {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  margin: 0.8rem 0 0.6rem;
+}
+.build-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  min-width: 62px;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
   border: 3px solid var(--stone-darkest);
   border-radius: 10px;
-  backface-visibility: hidden;
-  box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 3px 0 var(--stone-darkest);
+  background: linear-gradient(180deg, #7d5936, #5c3f22);
+  box-shadow: 0 3px 0 var(--stone-darkest);
+  transition: transform 0.12s, box-shadow 0.12s;
+  touch-action: manipulation;
 }
-.mem-back { background: linear-gradient(180deg, #7d5936, #5c3f22); }
-.mem-front { background: var(--stone-surface); transform: rotateY(180deg); }
-.mem-card.matched .mem-front { border-color: var(--moss); box-shadow: inset 0 2px 0 rgba(255,255,255,0.25), 0 0 12px rgba(107,181,68,0.7); }
-.mem-card.wrong .mem-front { border-color: #ff4d3d; box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 0 12px rgba(255,77,61,0.7); }
-.mem-card:disabled { cursor: default; }
+.build-swatch:hover:not(:disabled) { transform: translateY(-2px); }
+.build-swatch:disabled { opacity: 0.5; cursor: default; }
+.build-swatch.active { border-color: var(--gold); box-shadow: 0 3px 0 var(--gold-deep), 0 0 12px rgba(255,205,90,0.6); }
+.build-swatch-name { font-size: 0.58rem; font-weight: 700; color: var(--on-dark); line-height: 1.1; }
+.build-done { max-width: 240px; margin: 0 auto; }
+.build-done:disabled { opacity: 0.45; cursor: default; }
 
 @media (max-width: 560px) {
-  .mem-board { gap: 0.4rem; }
-  .mem-back, .mem-front { font-size: 1.4rem; border-width: 2px; }
-  .mob-emoji { font-size: 1.6rem; }
-  .mob.boss .mob-emoji { font-size: 2.3rem; }
+  .mine-grid { gap: 0.34rem; padding: 0.4rem; }
+  .mine-cell { border-width: 2px; }
+  .mine-emoji { font-size: 1.35rem; }
+  .build-grid { gap: 0.28rem; max-width: 300px; }
+  .build-cell { border-width: 2px; }
+  .build-emoji { font-size: 1.2rem; }
+  .build-swatch { min-width: 54px; padding: 0.32rem 0.4rem; }
+  .build-banner { font-size: 0.95rem; }
   .daily-progress-label { font-size: 0.72rem; }
 }
 

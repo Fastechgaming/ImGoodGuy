@@ -150,21 +150,22 @@ const I18n = (() => {
 
       /* ---- games: in-game HUD ---- */
       "hud.points": "Points",
-      "hud.combo": "Combo",
       "hud.time": "Time",
       "hud.streak": "Streak",
       "hud.lives": "Lives",
       "hud.dodges": "Dodges",
       "hud.survived": "Survived",
-      "hud.board": "Board",
-      "game.miss": "Miss!",
+      "hud.hits": "Hits",
+      "hud.ores": "Ores",
+      "hud.level": "Level",
 
       /* ---- games: the five games ---- */
-      "game.creeper.name": "Creeper Clicker",
-      "game.creeper.desc": "Tap creepers before they blow up. Charged and golden ones pay more.",
-      "game.creeper.howto":
-        "Tap every creeper you see. 5 hits in a row doubles your points — tapping empty ground breaks the combo.",
-      "game.creeper.hint": "Normal +1 · Charged +3 · Golden +5",
+      "game.bow.name": "Bow Shot",
+      "game.bow.desc": "Shoot as many targets as you can. Small and moving ones are worth more.",
+      "game.bow.howto":
+        "Tap a target to loose an arrow. Normal +10 · Small +25 · Moving +40. Missing costs nothing — targets just shrink and speed up as the round goes on.",
+      "game.bow.hint": "Target +10 · Small +25 · Moving +40 · Miss 0",
+      "game.bow.miss": "Miss",
 
       "game.breaker.name": "Block Breaker",
       "game.breaker.desc": "Break only the block named at the top. The faster you tap, the more it pays.",
@@ -179,18 +180,23 @@ const I18n = (() => {
         "Drag to move (or use the arrow keys). Grazing a wind charge pays +2 and emeralds are +10. One hit ends the run.",
       "game.dodge.hint": "Drag to move · Close dodge +2 · Emerald +10",
 
-      "game.zombie.name": "Zombie Survival",
-      "game.zombie.desc": "Tap the mobs before they reach your gate. A Mini Boss is worth 100.",
-      "game.zombie.howto":
-        "Zombie +5 · Armored +15 (2 hits) · Burning +25 · Mini Boss +100 (5 hits). You have 3 hearts — the run ends when they're gone.",
-      "game.zombie.hint": "Zombie +5 · Armored +15 · Burning +25 · Boss +100",
-      "game.zombie.hit": "Hit!",
+      "game.rush.name": "Diamond Rush",
+      "game.rush.desc": "Mine as much value as you can before time runs out. Watch for the TNT.",
+      "game.rush.howto":
+        "Tap ore to mine it. Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · TNT costs points and jams your pick. The seam reshuffles faster and faster.",
+      "game.rush.hint": "Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · 🧨 penalty",
+      "game.rush.rubble": "Rubble",
 
-      "game.memory.name": "Minecraft Memory",
-      "game.memory.desc": "Flip two cards and match the pair. Every board is bigger than the last.",
-      "game.memory.howto":
-        "Match a pair quickly for a speed bonus. A wrong pair costs a heart — the run ends when all 5 are gone.",
-      "game.memory.hint": "Fast matches score more · Wrong pair = -1 ❤️",
+      "game.build.name": "Build It!",
+      "game.build.desc": "Memorise the structure, then rebuild it block for block. Each one is bigger.",
+      "game.build.howto":
+        "Study the build before it disappears, then pick a block and place it. Right block in the right place +8, wrong block -4, and building fast pays a bonus. You have 3 hearts.",
+      "game.build.hint": "Right place +8 · Wrong block -4 · Build fast for a bonus",
+      "game.build.memorise": "Memorise it! {secs}",
+      "game.build.rebuild": "Rebuild it! {secs}",
+      "game.build.done": "Done",
+      "game.build.perfect": "PERFECT!",
+      "game.build.scored": "{correct} / {total} blocks right",
 
       /* ---- games: result screen ---- */
       "result.headline": "Nice run!",
@@ -199,20 +205,23 @@ const I18n = (() => {
       "result.backToGames": "← Back to games",
       "result.capped": "The daily limit topped you up to {cap} Coins for this game.",
       "result.saveFailed": "Couldn't reach the server, so this round's coins weren't saved.",
-      "result.creepersPopped": "Creepers popped",
-      "result.bestCombo": "Best combo",
-      "result.missed": "Missed",
+      "result.targetsHit": "Targets hit",
+      "result.smallHits": "Small targets",
+      "result.movingHits": "Moving targets",
+      "result.accuracy": "Accuracy",
       "result.blocksBroken": "Blocks broken",
       "result.wrongBlocks": "Wrong blocks",
       "result.bestStreak": "Best streak",
       "result.survived": "Survived",
       "result.dodges": "Close dodges",
       "result.emeralds": "Emeralds",
-      "result.mobsKilled": "Mobs killed",
-      "result.bossesKilled": "Mini bosses",
-      "result.boardsCleared": "Boards cleared",
-      "result.pairsFound": "Pairs found",
-      "result.mistakes": "Mistakes",
+      "result.oresMined": "Ores mined",
+      "result.gems": "Diamonds & Emeralds",
+      "result.bestFind": "Best find",
+      "result.tntHit": "TNT hit",
+      "result.levelsBuilt": "Structures built",
+      "result.perfectBuilds": "Perfect builds",
+      "result.blocksPlaced": "Blocks placed",
 
       /* ---- block names (kept in English on purpose) ---- */
       "block.grass": "Grass Block",
@@ -225,6 +234,15 @@ const I18n = (() => {
       "block.emerald": "Emerald",
       "block.obsidian": "Obsidian",
       "block.sand": "Sand",
+
+      /* ---- ore names for Diamond Rush (English on purpose too) ---- */
+      "ore.stone": "Stone",
+      "ore.coal": "Coal",
+      "ore.iron": "Iron",
+      "ore.gold": "Gold",
+      "ore.diamond": "Diamond",
+      "ore.emerald": "Emerald",
+      "ore.tnt": "TNT",
     },
 
     km: {
@@ -357,21 +375,22 @@ const I18n = (() => {
 
       /* ---- games: in-game HUD ---- */
       "hud.points": "ពិន្ទុ",
-      "hud.combo": "Combo",
       "hud.time": "ពេលវេលា",
       "hud.streak": "Streak",
       "hud.lives": "ជីវិត",
       "hud.dodges": "គេចបាន",
       "hud.survived": "រស់បាន",
-      "hud.board": "ក្តារ",
-      "game.miss": "ខុស!",
+      "hud.hits": "ត្រូវគោល",
+      "hud.ores": "រ៉ែ",
+      "hud.level": "កម្រិត",
 
       /* ---- games: the five games ---- */
-      "game.creeper.name": "Creeper Clicker",
-      "game.creeper.desc": "ចុច Creeper មុនពេលវាផ្ទុះ។ Charged និង Golden ផ្តល់ពិន្ទុច្រើនជាង។",
-      "game.creeper.howto":
-        "ចុច Creeper គ្រប់គ្រាប់ដែលអ្នកឃើញ។ ចុចត្រូវ ៥ ដងជាប់គ្នា បង្កើនពិន្ទុទ្វេដង — ចុចលើដីទទេនឹងកាត់ Combo។",
-      "game.creeper.hint": "Normal +1 · Charged +3 · Golden +5",
+      "game.bow.name": "Bow Shot",
+      "game.bow.desc": "បាញ់គោលដៅឲ្យបានច្រើនតាមដែលអាចធ្វើបាន។ គោលដៅតូច និងគោលដៅផ្លាស់ទី ផ្តល់ពិន្ទុច្រើនជាង។",
+      "game.bow.howto":
+        "ចុចលើគោលដៅដើម្បីបាញ់ព្រួញ។ ធម្មតា +10 · តូច +25 · ផ្លាស់ទី +40។ បាញ់ខុសមិនបាត់ពិន្ទុទេ — ប៉ុន្តែគោលដៅនឹងតូច និងលឿនជាងមុន។",
+      "game.bow.hint": "គោលដៅ +10 · តូច +25 · ផ្លាស់ទី +40 · ខុស 0",
+      "game.bow.miss": "ខុស",
 
       "game.breaker.name": "Block Breaker",
       "game.breaker.desc": "ទម្លាយតែ Block ដែលមានឈ្មោះនៅខាងលើ។ ចុចកាន់តែលឿន ពិន្ទុកាន់តែច្រើន។",
@@ -386,18 +405,23 @@ const I18n = (() => {
         "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ គេចជិត Wind Charge បាន +2 និង Emerald បាន +10។ ប៉ះម្តងគឺចប់។",
       "game.dodge.hint": "អូសដើម្បីផ្លាស់ទី · គេចជិត +2 · Emerald +10",
 
-      "game.zombie.name": "Zombie Survival",
-      "game.zombie.desc": "ចុចសត្វមុនពេលវាដល់ទ្វារ។ Mini Boss មានតម្លៃ ១០០ ពិន្ទុ។",
-      "game.zombie.howto":
-        "Zombie +5 · Armored +15 (២ ដង) · Burning +25 · Mini Boss +100 (៥ ដង)។ អ្នកមាន ៣ បេះដូង — ចប់ពេលអស់។",
-      "game.zombie.hint": "Zombie +5 · Armored +15 · Burning +25 · Boss +100",
-      "game.zombie.hit": "ត្រូវ!",
+      "game.rush.name": "Diamond Rush",
+      "game.rush.desc": "ជីករករ៉ែឲ្យបានតម្លៃច្រើនបំផុតមុនអស់ពេល។ ប្រយ័ត្ន TNT!",
+      "game.rush.howto":
+        "ចុចលើរ៉ែដើម្បីជីក។ Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · TNT ដកពិន្ទុ ហើយធ្វើឲ្យជាប់ចប។ រ៉ែនឹងផ្លាស់ទីកាន់តែញឹកញាប់។",
+      "game.rush.hint": "Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · 🧨 ដកពិន្ទុ",
+      "game.rush.rubble": "ថ្ម",
 
-      "game.memory.name": "Minecraft Memory",
-      "game.memory.desc": "បើកបៀរពីរសន្លឹក ហើយផ្គូផ្គងគូរ។ ក្តារនីមួយៗធំជាងមុន។",
-      "game.memory.howto":
-        "ផ្គូផ្គងឲ្យលឿនដើម្បីបានពិន្ទុបន្ថែម។ គូខុសនឹងបាត់បេះដូងមួយ — ចប់ពេលអស់ទាំង ៥។",
-      "game.memory.hint": "ផ្គូផ្គងលឿនបានពិន្ទុច្រើន · គូខុស = -1 ❤️",
+      "game.build.name": "Build It!",
+      "game.build.desc": "ចាំរូបសំណង់ រួចសង់វាឡើងវិញឲ្យដូចដើម។ កម្រិតកាន់តែខ្ពស់ សំណង់កាន់តែធំ។",
+      "game.build.howto":
+        "មើលសំណង់ឲ្យច្បាស់មុនវាបាត់ រួចជ្រើស Block ហើយដាក់វា។ ត្រូវកន្លែង +8 · ខុស -4 · សង់លឿនបានពិន្ទុបន្ថែម។ អ្នកមាន ៣ បេះដូង។",
+      "game.build.hint": "ត្រូវកន្លែង +8 · Block ខុស -4 · សង់លឿនបានបន្ថែម",
+      "game.build.memorise": "ចាំឲ្យបាន! {secs}",
+      "game.build.rebuild": "សង់ឡើងវិញ! {secs}",
+      "game.build.done": "រួចរាល់",
+      "game.build.perfect": "ល្អឥតខ្ចោះ!",
+      "game.build.scored": "ត្រូវ {correct} / {total} Block",
 
       /* ---- games: result screen ---- */
       "result.headline": "លេងបានល្អ!",
@@ -406,22 +430,25 @@ const I18n = (() => {
       "result.backToGames": "← ត្រឡប់ទៅហ្គេម",
       "result.capped": "ដល់កំណត់ប្រចាំថ្ងៃហើយ — បានត្រឹម {cap} Coins សម្រាប់ហ្គេមនេះ។",
       "result.saveFailed": "មិនអាចភ្ជាប់ទៅ Server បានទេ ដូច្នេះ Coins វគ្គនេះមិនបានរក្សាទុកឡើយ។",
-      "result.creepersPopped": "Creeper ដែលបំផ្ទុះ",
-      "result.bestCombo": "Combo ល្អបំផុត",
-      "result.missed": "ខកខាន",
+      "result.targetsHit": "គោលដៅដែលបាញ់ត្រូវ",
+      "result.smallHits": "គោលដៅតូច",
+      "result.movingHits": "គោលដៅផ្លាស់ទី",
+      "result.accuracy": "ភាពត្រឹមត្រូវ",
       "result.blocksBroken": "Block ដែលទម្លាយបាន",
       "result.wrongBlocks": "Block ខុស",
       "result.bestStreak": "Streak ល្អបំផុត",
       "result.survived": "រស់បាន",
       "result.dodges": "គេចជិត",
       "result.emeralds": "Emeralds",
-      "result.mobsKilled": "សត្វដែលសម្លាប់បាន",
-      "result.bossesKilled": "Mini Boss",
-      "result.boardsCleared": "ក្តារដែលឆ្លងបាន",
-      "result.pairsFound": "គូដែលរកឃើញ",
-      "result.mistakes": "កំហុស",
+      "result.oresMined": "រ៉ែដែលជីកបាន",
+      "result.gems": "Diamond និង Emerald",
+      "result.bestFind": "រកឃើញល្អបំផុត",
+      "result.tntHit": "ប៉ះ TNT",
+      "result.levelsBuilt": "សំណង់ដែលសង់បាន",
+      "result.perfectBuilds": "សង់ត្រូវទាំងស្រុង",
+      "result.blocksPlaced": "Block ដែលដាក់",
 
-      /* ---- block names stay in English ---- */
+      /* ---- block and ore names stay in English ---- */
       "block.grass": "Grass Block",
       "block.stone": "Stone",
       "block.dirt": "Dirt",
@@ -432,6 +459,13 @@ const I18n = (() => {
       "block.emerald": "Emerald",
       "block.obsidian": "Obsidian",
       "block.sand": "Sand",
+      "ore.stone": "Stone",
+      "ore.coal": "Coal",
+      "ore.iron": "Iron",
+      "ore.gold": "Gold",
+      "ore.diamond": "Diamond",
+      "ore.emerald": "Emerald",
+      "ore.tnt": "TNT",
     },
   };
 

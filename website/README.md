@@ -85,11 +85,11 @@ the server), a Withdraw button (still disabled) and five mini-games:
 
 | Game | Ends when | How it scores |
 |---|---|---|
-| 💣 **Creeper Clicker** | after 30s | Tap creepers before they blow. Normal +1, Charged +3, Golden +5; 5 hits in a row = x2, 10 = x3. Tapping bare ground breaks the combo. |
+| 🏹 **Bow Shot** | after 30s | Shoot the targets that pop up: Normal +10, Small +25, Moving +40. A miss costs nothing. Targets shrink (further away) and appear faster as the round runs. |
 | ⛏️ **Block Breaker** | after 45s | Break only the block named above the grid: 3 points plus up to 5 more for speed, −4 for a wrong block. The grid grows from 6 to 12 tiles as the round runs. |
 | 💨 **Wind Charge Dodge** | you get hit | +1 every half second alive, +2 for grazing a wind charge, +10 per emerald. Charges get faster and more frequent the longer you last. |
-| ⚔️ **Zombie Survival** | 3 hearts gone | Zombie +5, Armored +15 (2 hits), Burning +25, Mini Boss +100 (5 hits); 4 kills in a row = x2, 8 = x3. Mobs speed up over time and cost a heart if they reach the gate. |
-| 🧠 **Minecraft Memory** | 5 hearts gone | Match a pair for 10 points plus up to 10 more for speed, +25 × board number for clearing a board. A wrong pair costs 3 points and a heart. Each board is bigger than the last. |
+| 💎 **Diamond Rush** | after 45s | Mine the seam: Coal +1, Iron +3, Gold +5, Diamond +15, Emerald +20. TNT costs points (more as time passes) and jams your pick for a moment. The ore reshuffles every few seconds, faster and faster. |
+| 🧱 **Build It!** | 3 hearts gone | A structure is shown for a few seconds, then vanishes and you rebuild it from the palette. Right block in the right place +8, wrong block −4, plus a speed bonus and 20 × level for a perfect copy. 3×3 at level 1, 5×5 by level 5, 6×6 from level 7. A build under 60% correct costs a heart. |
 
 All five are **unlimited** — play as many rounds as you like — and every round
 ends on a results screen with a **Play Again** button. They work with mouse,

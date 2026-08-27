@@ -119,118 +119,155 @@ const Arcade = (() => {
   };
 
   /* =============================================================
-     1. 💣 CREEPER CLICKER — 30s. Tap creepers before they escape.
-     Normal +1, Charged +3, Golden +5, with a combo multiplier.
+     1. 🏹 BOW SHOT — 30s of archery. Targets pop up around the range;
+     shoot them before they vanish. Small ones and moving ones are
+     worth more, and everything gets smaller (further away) and quicker
+     as the round goes on. A missed arrow costs nothing but time.
      ============================================================= */
-  const creeperClicker = {
-    id: "creeper-clicker",
-    icon: "💣",
-    nameKey: "game.creeper.name",
-    descKey: "game.creeper.desc",
-    howToKey: "game.creeper.howto",
+  const bowShot = {
+    id: "bow-shot",
+    icon: "🏹",
+    nameKey: "game.bow.name",
+    descKey: "game.bow.desc",
+    howToKey: "game.bow.howto",
     start(mount, onFinish) {
       const ROUND_SECONDS = 30;
-      const TYPES = [
-        { kind: "normal", weight: 70, points: 1, life: 1500, size: 62 },
-        { kind: "charged", weight: 22, points: 3, life: 1100, size: 52 },
-        { kind: "golden", weight: 8, points: 5, life: 850, size: 44 },
+      const KINDS = [
+        { kind: "normal", weight: 56, points: 10, size: 76, life: 1900 },
+        { kind: "small", weight: 27, points: 25, size: 46, life: 1500 },
+        { kind: "moving", weight: 17, points: 40, size: 60, life: 2600 },
       ];
-      const totalWeight = TYPES.reduce((sum, t) => sum + t.weight, 0);
+      const totalWeight = KINDS.reduce((sum, k) => sum + k.weight, 0);
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "combo", labelKey: "hud.combo", value: "x1" },
+        { id: "hits", labelKey: "hud.hits" },
         { id: "time", labelKey: "hud.time", value: ROUND_SECONDS },
       ]);
-      const stage = buildStage(mount, "creeper-stage");
-      addHint(mount, "game.creeper.hint");
+      const stage = buildStage(mount, "bow-stage");
+      addHint(mount, "game.bow.hint");
 
+      const targets = [];
       let points = 0;
-      let combo = 0;
-      let best = 0;
       let hits = 0;
-      let misses = 0;
+      let arrows = 0;
+      let smallHits = 0;
+      let movingHits = 0;
       let elapsed = 0;
-      let spawnIn = 0.4;
+      let spawnIn = 0.5;
       let done = false;
 
-      // 5 hits in a row = x2, 10 = x3. Capped so scores stay in a sane range.
-      const multiplier = () => Math.min(3, 1 + Math.floor(combo / 5));
-
-      function rollType() {
+      function rollKind() {
         let roll = Math.random() * totalWeight;
-        for (const type of TYPES) {
-          roll -= type.weight;
-          if (roll <= 0) return type;
+        for (const kind of KINDS) {
+          roll -= kind.weight;
+          if (roll <= 0) return kind;
         }
-        return TYPES[0];
+        return KINDS[0];
       }
 
       function spawn() {
-        const type = rollType();
-        // Creepers shrink and get twitchier as the round goes on.
+        const spec = rollKind();
         const progress = elapsed / ROUND_SECONDS;
-        const size = Math.round(type.size * (1 - progress * 0.28));
-        const life = type.life * (1 - progress * 0.35);
+        // Targets shrink over the round - the same idea as standing further back.
+        const size = Math.max(28, Math.round(spec.size * (1 - progress * 0.34)));
+        const life = spec.life * (1 - progress * 0.32);
 
-        const node = el("button", `creeper ${type.kind}`, '<span class="creeper-face"><i></i><i></i><b></b></span>');
+        const node = el("button", `target ${spec.kind}`, '<span class="target-face"></span>');
         node.type = "button";
         node.style.width = `${size}px`;
         node.style.height = `${size}px`;
-        node.style.left = `${rand(4, Math.max(5, stage.clientWidth - size - 4))}px`;
-        node.style.top = `${rand(4, Math.max(5, stage.clientHeight - size - 4))}px`;
 
-        const escapeTimer = setTimeout(() => {
-          if (!node.isConnected) return;
-          node.classList.add("boom");
-          setTimeout(() => node.remove(), 260);
-          combo = 0;
-          misses += 1;
-          setHud("combo", "x1");
-        }, life);
+        const target = {
+          node,
+          spec,
+          size,
+          x: rand(4, Math.max(5, stage.clientWidth - size - 4)),
+          y: rand(4, Math.max(5, stage.clientHeight - size - 4)),
+          // Moving targets drift across the range and bounce off the edges.
+          vx: spec.kind === "moving" ? rand(70, 130) * (Math.random() < 0.5 ? -1 : 1) * (1 + progress) : 0,
+          vy: spec.kind === "moving" ? rand(40, 90) * (Math.random() < 0.5 ? -1 : 1) * (1 + progress) : 0,
+          expires: performance.now() + life,
+          dead: false,
+        };
+        node.style.left = `${target.x}px`;
+        node.style.top = `${target.y}px`;
 
         node.addEventListener("pointerdown", (event) => {
           event.stopPropagation();
-          if (!node.isConnected || done) return;
-          clearTimeout(escapeTimer);
-          node.classList.add("popped");
-          setTimeout(() => node.remove(), 160);
-
-          combo += 1;
-          best = Math.max(best, combo);
-          hits += 1;
-          const gained = type.points * multiplier();
-          points += gained;
-          setHud("score", points);
-          setHud("combo", `x${multiplier()}`);
-          const box = stage.getBoundingClientRect();
-          floatText(stage, event.clientX - box.left, event.clientY - box.top, `+${gained}`, "good");
+          if (done || target.dead) return;
+          arrows += 1;
+          hit(target, event);
         });
 
         stage.appendChild(node);
+        targets.push(target);
       }
 
-      // Tapping empty ground breaks the combo, so spam-tapping is not a strategy.
+      function hit(target, event) {
+        target.dead = true;
+        target.node.classList.add("target-hit");
+        setTimeout(() => target.node.remove(), 220);
+        const idx = targets.indexOf(target);
+        if (idx !== -1) targets.splice(idx, 1);
+
+        points += target.spec.points;
+        hits += 1;
+        if (target.spec.kind === "small") smallHits += 1;
+        if (target.spec.kind === "moving") movingHits += 1;
+        setHud("score", points);
+        setHud("hits", hits);
+        const box = stage.getBoundingClientRect();
+        floatText(stage, event.clientX - box.left, event.clientY - box.top, `+${target.spec.points}`, "good");
+      }
+
+      // A missed arrow costs nothing - it just isn't a hit. That keeps the
+      // game friendly while accuracy still shows up on the results screen.
       const missHandler = (event) => {
         if (done || event.target !== stage) return;
-        combo = 0;
-        misses += 1;
-        setHud("combo", "x1");
+        arrows += 1;
         const box = stage.getBoundingClientRect();
-        floatText(stage, event.clientX - box.left, event.clientY - box.top, T("game.miss"), "bad");
+        floatText(stage, event.clientX - box.left, event.clientY - box.top, T("game.bow.miss"), "bad");
       };
       stage.addEventListener("pointerdown", missHandler);
 
-      const stop = loop((dt) => {
+      const stop = loop((dt, now) => {
         elapsed += dt;
         setHud("time", Math.max(0, Math.ceil(ROUND_SECONDS - elapsed)));
+
         spawnIn -= dt;
         if (spawnIn <= 0) {
           spawn();
-          // 0.62s between creepers at the start, down to ~0.3s at the end.
           const progress = elapsed / ROUND_SECONDS;
-          spawnIn = rand(0.34, 0.62) * (1 - progress * 0.45);
+          spawnIn = rand(0.42, 0.8) * (1 - progress * 0.4);
         }
+
+        for (let i = targets.length - 1; i >= 0; i--) {
+          const target = targets[i];
+          if (target.spec.kind === "moving") {
+            target.x += target.vx * dt;
+            target.y += target.vy * dt;
+            const maxX = Math.max(0, stage.clientWidth - target.size);
+            const maxY = Math.max(0, stage.clientHeight - target.size);
+            if (target.x < 0 || target.x > maxX) {
+              target.vx *= -1;
+              target.x = clamp(target.x, 0, maxX);
+            }
+            if (target.y < 0 || target.y > maxY) {
+              target.vy *= -1;
+              target.y = clamp(target.y, 0, maxY);
+            }
+            target.node.style.left = `${target.x}px`;
+            target.node.style.top = `${target.y}px`;
+          }
+          if (now >= target.expires) {
+            target.dead = true;
+            target.node.classList.add("target-gone");
+            setTimeout(() => target.node.remove(), 220);
+            targets.splice(i, 1);
+          }
+        }
+
         if (elapsed >= ROUND_SECONDS) finish();
       });
 
@@ -242,9 +279,10 @@ const Arcade = (() => {
           points,
           scoreLabelKey: "hud.points",
           detail: [
-            ["result.creepersPopped", hits],
-            ["result.bestCombo", `x${Math.min(3, 1 + Math.floor(best / 5))} (${best})`],
-            ["result.missed", misses],
+            ["result.targetsHit", hits],
+            ["result.smallHits", smallHits],
+            ["result.movingHits", movingHits],
+            ["result.accuracy", `${arrows ? Math.round((hits / arrows) * 100) : 0}%`],
           ],
         });
       }
@@ -639,170 +677,167 @@ const Arcade = (() => {
   };
 
   /* =============================================================
-     4. ⚔️ ZOMBIE SURVIVAL — mobs walk down toward your gate, tap to
-     hit them. Zombie +5, Armored +15 (2 hits), Burning +25 (fast),
-     Mini Boss +100 (5 hits). Kill combos multiply. Three hearts; the
-     run ends when the last one goes.
+     4. 💎 DIAMOND RUSH — 45s in a small mine. Tap ore to mine it:
+     Coal +1, Iron +3, Gold +5, Diamond +15, Emerald +20. TNT costs
+     points and stuns your pick, and it gets nastier the longer you
+     mine. The seam reshuffles more and more often, so the good ore
+     keeps moving.
      ============================================================= */
-  const zombieSurvival = {
-    id: "zombie-survival",
-    icon: "⚔️",
-    nameKey: "game.zombie.name",
-    descKey: "game.zombie.desc",
-    howToKey: "game.zombie.howto",
+  const ORES = [
+    { key: "ore.stone", emoji: "🪨", value: 0, weight: 30 },
+    { key: "ore.coal", emoji: "⬛", value: 1, weight: 22 },
+    { key: "ore.iron", emoji: "⬜", value: 3, weight: 17 },
+    { key: "ore.gold", emoji: "🟨", value: 5, weight: 13 },
+    { key: "ore.diamond", emoji: "💎", value: 15, weight: 8 },
+    { key: "ore.emerald", emoji: "💚", value: 20, weight: 5 },
+    { key: "ore.tnt", emoji: "🧨", value: -1, weight: 5 },
+  ];
+
+  const diamondRush = {
+    id: "diamond-rush",
+    icon: "💎",
+    nameKey: "game.rush.name",
+    descKey: "game.rush.desc",
+    howToKey: "game.rush.howto",
     start(mount, onFinish) {
-      const MOBS = {
-        zombie: { emoji: "🧟", points: 5, hp: 1, speed: 34, size: 46, weight: 62, cls: "" },
-        armored: { emoji: "🧟‍♂️", points: 15, hp: 2, speed: 28, size: 50, weight: 22, cls: "armored" },
-        burning: { emoji: "🔥", points: 25, hp: 1, speed: 74, size: 40, weight: 13, cls: "burning" },
-        boss: { emoji: "👹", points: 100, hp: 5, speed: 18, size: 70, weight: 3, cls: "boss" },
-      };
-      const KINDS = Object.keys(MOBS);
-      const totalWeight = KINDS.reduce((sum, k) => sum + MOBS[k].weight, 0);
+      const ROUND_SECONDS = 45;
+      const COLS = 5;
+      const ROWS = 4;
+      const CELLS = COLS * ROWS;
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "combo", labelKey: "hud.combo", value: "x1" },
-        { id: "lives", labelKey: "hud.lives", value: "❤️❤️❤️" },
-        { id: "time", labelKey: "hud.survived", value: "0:00" },
+        { id: "ores", labelKey: "hud.ores" },
+        { id: "time", labelKey: "hud.time", value: ROUND_SECONDS },
       ]);
-      const stage = buildStage(mount, "zombie-stage");
-      stage.appendChild(el("div", "zombie-gate"));
-      addHint(mount, "game.zombie.hint");
 
-      const mobs = [];
+      const grid = el("div", "mine-grid");
+      grid.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+      mount.appendChild(grid);
+      addHint(mount, "game.rush.hint");
+
       let points = 0;
-      let combo = 0;
-      let bestCombo = 0;
-      let kills = 0;
-      let bosses = 0;
-      let lives = 3;
+      let mined = 0;
+      let gems = 0;
+      let tntHits = 0;
+      let best = ORES[0];
       let elapsed = 0;
-      let spawnIn = 0.8;
+      let shuffleIn = 5;
+      let stunnedUntil = 0;
       let done = false;
+      const timers = [];
+      const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
-      // 4 kills in a row = x2, 8 = x3.
-      const multiplier = () => Math.min(3, 1 + Math.floor(combo / 4));
-
-      function rollKind() {
-        let roll = Math.random() * totalWeight;
-        for (const kind of KINDS) {
-          roll -= MOBS[kind].weight;
-          if (roll <= 0) return kind;
+      // TNT gets both more common and more expensive as the round runs.
+      function weightFor(ore) {
+        if (ore.key !== "ore.tnt") return ore.weight;
+        return ore.weight * (1 + (elapsed / ROUND_SECONDS) * 1.6);
+      }
+      function rollOre() {
+        const total = ORES.reduce((sum, ore) => sum + weightFor(ore), 0);
+        let roll = Math.random() * total;
+        for (const ore of ORES) {
+          roll -= weightFor(ore);
+          if (roll <= 0) return ore;
         }
-        return "zombie";
+        return ORES[0];
+      }
+      function tntPenalty() {
+        return 10 + Math.floor(elapsed / 9) * 5;
       }
 
-      function spawn() {
-        const kind = rollKind();
-        const spec = MOBS[kind];
-        const node = el("button", `mob ${spec.cls}`.trim(), `<span class="mob-emoji">${spec.emoji}</span>`);
+      const cells = [];
+      for (let i = 0; i < CELLS; i++) {
+        const node = el("button", "mine-cell", '<span class="mine-emoji"></span>');
         node.type = "button";
-        node.style.width = `${spec.size}px`;
-        node.style.height = `${spec.size}px`;
+        const cell = { node, ore: rollOre(), empty: false };
+        paint(cell);
+        node.addEventListener("pointerdown", (event) => dig(event, cell));
+        grid.appendChild(node);
+        cells.push(cell);
+      }
 
-        const mob = {
-          node,
-          hp: spec.hp,
-          maxHp: spec.hp,
-          points: spec.points,
-          kind,
-          // Everything speeds up the longer you last.
-          speed: spec.speed * (1 + elapsed / 55),
-          x: rand(6, Math.max(7, stage.clientWidth - spec.size - 6)),
-          y: -spec.size,
-          size: spec.size,
-        };
+      function paint(cell) {
+        cell.node.querySelector(".mine-emoji").textContent = cell.empty ? "" : cell.ore.emoji;
+        cell.node.classList.toggle("mined", cell.empty);
+        cell.node.classList.toggle("tnt", !cell.empty && cell.ore.key === "ore.tnt");
+      }
 
-        if (spec.hp > 1) {
-          const bar = el("span", "mob-hp", `<i style="width:100%"></i>`);
-          node.appendChild(bar);
+      function dig(event, cell) {
+        if (done || cell.empty || performance.now() < stunnedUntil) return;
+        const ore = cell.ore;
+        const box = grid.getBoundingClientRect();
+        const px = event.clientX - box.left;
+        const py = event.clientY - box.top;
+
+        if (ore.key === "ore.tnt") {
+          const penalty = tntPenalty();
+          points = Math.max(0, points - penalty);
+          tntHits += 1;
+          stunnedUntil = performance.now() + 700; // the blast knocks your pick loose
+          grid.classList.add("mine-boom");
+          later(() => grid.classList.remove("mine-boom"), 300);
+          floatText(grid, px, py, `-${penalty}`, "bad");
+        } else {
+          points += ore.value;
+          if (ore.value > 0) mined += 1;
+          if (ore.value >= 15) gems += 1;
+          if (ore.value > best.value) best = ore;
+          floatText(grid, px, py, ore.value ? `+${ore.value}` : T("game.rush.rubble"), ore.value ? "good" : "bad");
         }
 
-        node.addEventListener("pointerdown", (event) => {
-          event.stopPropagation();
-          if (done || mob.hp <= 0) return;
-          mob.hp -= 1;
-          const box = stage.getBoundingClientRect();
-          const px = event.clientX - box.left;
-          const py = event.clientY - box.top;
+        setHud("score", points);
+        setHud("ores", mined);
 
-          if (mob.hp > 0) {
-            node.classList.add("hurt");
-            setTimeout(() => node.classList.remove("hurt"), 140);
-            const bar = node.querySelector(".mob-hp i");
-            if (bar) bar.style.width = `${(mob.hp / mob.maxHp) * 100}%`;
-            floatText(stage, px, py, T("game.zombie.hit"), "good");
-            return;
-          }
-
-          const gained = mob.points * multiplier();
-          points += gained;
-          kills += 1;
-          if (mob.kind === "boss") bosses += 1;
-          combo += 1;
-          bestCombo = Math.max(bestCombo, combo);
-          setHud("score", points);
-          setHud("combo", `x${multiplier()}`);
-          floatText(stage, px, py, `+${gained}`, "good");
-          kill(mob);
-        });
-
-        stage.appendChild(node);
-        mobs.push(mob);
+        cell.empty = true;
+        paint(cell);
+        // The seam refills so there is always something to swing at.
+        later(() => {
+          if (done) return;
+          cell.ore = rollOre();
+          cell.empty = false;
+          paint(cell);
+        }, 320);
       }
 
-      function kill(mob) {
-        mob.hp = -1;
-        mob.node.classList.add("mob-dead");
-        setTimeout(() => mob.node.remove(), 220);
-        const idx = mobs.indexOf(mob);
-        if (idx !== -1) mobs.splice(idx, 1);
-      }
-
-      function breach(mob) {
-        mob.node.remove();
-        const idx = mobs.indexOf(mob);
-        if (idx !== -1) mobs.splice(idx, 1);
-        lives -= 1;
-        combo = 0;
-        setHud("combo", "x1");
-        setHud("lives", "❤️".repeat(Math.max(0, lives)) || "💀");
-        stage.classList.add("stage-hurt");
-        setTimeout(() => stage.classList.remove("stage-hurt"), 220);
-        if (lives <= 0) finish();
+      // "Ores moving": every so often the whole face reshuffles, faster and
+      // faster, so a diamond you spotted may not be there when you reach it.
+      function reshuffle() {
+        for (const cell of cells) {
+          if (cell.empty) continue;
+          cell.ore = rollOre();
+          paint(cell);
+        }
+        grid.classList.add("mine-shift");
+        later(() => grid.classList.remove("mine-shift"), 260);
       }
 
       const stop = loop((dt) => {
         elapsed += dt;
-        spawnIn -= dt;
-        if (spawnIn <= 0) {
-          spawn();
-          spawnIn = Math.max(0.35, rand(0.75, 1.25) - elapsed * 0.014);
+        setHud("time", Math.max(0, Math.ceil(ROUND_SECONDS - elapsed)));
+
+        shuffleIn -= dt;
+        if (shuffleIn <= 0) {
+          reshuffle();
+          shuffleIn = Math.max(1.8, 5 - elapsed * 0.08);
         }
 
-        const floor = stage.clientHeight - 16;
-        for (let i = mobs.length - 1; i >= 0; i--) {
-          const mob = mobs[i];
-          mob.y += mob.speed * dt;
-          mob.node.style.transform = `translate(${mob.x}px, ${mob.y}px)`;
-          if (mob.y + mob.size >= floor) breach(mob);
-        }
-        setHud("time", fmtTime(elapsed));
+        if (elapsed >= ROUND_SECONDS) finish();
       });
 
       function finish() {
         if (done) return;
         done = true;
         stop();
+        timers.forEach(clearTimeout);
         onFinish({
           points,
           scoreLabelKey: "hud.points",
           detail: [
-            ["result.mobsKilled", kills],
-            ["result.bossesKilled", bosses],
-            ["result.bestCombo", `x${Math.min(3, 1 + Math.floor(bestCombo / 4))} (${bestCombo})`],
-            ["result.survived", fmtTime(elapsed)],
+            ["result.oresMined", mined],
+            ["result.gems", gems],
+            ["result.bestFind", best.value > 0 ? `${best.emoji} ${T(best.key)}` : "—"],
+            ["result.tntHit", tntHits],
           ],
         });
       }
@@ -810,160 +845,277 @@ const Arcade = (() => {
       return () => {
         done = true;
         stop();
+        timers.forEach(clearTimeout);
       };
     },
   };
 
   /* =============================================================
-     5. 🧠 MINECRAFT MEMORY — flip two cards, match the pair. Matching
-     fast pays a speed bonus, a wrong pair costs a life. Each cleared
-     board is bigger than the last; the run ends when lives run out.
+     5. 🧱 BUILD IT! — memory + building. A structure is shown for a
+     few seconds, then it vanishes and you rebuild it from the block
+     palette. Correct blocks in the correct places score, wrong ones
+     cost, and finishing quickly pays a speed bonus. Structures grow
+     from 3x3 up to 6x6 with more block types as the levels climb.
+     Three hearts; a badly botched build costs one.
      ============================================================= */
-  const memory = {
-    id: "minecraft-memory",
-    icon: "🧠",
-    nameKey: "game.memory.name",
-    descKey: "game.memory.desc",
-    howToKey: "game.memory.howto",
+  const BUILD_BLOCKS = [
+    { key: "block.dirt", emoji: "🟫" },
+    { key: "block.diamond", emoji: "💎" },
+    { key: "block.grass", emoji: "🟩" },
+    { key: "block.redstone", emoji: "🟥" },
+    { key: "block.lapis", emoji: "🟦" },
+    { key: "block.gold", emoji: "🟨" },
+    { key: "block.obsidian", emoji: "⬛" },
+  ];
+
+  const buildIt = {
+    id: "build-it",
+    icon: "🧱",
+    nameKey: "game.build.name",
+    descKey: "game.build.desc",
+    howToKey: "game.build.howto",
     start(mount, onFinish) {
-      const FACES = ["🟩", "💎", "🧟", "🐷", "🔥", "⛏️", "🪓", "🍎", "🏹", "🛡️", "🧪", "🪙"];
-      const START_LIVES = 5;
+      const START_LIVES = 3;
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "level", labelKey: "hud.board", value: 1 },
+        { id: "level", labelKey: "hud.level", value: 1 },
         { id: "lives", labelKey: "hud.lives", value: "❤️".repeat(START_LIVES) },
       ]);
-      const board = el("div", "mem-board");
+
+      const banner = el("div", "build-banner");
+      mount.appendChild(banner);
+      const board = el("div", "build-grid");
       mount.appendChild(board);
-      addHint(mount, "game.memory.hint");
+      const palette = el("div", "build-palette");
+      mount.appendChild(palette);
+      const doneBtn = el("button", "continue-btn build-done", T("game.build.done"));
+      doneBtn.type = "button";
+      mount.appendChild(doneBtn);
+      addHint(mount, "game.build.hint");
 
       let points = 0;
       let level = 1;
       let lives = START_LIVES;
-      let matches = 0;
-      let mistakes = 0;
-      let first = null;
-      let busy = false;
-      let flippedAt = 0;
-      let remaining = 0;
+      let built = 0;
+      let perfects = 0;
+      let placedTotal = 0;
+      let wrongTotal = 0;
       let done = false;
-      const timers = [];
 
+      let target = [];     // the structure to copy: block key or null per cell
+      let placed = [];     // what the player has built so far
+      let selected = null;
+      let size = 3;
+      let phase = "memorise";
+      let phaseEndsAt = 0;
+      let buildSeconds = 0;
+
+      const timers = [];
       const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
-      // 4 pairs on board 1, then 6, 8, 10 - capped at 10 pairs.
-      const pairsFor = (lvl) => Math.min(FACES.length, 3 + lvl);
+      // 3x3 at level 1, 5x5 by level 5, 6x6 from level 7 on.
+      const sizeFor = (lvl) => Math.min(6, 3 + Math.floor((lvl - 1) / 2));
+      const typesFor = (lvl) => Math.min(5, 1 + Math.ceil(lvl / 2));
+      const memoriseFor = (lvl) => Math.max(1.6, 4.2 - lvl * 0.25);
 
-      function deal() {
-        const pairs = pairsFor(level);
-        const faces = [...FACES].sort(() => Math.random() - 0.5).slice(0, pairs);
-        const cards = [...faces, ...faces].sort(() => Math.random() - 0.5);
-        remaining = pairs;
-        first = null;
-        busy = false;
+      function newStructure() {
+        size = sizeFor(level);
+        const palettePool = [...BUILD_BLOCKS].sort(() => Math.random() - 0.5).slice(0, typesFor(level));
+        const cells = size * size;
+        // Between half and two thirds of the grid is solid - enough shape to
+        // remember, enough empty space that position actually matters.
+        const fillCount = Math.max(3, Math.round(cells * rand(0.5, 0.68)));
+        const order = [...Array(cells).keys()].sort(() => Math.random() - 0.5);
 
-        const cols = pairs <= 4 ? 4 : pairs <= 6 ? 4 : pairs <= 8 ? 4 : 5;
-        board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+        target = new Array(cells).fill(null);
+        for (let i = 0; i < fillCount; i++) target[order[i]] = pick(palettePool).key;
+        placed = new Array(cells).fill(null);
+
+        // From level 4 the palette carries a block that isn't in the answer.
+        const shown = [...palettePool];
+        if (level >= 4) {
+          const decoy = BUILD_BLOCKS.find((b) => !palettePool.some((p) => p.key === b.key));
+          if (decoy) shown.push(decoy);
+        }
+        return shown.sort(() => Math.random() - 0.5);
+      }
+
+      function blockByKey(key) {
+        return BUILD_BLOCKS.find((b) => b.key === key) || null;
+      }
+
+      function drawBoard(cellsToShow, interactive, marks) {
+        board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
         board.innerHTML = "";
-        cards.forEach((face) => {
-          const card = el(
+        cellsToShow.forEach((key, index) => {
+          const block = blockByKey(key);
+          const cell = el(
             "button",
-            "mem-card",
-            `<span class="mem-inner"><span class="mem-back">🟫</span><span class="mem-front">${face}</span></span>`
+            `build-cell${key ? " filled" : ""}${marks ? ` ${marks[index]}` : ""}`,
+            `<span class="build-emoji">${block ? block.emoji : ""}</span>`
           );
-          card.type = "button";
-          card.dataset.face = face;
-          card.addEventListener("pointerdown", () => flip(card));
-          board.appendChild(card);
+          cell.type = "button";
+          if (interactive) cell.addEventListener("pointerdown", () => place(index));
+          else cell.disabled = true;
+          board.appendChild(cell);
         });
+      }
+
+      function drawPalette(blocks, interactive) {
+        palette.innerHTML = "";
+        blocks.forEach((block) => {
+          const swatch = el(
+            "button",
+            `build-swatch${selected === block.key ? " active" : ""}`,
+            `<span class="build-emoji">${block.emoji}</span><span class="build-swatch-name">${T(block.key)}</span>`
+          );
+          swatch.type = "button";
+          swatch.disabled = !interactive;
+          swatch.addEventListener("pointerdown", () => {
+            selected = block.key;
+            drawPalette(blocks, interactive);
+          });
+          palette.appendChild(swatch);
+        });
+      }
+
+      function place(index) {
+        if (done || phase !== "build") return;
+        // Tapping a cell that already holds the selected block clears it.
+        placed[index] = placed[index] === selected ? null : selected;
+        drawBoard(placed, true, null);
+      }
+
+      /* ---- phases ---- */
+      let paletteBlocks = [];
+
+      function startLevel() {
+        paletteBlocks = newStructure();
+        selected = null;
+        phase = "memorise";
+        const secs = memoriseFor(level);
+        phaseEndsAt = performance.now() + secs * 1000;
         setHud("level", level);
+        drawBoard(target, false, null);
+        drawPalette(paletteBlocks, false);
+        doneBtn.disabled = true;
+        board.classList.add("showing");
       }
 
-      function flip(card) {
-        if (done || busy || card.classList.contains("open") || card.classList.contains("matched")) return;
-        card.classList.add("open");
+      function startBuild() {
+        phase = "build";
+        board.classList.remove("showing");
+        selected = paletteBlocks[0] ? paletteBlocks[0].key : null;
+        buildSeconds = size * size * 1.5 + 8;
+        phaseEndsAt = performance.now() + buildSeconds * 1000;
+        drawBoard(placed, true, null);
+        drawPalette(paletteBlocks, true);
+        doneBtn.disabled = false;
+      }
 
-        if (!first) {
-          first = card;
-          flippedAt = performance.now();
-          return;
-        }
+      function submit() {
+        if (done || phase !== "build") return;
+        phase = "review";
+        doneBtn.disabled = true;
 
-        if (first.dataset.face === card.dataset.face) {
-          const seconds = (performance.now() - flippedAt) / 1000;
-          // 10 base, up to +10 more for a quick pair.
-          const speedBonus = Math.round(clamp(10 * (1 - seconds / 3), 0, 10));
-          const gained = 10 + speedBonus;
-          points += gained;
-          matches += 1;
-          first.classList.add("matched");
-          card.classList.add("matched");
-          first = null;
-          remaining -= 1;
-          setHud("score", points);
-          const box = board.getBoundingClientRect();
-          const cardBox = card.getBoundingClientRect();
-          floatText(board, cardBox.left - box.left + cardBox.width / 2, cardBox.top - box.top, `+${gained}`, "good");
-          if (remaining === 0) {
-            busy = true;
-            const bonus = 25 * level;
-            points += bonus;
-            setHud("score", points);
-            later(() => {
-              if (done) return;
-              level += 1;
-              deal();
-            }, 600);
+        const remaining = Math.max(0, phaseEndsAt - performance.now()) / 1000;
+        let correct = 0;
+        let wrong = 0;
+        let filled = 0;
+        const marks = [];
+        for (let i = 0; i < target.length; i++) {
+          if (target[i]) filled += 1;
+          if (placed[i] && placed[i] === target[i]) {
+            correct += 1;
+            marks.push("mark-right");
+          } else if (placed[i]) {
+            wrong += 1;
+            marks.push("mark-wrong");
+          } else {
+            marks.push(target[i] ? "mark-missed" : "");
           }
-          return;
         }
 
-        // wrong pair: costs points and a heart
-        busy = true;
-        mistakes += 1;
-        lives -= 1;
-        points = Math.max(0, points - 3);
+        const accuracy = filled ? correct / filled : 0;
+        const perfect = correct === filled && wrong === 0;
+        let gained = correct * 8 - wrong * 4;
+        // Speed bonus, scaled by how much of the build clock was left.
+        if (correct > 0) gained += Math.round(25 * (remaining / buildSeconds));
+        if (perfect) gained += 20 * level;
+
+        points = Math.max(0, points + gained);
+        placedTotal += correct + wrong;
+        wrongTotal += wrong;
+        built += 1;
+        if (perfect) perfects += 1;
         setHud("score", points);
-        setHud("lives", "❤️".repeat(Math.max(0, lives)) || "💀");
-        card.classList.add("wrong");
-        first.classList.add("wrong");
-        const wrongFirst = first;
-        first = null;
+
+        // Show the answer with right/wrong/missed marks before moving on.
+        drawBoard(target, false, marks);
+        banner.className = `build-banner ${perfect ? "perfect" : "review"}`;
+        banner.textContent = perfect
+          ? T("game.build.perfect")
+          : T("game.build.scored", { correct, total: filled });
+
+        if (accuracy < 0.6) {
+          lives -= 1;
+          setHud("lives", "❤️".repeat(Math.max(0, lives)) || "💀");
+        }
+
         later(() => {
-          wrongFirst.classList.remove("open", "wrong");
-          card.classList.remove("open", "wrong");
-          busy = false;
-          if (lives <= 0) finish();
-        }, 620);
+          if (done) return;
+          if (lives <= 0) return finish();
+          level += 1;
+          startLevel();
+        }, 1500);
       }
 
-      deal();
+      doneBtn.addEventListener("click", submit);
+
+      startLevel();
+
+      const stop = loop(() => {
+        if (phase === "review") return;
+        const left = Math.max(0, (phaseEndsAt - performance.now()) / 1000);
+        if (phase === "memorise") {
+          banner.className = "build-banner memorise";
+          banner.textContent = T("game.build.memorise", { secs: Math.ceil(left) });
+          if (left <= 0) startBuild();
+        } else {
+          banner.className = "build-banner building";
+          banner.textContent = T("game.build.rebuild", { secs: Math.ceil(left) });
+          if (left <= 0) submit(); // out of time - score whatever is on the grid
+        }
+      });
 
       function finish() {
         if (done) return;
         done = true;
+        stop();
         timers.forEach(clearTimeout);
         onFinish({
           points,
           scoreLabelKey: "hud.points",
           detail: [
-            ["result.boardsCleared", level - 1],
-            ["result.pairsFound", matches],
-            ["result.mistakes", mistakes],
+            ["result.levelsBuilt", built],
+            ["result.perfectBuilds", perfects],
+            ["result.blocksPlaced", placedTotal],
+            ["result.wrongBlocks", wrongTotal],
           ],
         });
       }
 
       return () => {
         done = true;
+        stop();
         timers.forEach(clearTimeout);
       };
     },
   };
 
   /* ----------------------------- registry ----------------------------- */
-  const list = [creeperClicker, blockBreaker, windDodge, zombieSurvival, memory];
+  const list = [bowShot, blockBreaker, windDodge, diamondRush, buildIt];
   const byId = (id) => list.find((game) => game.id === id) || null;
 
   return {
