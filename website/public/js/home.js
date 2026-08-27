@@ -12,7 +12,9 @@ async function loadHome() {
   const cfg = await getSiteConfig();
 
   document.title = `${cfg.serverName} — Home`;
-  document.getElementById("hero-logo").src = cfg.logo || "/images/site/logo.svg";
+  document.getElementById("hero-logo").src = cfg.logo || "/images/site/logo-full.png";
+  const navLogo = document.getElementById("nav-logo");
+  if (navLogo) navLogo.src = cfg.logoIcon || cfg.logo || "/images/site/logo-icon.png";
   document.getElementById("hero-title").textContent = cfg.serverName;
   document.getElementById("hero-tagline").textContent = cfg.tagline || "";
   document.getElementById("welcome-message").textContent = cfg.welcomeMessage || "";

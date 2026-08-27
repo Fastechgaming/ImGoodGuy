@@ -52,8 +52,18 @@ function copyToClipboard(text) {
   return Promise.resolve();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".nav-links a").forEach((a) => {
     if (a.getAttribute("href") === location.pathname) a.classList.add("active");
   });
+
+  const navLogo = document.getElementById("nav-logo");
+  if (navLogo) {
+    try {
+      const cfg = await getSiteConfig();
+      navLogo.src = cfg.logoIcon || cfg.logo || navLogo.src;
+    } catch {
+      /* keep the default logo if config fails to load */
+    }
+  }
 });

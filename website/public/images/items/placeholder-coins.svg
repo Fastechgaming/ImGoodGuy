@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
-  <rect width="300" height="200" fill="#24402c"/>
-  <g fill="#c9a24b" stroke="#e6cb84" stroke-width="3">
+  <rect width="300" height="200" fill="#ffe4ad"/>
+  <g fill="#f7b537" stroke="#40230f" stroke-width="4">
     <circle cx="120" cy="110" r="34"/>
     <circle cx="165" cy="95" r="34"/>
     <circle cx="205" cy="120" r="34"/>
   </g>
-  <text x="150" y="180" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#e6cb84">COINS</text>
+  <text x="150" y="182" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="18" fill="#40230f">COINS</text>
 </svg>

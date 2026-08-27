@@ -82,7 +82,7 @@ BlueMap's web app doesn't send restrictive framing headers by default, so embedd
 
 ## 7. Theme & assets
 
-The look is a jungle/sandstone/gold "Angkor Wat" palette (`public/css/style.css`), using placeholder SVG art (`public/images/site/logo.svg`, `public/images/site/temple-silhouette.svg`, `public/images/items/placeholder-*.svg`) so the site looks complete out of the box. Swap in real photos/art any time — just replace those files (keep the same filenames) or point `logo` / item `image` fields at new paths.
+The look is a cartoony, saturated gold/amber/brown "Angkor Wat sunset" palette (`public/css/style.css`) built to match the server's own pixel-art banner: chunky 3D-pressed buttons, thick dark outlines, and a warm sunset gradient hero, with the real logo dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon). Both are cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. Item placeholder art (`public/images/items/placeholder-*.svg`) and the decorative temple skyline (`public/images/site/temple-silhouette.svg`) are still simple vector placeholders — swap those any time too.
 
 The layout is responsive: a hamburger nav under ~760px, a stacked hero on mobile, and a grid that reflows from multi-column (desktop) down to single-column (phones) throughout the store.
 

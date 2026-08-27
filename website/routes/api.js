@@ -15,6 +15,7 @@ router.get("/config", (req, res) => {
     tagline: cfg.tagline,
     welcomeMessage: cfg.welcomeMessage,
     logo: cfg.logo,
+    logoIcon: cfg.logoIcon || cfg.logo,
     discordInvite: cfg.discordInvite,
     javaIp: cfg.javaIp,
     javaPort: cfg.javaPort,
