@@ -46,7 +46,11 @@ function renderGrid() {
     .map(
       (item) => `
     <div class="item-card">
-      <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
+      <div class="item-image-wrap">
+        <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
+        <img class="sparkle sparkle-1" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
+        <img class="sparkle sparkle-2" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
+      </div>
       <div class="item-body">
         <h3>${escapeHtml(item.name)}</h3>
         <p>${escapeHtml(item.shortDesc)}</p>
