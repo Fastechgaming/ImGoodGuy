@@ -20,8 +20,14 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         AngkorSMP
       </a>
       <div class="nav-tools">
+        <label class="lang-select-wrap">
+          <span class="sr-only" data-i18n="nav.language">Language</span>
+          <select class="lang-select" onchange="setLang(this.value)" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="km">KH</option>
+          </select>
+        </label>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
-        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
       </div>
       <ul class="nav-links">
         <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
@@ -63,7 +69,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
             <span class="preview-name" id="games-name-preview"></span>
           </div>
 
-          <button class="continue-btn" id="games-start-btn" data-i18n="games.start">Start Playing</button>
+          <button class="continue-btn" id="games-start-btn" data-i18n="games.verify">Verify</button>
           <p class="checkout-hint centered games-disclaimer" data-i18n="games.disclaimer">
             Your name is saved on this device, so you only enter it once. Coins
             and points are stored on the server.
@@ -88,31 +94,23 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
               <div class="value" id="stat-points">0</div>
               <div class="label" data-i18n="games.points">Points</div>
               <div class="stat-divider"></div>
-              <div class="sub-value" id="stat-rounds">0</div>
-              <div class="sub-label" data-i18n="games.pointsSub">Rounds this session</div>
+              <div class="board-mini-title" data-i18n="games.topPoints">Top Points</div>
+              <ol class="board-list mini" id="board-top3"></ol>
+              <button class="board-view-full" id="board-open" data-i18n="games.viewFull">View full</button>
             </div>
             <div class="info-card stacked">
               <div class="value" id="stat-coins">0</div>
-              <div class="label" data-i18n="games.coinsToday">Coins Today</div>
+              <div class="label" data-i18n="games.coins">Coins</div>
               <div class="stat-divider"></div>
-              <div class="sub-value" id="stat-coins-cap">—</div>
+              <div class="sub-value" id="stat-earned">—</div>
               <div class="sub-label" id="stat-reset">—</div>
             </div>
           </div>
 
-          <div class="checkout-panel board-panel">
-            <div class="board-head">
-              <h3 data-i18n="games.leaderboard">Points Leaderboard</h3>
-              <button class="back-link" id="board-open" data-i18n="games.leaderboardOpen">Open Leaderboard</button>
-            </div>
-            <ol class="board-list" id="board-top5"></ol>
-            <p class="checkout-hint centered" id="board-your-rank"></p>
-          </div>
-
           <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
           <p class="checkout-hint centered" data-i18n="games.listHint">
-            Every game is unlimited to play. Each one can pay up to 500 Coins per day —
-            2,500 Coins across all five. Resets at midnight (UTC+7).
+            Five plays of each game a day, 1–30 Coins a play, up to 500 Coins a
+            day. Closing a game counts as a play. Resets at midnight (UTC+7).
           </p>
           <div class="item-grid" id="games-grid"></div>
         </div>
@@ -185,6 +183,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <script src="/js/playername.js"></script>
   <script src="/js/i18n.js"></script>
+  <script src="/js/account.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/arcade.js"></script>
   <script src="/js/games.js"></script>

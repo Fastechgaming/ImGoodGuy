@@ -1,21 +1,20 @@
 /* =============================================================
-   AngkorSMP arcade — five self-contained mini-games.
+   AngkorSMP arcade — six self-contained mini-games.
 
    Every game follows the same contract so the hub can launch any of
    them the same way:
 
      Arcade.games[id] = {
-       id, icon, name, desc, howTo,
+       id, icon, nameKey, descKey, howToKey,
        start(mount, onFinish)   // render into `mount`, call onFinish(result)
      }
 
-   `onFinish` receives { points, scoreLabel, detail[] }. Games only ever
-   report POINTS — how many coins that is worth is decided by the server
-   (see routes/games.js), which also enforces the 500 coins/day per-game
-   limit. Nothing here can hand out coins on its own.
+   `onFinish` receives { points, detail[] }. Games only ever report
+   POINTS — how many coins that is worth is decided by the server (see
+   routes/games.js), which also enforces the five-plays-a-day-per-game
+   limit and the 500 coins/day allowance. Nothing here hands out coins.
 
-   All five games are unlimited: they always end in a result screen with a
-   Play Again button, and a player can keep replaying forever.
+   Every game ends in a results screen with a Play Again button.
    ============================================================= */
 const Arcade = (() => {
   // Names/descriptions come from the translation dictionary so the whole
@@ -29,6 +28,26 @@ const Arcade = (() => {
     if (className) node.className = className;
     if (html != null) node.innerHTML = html;
     return node;
+  }
+
+  // Block textures live in /images/blocks and are shared by every game.
+  const TEXTURES = {};
+  function texture(name) {
+    if (!TEXTURES[name]) {
+      const img = new Image();
+      img.src = `/images/blocks/${name}.png`;
+      TEXTURES[name] = img;
+    }
+    return TEXTURES[name];
+  }
+  // Draw a texture, falling back to a flat colour until it has loaded.
+  function drawTex(ctx, name, x, y, w, h, fallback) {
+    const img = texture(name);
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, x, y, w, h);
+    else {
+      ctx.fillStyle = fallback || "#7a7a7a";
+      ctx.fillRect(x, y, w, h);
+    }
   }
 
   // The HUD strip above every stage. `cells` is [{ id, labelKey }].
@@ -62,12 +81,12 @@ const Arcade = (() => {
     return hint;
   }
 
-  // "+5" style popup at a point inside the stage.
-  function floatText(stage, x, y, text, kind) {
+  // "+5" style popup at a point inside a container.
+  function floatText(host, x, y, text, kind) {
     const node = el("span", `float-text ${kind || "good"}`, text);
     node.style.left = `${x}px`;
     node.style.top = `${y}px`;
-    stage.appendChild(node);
+    host.appendChild(node);
     setTimeout(() => node.remove(), 700);
   }
 
@@ -102,6 +121,7 @@ const Arcade = (() => {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingEnabled = false; // keep the pixel art crisp
       canvas.dataset.w = w;
       canvas.dataset.h = h;
     };
@@ -118,14 +138,23 @@ const Arcade = (() => {
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
 
-  /* =============================================================
-     1. 🌋 LAVA RUN — climb a randomly generated tower before the lava
-     catches you. The player bounces automatically; you only steer left
-     and right, which keeps it playable one-handed on a phone.
+  // The eight blocks Block Breaker and the parkour course share.
+  const BLOCKS = [
+    { key: "block.grass", tex: "grass", colour: "#6aaa4a" },
+    { key: "block.dirt", tex: "dirt", colour: "#866043" },
+    { key: "block.stone", tex: "stone", colour: "#808080" },
+    { key: "block.planks", tex: "planks", colour: "#b28956" },
+    { key: "block.diamond", tex: "diamond", colour: "#61dbd6" },
+    { key: "block.gold", tex: "gold", colour: "#f6d03d" },
+    { key: "block.redstone", tex: "redstone", colour: "#b02e26" },
+    { key: "block.obsidian", tex: "obsidian", colour: "#160f26" },
+  ];
 
-     The course mixes solid, moving and crumbling platforms, gets meaner
-     the higher you go, and pays out for diamonds, checkpoints, the
-     finish, a fast time and the difficulty you reached.
+  /* =============================================================
+     1. 🌋 LAVA RUN — climb a 100m tower before the lava catches you.
+     The player bounces automatically; you only steer left and right,
+     which keeps it playable one-handed on a phone. A rail down the
+     left edge shows the finish, where you are, and where the lava is.
      ============================================================= */
   const lavaRun = {
     id: "lava-run",
@@ -134,9 +163,9 @@ const Arcade = (() => {
     descKey: "game.lava.desc",
     howToKey: "game.lava.howto",
     start(mount, onFinish) {
-      const PLATFORMS = 56;          // how tall the course is
+      const PLATFORMS = 100;         // the course is 100m tall
       const GAP = 66;                // vertical spacing between platforms
-      const CHECKPOINT_EVERY = 11;   // 5 checkpoints on the way up
+      const CHECKPOINT_EVERY = 20;   // 5 checkpoints on the way up
       const GRAVITY = 1500;
       const JUMP_V = -680;           // apex is ~154px, comfortably over one gap
       const MOVE_SPEED = 340;
@@ -144,6 +173,7 @@ const Arcade = (() => {
       // about 0.75s of air, which at MOVE_SPEED covers ~250px - so anything
       // inside this is genuinely reachable, and the course is always climbable.
       const MAX_SIDE_STEP = 165;
+      const PAR_SECONDS = 90;
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
@@ -154,8 +184,10 @@ const Arcade = (() => {
       addHint(mount, "game.lava.hint");
       const { canvas, ctx, dispose } = fitCanvas(stage);
 
+      const RAIL_W = 30; // the progress rail down the left edge
       const W = () => Number(canvas.dataset.w);
       const H = () => Number(canvas.dataset.h);
+      const playW = () => W() - RAIL_W;
 
       /* ---- build the course ---- */
       // y is measured upward from the floor; the camera converts to screen.
@@ -165,7 +197,7 @@ const Arcade = (() => {
       const TOP_Y = PLATFORMS * GAP;
 
       function buildCourse() {
-        const w = W();
+        const w = playW();
         platforms.length = 0;
         diamonds.length = 0;
 
@@ -214,14 +246,14 @@ const Arcade = (() => {
             fading: 0,
           });
 
-          if (!checkpoint && Math.random() < 0.28) {
+          if (!checkpoint && Math.random() < 0.13) {
             diamonds.push({ x: center, y: FLOOR_Y + 26 + i * GAP + 36, taken: false });
           }
         }
       }
       buildCourse();
 
-      const player = { x: W() / 2, y: FLOOR_Y + 60, vy: 0, dir: 0, r: 13, targetX: null };
+      const player = { x: playW() / 2, y: FLOOR_Y + 60, vy: 0, r: 13, targetX: null };
       let camera = 0;          // world y at the bottom of the screen
       let lavaY = FLOOR_Y - 240;
       let points = 0;
@@ -234,7 +266,7 @@ const Arcade = (() => {
       // Lava creeps faster the higher you get - the top of the tower is a
       // sprint - but never quite outpaces a clean climb (~90px/s).
       function lavaSpeed() {
-        return Math.min(86, 24 + (best / TOP_Y) * 52 + elapsed * 0.35);
+        return Math.min(86, 24 + (best / TOP_Y) * 52 + elapsed * 0.2);
       }
 
       /* ---- controls: drag to steer, or arrow keys / A-D ---- */
@@ -250,7 +282,7 @@ const Arcade = (() => {
 
       const steer = (event) => {
         const box = stage.getBoundingClientRect();
-        player.targetX = clamp(event.clientX - box.left, player.r, W() - player.r);
+        player.targetX = clamp(event.clientX - box.left - RAIL_W, player.r, playW() - player.r);
       };
       const onDown = (event) => {
         stage.setPointerCapture?.(event.pointerId);
@@ -269,7 +301,7 @@ const Arcade = (() => {
 
       const stop = loop((dt) => {
         elapsed += dt;
-        const w = W();
+        const w = playW();
         const h = H();
 
         /* ---- horizontal steering ---- */
@@ -301,8 +333,7 @@ const Arcade = (() => {
               p.x = clamp(p.x, 0, Math.max(0, w - p.w));
             }
           } else if (p.x + p.w > w) {
-            // the panel was resized mid-run - pull the ledge back on screen
-            p.x = Math.max(0, w - p.w);
+            p.x = Math.max(0, w - p.w); // the panel was resized mid-run
           }
           // Land only while falling, and only when crossing the top face.
           const falling = player.vy > 0;
@@ -316,8 +347,8 @@ const Arcade = (() => {
             if (p.checkpoint && !p.claimed) {
               p.claimed = true;
               checkpoints += 1;
-              points += 25;
-              floatText(stage, player.x, h - (player.y - camera), "+25", "good");
+              points += 15;
+              floatText(stage, RAIL_W + player.x, h - (player.y - camera), "+15", "good");
             }
           }
         }
@@ -329,7 +360,11 @@ const Arcade = (() => {
           }
         }
 
-        best = Math.max(best, player.y);
+        if (player.y > best) {
+          // 1 point per metre climbed, awarded as you pass it.
+          points += Math.floor(player.y / GAP) - Math.floor(best / GAP);
+          best = player.y;
+        }
 
         /* ---- diamonds ---- */
         for (const gem of diamonds) {
@@ -337,8 +372,8 @@ const Arcade = (() => {
           if (Math.abs(gem.x - player.x) < 20 && Math.abs(gem.y - player.y) < 24) {
             gem.taken = true;
             gems += 1;
-            points += 10;
-            floatText(stage, player.x, h - (gem.y - camera), "+10", "good");
+            points += 5;
+            floatText(stage, RAIL_W + gem.x, h - (gem.y - camera), "+5", "good");
           }
         }
 
@@ -361,15 +396,18 @@ const Arcade = (() => {
       });
 
       function draw() {
-        const w = W();
+        const w = playW();
         const h = H();
         const toScreen = (worldY) => h - (worldY - camera);
-        ctx.clearRect(0, 0, w, h);
+        ctx.clearRect(0, 0, W(), h);
+
+        ctx.save();
+        ctx.translate(RAIL_W, 0);
 
         /* cave walls */
         ctx.fillStyle = "rgba(0,0,0,0.22)";
-        ctx.fillRect(0, 0, 10, h);
-        ctx.fillRect(w - 10, 0, 10, h);
+        ctx.fillRect(0, 0, 8, h);
+        ctx.fillRect(w - 8, 0, 8, h);
 
         /* the finish line */
         const finishScreenY = toScreen(TOP_Y + 26);
@@ -389,31 +427,22 @@ const Arcade = (() => {
           if (p.gone) continue;
           const y = toScreen(p.y);
           if (y < -30 || y > h + 30) continue;
-          const alpha = p.fading > 0 ? Math.max(0.2, p.fading / 0.35) : 1;
-          ctx.globalAlpha = alpha;
-          const top = p.checkpoint
-            ? "#f0c020"
-            : p.kind === "moving" ? "#4fa3d8"
-            : p.kind === "crumble" ? "#b0714a"
-            : p.kind === "floor" ? "#8d8d8d"
-            : "#6fbf4a";
-          const side = p.checkpoint
-            ? "#a8790c"
-            : p.kind === "moving" ? "#28618a"
-            : p.kind === "crumble" ? "#6d4127"
-            : p.kind === "floor" ? "#4c4c4c"
-            : "#3f7a2c";
+          ctx.globalAlpha = p.fading > 0 ? Math.max(0.2, p.fading / 0.35) : 1;
           const thickness = p.kind === "floor" ? 22 : 14;
-          ctx.fillStyle = side;
-          ctx.fillRect(p.x, y, p.w, thickness);
-          ctx.fillStyle = top;
-          ctx.fillRect(p.x, y, p.w, 6);
-          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          const tex = p.checkpoint
+            ? "gold"
+            : p.kind === "moving" ? "diamond"
+            : p.kind === "crumble" ? "dirt"
+            : p.kind === "floor" ? "stone"
+            : "grass";
+          for (let x = p.x; x < p.x + p.w; x += thickness) {
+            drawTex(ctx, tex, x, y, Math.min(thickness, p.x + p.w - x), thickness);
+          }
+          ctx.strokeStyle = "rgba(0,0,0,0.5)";
           ctx.lineWidth = 2;
           ctx.strokeRect(p.x, y, p.w, thickness);
           if (p.checkpoint) {
-            ctx.fillStyle = "#fff6d5";
-            ctx.font = "bold 12px 'Baloo 2', sans-serif";
+            ctx.font = "bold 13px 'Baloo 2', sans-serif";
             ctx.textAlign = "center";
             ctx.fillText("🏃", p.x + p.w / 2, y - 4);
           }
@@ -425,29 +454,15 @@ const Arcade = (() => {
           if (gem.taken) continue;
           const y = toScreen(gem.y);
           if (y < -20 || y > h + 20) continue;
-          ctx.save();
-          ctx.translate(gem.x, y);
-          ctx.rotate(Math.PI / 4);
-          ctx.fillStyle = "#5fe0f0";
-          ctx.fillRect(-7, -7, 14, 14);
+          drawTex(ctx, "diamond", gem.x - 9, y - 9, 18, 18, "#61dbd6");
           ctx.strokeStyle = "#1c7d92";
-          ctx.lineWidth = 2.5;
-          ctx.strokeRect(-7, -7, 14, 14);
-          ctx.restore();
+          ctx.lineWidth = 2;
+          ctx.strokeRect(gem.x - 9, y - 9, 18, 18);
         }
 
         /* the player */
         const py = toScreen(player.y);
-        ctx.fillStyle = "#3b2a1c";
-        ctx.fillRect(player.x - 13, py - 26, 26, 26);
-        ctx.fillStyle = "#c99a6b";
-        ctx.fillRect(player.x - 10, py - 19, 20, 16);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(player.x - 8, py - 16, 6, 5);
-        ctx.fillRect(player.x + 2, py - 16, 6, 5);
-        ctx.fillStyle = "#2b6cc4";
-        ctx.fillRect(player.x - 6, py - 15, 3, 3);
-        ctx.fillRect(player.x + 4, py - 15, 3, 3);
+        drawPlayerHead(ctx, player.x, py);
 
         /* the lava */
         const lavaScreenY = toScreen(lavaY);
@@ -458,13 +473,67 @@ const Arcade = (() => {
           grad.addColorStop(1, "#c01c06");
           ctx.fillStyle = grad;
           ctx.fillRect(0, lavaScreenY, w, h - lavaScreenY + 4);
-          // bubbling crust
           ctx.fillStyle = "#ffd873";
           for (let x = 0; x < w; x += 18) {
             const bob = Math.sin(elapsed * 4 + x * 0.08) * 4;
             ctx.fillRect(x, lavaScreenY - 4 + bob, 14, 6);
           }
         }
+
+        ctx.restore();
+        drawRail(h);
+      }
+
+      // The left-hand rail: the whole 100m at a glance — finish at the top,
+      // you in the middle, the lava creeping up from below.
+      function drawRail(h) {
+        const pad = 10;
+        const top = pad;
+        const bottom = h - pad;
+        const span = bottom - top;
+        const at = (worldY) => bottom - clamp(worldY / (TOP_Y + 26), 0, 1) * span;
+
+        ctx.fillStyle = "rgba(0,0,0,0.42)";
+        ctx.fillRect(0, 0, RAIL_W, h);
+        ctx.fillStyle = "rgba(255,255,255,0.14)";
+        ctx.fillRect(RAIL_W / 2 - 3, top, 6, span);
+
+        // lava fill
+        const lavaTop = at(Math.max(0, lavaY));
+        ctx.fillStyle = "rgba(255,106,31,0.85)";
+        ctx.fillRect(RAIL_W / 2 - 3, lavaTop, 6, bottom - lavaTop);
+
+        // checkpoints
+        ctx.fillStyle = "rgba(255,216,115,0.75)";
+        for (let i = CHECKPOINT_EVERY; i <= PLATFORMS; i += CHECKPOINT_EVERY) {
+          const y = at(FLOOR_Y + 26 + i * GAP);
+          ctx.fillRect(RAIL_W / 2 - 6, y - 1, 12, 2);
+        }
+
+        // finish flag
+        ctx.font = "11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🏆", RAIL_W / 2, top + 2);
+
+        // you
+        const you = at(player.y);
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(RAIL_W / 2, you, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#2b2b2b";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // metres climbed, printed sideways up the rail
+        ctx.save();
+        ctx.translate(RAIL_W - 6, h / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.font = "bold 10px 'Baloo 2', sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`${Math.round(best / GAP)}m / ${PLATFORMS}m`, 0, 0);
+        ctx.restore();
       }
 
       function finish(reachedTop) {
@@ -473,23 +542,16 @@ const Arcade = (() => {
         stop();
         cleanup();
 
-        const climbed = Math.min(1, best / TOP_Y);
-        // Difficulty bonus: 2 points per platform climbed, so a full ascent of
-        // the tower is worth about as much as the finish itself.
-        const difficultyBonus = Math.round(climbed * PLATFORMS * 2);
-        points += difficultyBonus;
-
         let speedBonus = 0;
         if (reachedTop) {
           points += 100;
-          // Par is 75s; every second under it is worth 2 points, up to 120.
-          speedBonus = Math.round(clamp((75 - elapsed) * 2, 0, 120));
+          // Every second under par is worth 2 points, up to 60.
+          speedBonus = Math.round(clamp((PAR_SECONDS - elapsed) * 2, 0, 60));
           points += speedBonus;
         }
 
         onFinish({
           points,
-          scoreLabelKey: "hud.points",
           detail: [
             ["result.height", `${Math.round(best / GAP)}m / ${PLATFORMS}m`],
             ["result.diamonds", gems],
@@ -518,24 +580,26 @@ const Arcade = (() => {
     },
   };
 
-  /* =============================================================
-     2. ⛏️ BLOCK BREAKER — 45s. Break the block that is named at the
-     top. Right block = points (faster = more), wrong block = penalty.
-     The grid grows as the round goes on.
-     ============================================================= */
-  const BLOCKS = [
-    { key: "block.grass", emoji: "🟩", color: "#5aa447" },
-    { key: "block.stone", emoji: "⬜", color: "#9a9a9a" },
-    { key: "block.dirt", emoji: "🟫", color: "#8a5a3b" },
-    { key: "block.gold", emoji: "🟨", color: "#f0c020" },
-    { key: "block.diamond", emoji: "💎", color: "#4fd8e8" },
-    { key: "block.redstone", emoji: "🟥", color: "#d33c30" },
-    { key: "block.lapis", emoji: "🟦", color: "#3a63c8" },
-    { key: "block.emerald", emoji: "🟩", color: "#2fbf6a" },
-    { key: "block.obsidian", emoji: "⬛", color: "#3a2a55" },
-    { key: "block.sand", emoji: "🟧", color: "#e0cf8a" },
-  ];
+  // A little Steve-ish head, shared by the climbing and parkour games.
+  function drawPlayerHead(ctx, x, baselineY) {
+    ctx.fillStyle = "#3b2a1c";
+    ctx.fillRect(x - 13, baselineY - 26, 26, 26);
+    ctx.fillStyle = "#c99a6b";
+    ctx.fillRect(x - 10, baselineY - 19, 20, 16);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x - 8, baselineY - 16, 6, 5);
+    ctx.fillRect(x + 2, baselineY - 16, 6, 5);
+    ctx.fillStyle = "#2b6cc4";
+    ctx.fillRect(x - 6, baselineY - 15, 3, 3);
+    ctx.fillRect(x + 4, baselineY - 15, 3, 3);
+  }
 
+  /* =============================================================
+     2. ⛏️ BLOCK BREAKER — four levels of ten blocks each, on grids
+     that grow 2x3 → 3x3 → 3x4 → 4x4. Break only the block named at
+     the top; a wrong tap costs you a second off the clock. Clearing
+     all four levels before time runs out pays the full reward.
+     ============================================================= */
   const blockBreaker = {
     id: "block-breaker",
     icon: "⛏️",
@@ -543,11 +607,19 @@ const Arcade = (() => {
     descKey: "game.breaker.desc",
     howToKey: "game.breaker.howto",
     start(mount, onFinish) {
-      const ROUND_SECONDS = 45;
+      const ROUND_SECONDS = 70;
+      const PER_LEVEL = 10; // blocks to break to clear a level
+      const LEVELS = [
+        { cols: 3, rows: 2, multiplier: 1 },
+        { cols: 3, rows: 3, multiplier: 1.5 },
+        { cols: 4, rows: 3, multiplier: 2 },
+        { cols: 4, rows: 4, multiplier: 2.5 },
+      ];
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "streak", labelKey: "hud.streak" },
+        { id: "level", labelKey: "hud.level", value: "1/4" },
+        { id: "left", labelKey: "hud.toGo", value: PER_LEVEL },
         { id: "time", labelKey: "hud.time", value: ROUND_SECONDS },
       ]);
 
@@ -555,39 +627,41 @@ const Arcade = (() => {
         "div",
         "bb-target",
         `<span class="bb-target-label" data-i18n="game.breaker.target">${T("game.breaker.target")}</span>
+         <img class="bb-target-tex" alt="" />
          <span class="bb-target-block"></span>`
       );
       mount.appendChild(targetBar);
       const targetName = targetBar.querySelector(".bb-target-block");
+      const targetTex = targetBar.querySelector(".bb-target-tex");
 
       const grid = el("div", "bb-grid");
+      grid.style.position = "relative";
       mount.appendChild(grid);
       addHint(mount, "game.breaker.hint");
 
       let points = 0;
-      let streak = 0;
-      let bestStreak = 0;
+      let level = 0;       // index into LEVELS
+      let cleared = 0;     // blocks broken in the current level
       let correct = 0;
       let wrong = 0;
       let elapsed = 0;
+      let penalty = 0;     // seconds lost to wrong taps
       let shownAt = 0;
       let target = null;
+      let allDone = false;
       let done = false;
 
-      // 6 tiles at the start, 12 by the end of the round.
-      function tileCount() {
-        const progress = elapsed / ROUND_SECONDS;
-        return Math.round(6 + progress * 6);
-      }
-
       function deal() {
-        const count = tileCount();
+        const spec = LEVELS[level];
+        const count = spec.cols * spec.rows;
         const pool = [...BLOCKS].sort(() => Math.random() - 0.5).slice(0, Math.min(count, BLOCKS.length));
-        while (pool.length < count) pool.push(pick(BLOCKS)); // repeats are fine, they raise the difficulty
+        while (pool.length < count) pool.push(pick(BLOCKS)); // repeats raise the difficulty
         target = pick(pool);
-        targetName.textContent = T(target.key);
-        targetName.style.setProperty("--bb", target.color);
 
+        targetName.textContent = T(target.key);
+        targetTex.src = `/images/blocks/${target.tex}.png`;
+
+        grid.style.gridTemplateColumns = `repeat(${spec.cols}, 1fr)`;
         grid.innerHTML = "";
         pool
           .sort(() => Math.random() - 0.5)
@@ -595,53 +669,71 @@ const Arcade = (() => {
             const cell = el(
               "button",
               "bb-cell",
-              `<span class="bb-emoji">${block.emoji}</span><span class="bb-name">${T(block.key)}</span>`
+              `<img class="bb-tex" src="/images/blocks/${block.tex}.png" alt="" draggable="false" />
+               <span class="bb-name">${T(block.key)}</span>`
             );
             cell.type = "button";
-            cell.style.setProperty("--bb", block.color);
+            cell.style.setProperty("--bb", block.colour);
             cell.addEventListener("pointerdown", (event) => tap(event, cell, block));
             grid.appendChild(cell);
           });
         shownAt = performance.now();
+        setHud("level", `${level + 1}/${LEVELS.length}`);
+        setHud("left", PER_LEVEL - cleared);
       }
 
       function tap(event, cell, block) {
         if (done) return;
+        const box = grid.getBoundingClientRect();
+        const px = event.clientX - box.left;
+        const py = event.clientY - box.top;
+
         if (block.key === target.key) {
           const reaction = (performance.now() - shownAt) / 1000;
-          // 3 base, up to +5 more for breaking it inside a second.
-          const speedBonus = Math.round(clamp(5 * (1 - reaction / 1.6), 0, 5));
-          const gained = 3 + speedBonus;
+          // 3 base, up to 4 more for breaking it inside a second and a half,
+          // then scaled by which level you are on.
+          const speedBonus = Math.round(clamp(4 * (1 - reaction / 1.5), 0, 4));
+          const gained = Math.round((3 + speedBonus) * LEVELS[level].multiplier);
           points += gained;
-          streak += 1;
-          bestStreak = Math.max(bestStreak, streak);
           correct += 1;
+          cleared += 1;
           cell.classList.add("hit");
           setHud("score", points);
-          setHud("streak", streak);
-          const box = grid.getBoundingClientRect();
-          floatText(grid, event.clientX - box.left, event.clientY - box.top, `+${gained}`, "good");
+          setHud("left", Math.max(0, PER_LEVEL - cleared));
+          floatText(grid, px, py, `+${gained}`, "good");
+
+          if (cleared >= PER_LEVEL) {
+            if (level + 1 >= LEVELS.length) {
+              allDone = true;
+              points += 60; // clearing the whole set
+              setHud("score", points);
+              return finish();
+            }
+            level += 1;
+            cleared = 0;
+            grid.classList.add("bb-levelup");
+            setTimeout(() => grid.classList.remove("bb-levelup"), 350);
+            setTimeout(() => { if (!done) deal(); }, 340);
+            return;
+          }
           setTimeout(() => { if (!done) deal(); }, 90);
         } else {
-          points = Math.max(0, points - 4);
-          streak = 0;
+          // A wrong block costs a second of clock, not points.
+          penalty += 1;
           wrong += 1;
           cell.classList.add("miss");
           setTimeout(() => cell.classList.remove("miss"), 260);
-          setHud("score", points);
-          setHud("streak", 0);
-          const box = grid.getBoundingClientRect();
-          floatText(grid, event.clientX - box.left, event.clientY - box.top, "-4", "bad");
+          floatText(grid, px, py, T("game.breaker.penalty"), "bad");
         }
       }
 
-      grid.style.position = "relative";
       deal();
 
       const stop = loop((dt) => {
         elapsed += dt;
-        setHud("time", Math.max(0, Math.ceil(ROUND_SECONDS - elapsed)));
-        if (elapsed >= ROUND_SECONDS) finish();
+        const left = ROUND_SECONDS - elapsed - penalty;
+        setHud("time", Math.max(0, Math.ceil(left)));
+        if (left <= 0) finish();
       });
 
       function finish() {
@@ -650,11 +742,12 @@ const Arcade = (() => {
         stop();
         onFinish({
           points,
-          scoreLabelKey: "hud.points",
           detail: [
+            ["result.levelsCleared", allDone ? `${LEVELS.length}/${LEVELS.length}` : `${level}/${LEVELS.length}`],
             ["result.blocksBroken", correct],
             ["result.wrongBlocks", wrong],
-            ["result.bestStreak", bestStreak],
+            ["result.timeLost", `${penalty}s`],
+            ["result.outcome", T(allDone ? "result.allCleared" : "result.timeUp")],
           ],
         });
       }
@@ -668,7 +761,7 @@ const Arcade = (() => {
 
   /* =============================================================
      3. 💨 WIND CHARGE DODGE — survive the wind charges. Longer alive =
-     more points, near misses pay a dodge bonus, emeralds are worth 10.
+     more points, near misses pay a dodge bonus, emeralds are worth 5.
      Ends the moment you are hit.
      ============================================================= */
   const windDodge = {
@@ -700,7 +793,7 @@ const Arcade = (() => {
       let gems = 0;
       let elapsed = 0;
       let survivalCarry = 0;
-      let spawnIn = 1.8; // a moment of grace before the first charge
+      let spawnIn = 1.8;
       let gemIn = 2;
       let done = false;
 
@@ -725,7 +818,7 @@ const Arcade = (() => {
 
       function spawnCharge() {
         // Fire in from a random edge, aimed near where the player is now.
-        const speed = 95 + elapsed * 4; // gets faster the longer you live
+        const speed = 95 + elapsed * 4;
         const edge = Math.floor(rand(0, 4));
         let x = 0;
         let y = 0;
@@ -754,7 +847,6 @@ const Arcade = (() => {
       const stop = loop((dt) => {
         elapsed += dt;
 
-        /* keyboard movement nudges the target point */
         const kbSpeed = 320 * dt;
         if (keys.has("arrowleft") || keys.has("a")) player.tx -= kbSpeed;
         if (keys.has("arrowright") || keys.has("d")) player.tx += kbSpeed;
@@ -766,10 +858,10 @@ const Arcade = (() => {
         player.x += (player.tx - player.x) * Math.min(1, dt * 14);
         player.y += (player.ty - player.y) * Math.min(1, dt * 14);
 
-        /* +1 point every half second alive */
+        /* +1 point per second alive */
         survivalCarry += dt;
-        while (survivalCarry >= 0.5) {
-          survivalCarry -= 0.5;
+        while (survivalCarry >= 1) {
+          survivalCarry -= 1;
           points += 1;
         }
 
@@ -809,8 +901,8 @@ const Arcade = (() => {
           if (Math.hypot(gem.x - player.x, gem.y - player.y) < player.r + 13) {
             emeralds.splice(i, 1);
             gems += 1;
-            points += 10;
-            floatText(stage, gem.x, gem.y, "+10", "good");
+            points += 5;
+            floatText(stage, gem.x, gem.y, "+5", "good");
           }
         }
 
@@ -826,15 +918,10 @@ const Arcade = (() => {
         ctx.clearRect(0, 0, w, h);
 
         for (const gem of emeralds) {
-          ctx.save();
-          ctx.translate(gem.x, gem.y);
-          ctx.rotate(Math.PI / 4);
-          ctx.fillStyle = gem.life < 1.5 && Math.floor(gem.life * 8) % 2 ? "#1d7a48" : "#2fbf6a";
-          ctx.fillRect(-9, -9, 18, 18);
-          ctx.strokeStyle = "#0f4d2c";
-          ctx.lineWidth = 3;
-          ctx.strokeRect(-9, -9, 18, 18);
-          ctx.restore();
+          const blink = gem.life < 1.5 && Math.floor(gem.life * 8) % 2;
+          ctx.globalAlpha = blink ? 0.45 : 1;
+          drawTex(ctx, "ore-emerald", gem.x - 11, gem.y - 11, 22, 22, "#2fbf6a");
+          ctx.globalAlpha = 1;
         }
 
         for (const c of charges) {
@@ -855,17 +942,7 @@ const Arcade = (() => {
           ctx.restore();
         }
 
-        // the player: a little Steve-ish head
-        ctx.fillStyle = "#3b2a1c";
-        ctx.fillRect(player.x - 13, player.y - 13, 26, 26);
-        ctx.fillStyle = "#c99a6b";
-        ctx.fillRect(player.x - 10, player.y - 6, 20, 16);
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(player.x - 8, player.y - 3, 6, 5);
-        ctx.fillRect(player.x + 2, player.y - 3, 6, 5);
-        ctx.fillStyle = "#2b6cc4";
-        ctx.fillRect(player.x - 6, player.y - 2, 3, 3);
-        ctx.fillRect(player.x + 4, player.y - 2, 3, 3);
+        drawPlayerHead(ctx, player.x, player.y + 13);
       }
 
       function finish() {
@@ -875,7 +952,6 @@ const Arcade = (() => {
         cleanup();
         onFinish({
           points,
-          scoreLabelKey: "hud.points",
           detail: [
             ["result.survived", fmtTime(elapsed)],
             ["result.dodges", dodges],
@@ -900,20 +976,19 @@ const Arcade = (() => {
   };
 
   /* =============================================================
-     4. 💎 DIAMOND RUSH — 45s in a small mine. Tap ore to mine it:
-     Coal +1, Iron +3, Gold +5, Diamond +15, Emerald +20. TNT costs
-     points and stuns your pick, and it gets nastier the longer you
-     mine. The seam reshuffles more and more often, so the good ore
-     keeps moving.
+     4. 💎 DIAMOND RUSH — 30 hard seconds in a small mine. Tap ore to
+     mine it: Coal +1, Iron +2, Gold +4, Diamond +8, Emerald +12.
+     One tap on TNT and the run is over, so look before you swing —
+     and the seam reshuffles faster and faster.
      ============================================================= */
   const ORES = [
-    { key: "ore.stone", emoji: "🪨", value: 0, weight: 30 },
-    { key: "ore.coal", emoji: "⬛", value: 1, weight: 22 },
-    { key: "ore.iron", emoji: "⬜", value: 3, weight: 17 },
-    { key: "ore.gold", emoji: "🟨", value: 5, weight: 13 },
-    { key: "ore.diamond", emoji: "💎", value: 15, weight: 8 },
-    { key: "ore.emerald", emoji: "💚", value: 20, weight: 5 },
-    { key: "ore.tnt", emoji: "🧨", value: -1, weight: 5 },
+    { key: "ore.stone", tex: "stone", value: 0, weight: 30 },
+    { key: "ore.coal", tex: "ore-coal", value: 1, weight: 22 },
+    { key: "ore.iron", tex: "ore-iron", value: 2, weight: 17 },
+    { key: "ore.gold", tex: "ore-gold", value: 4, weight: 13 },
+    { key: "ore.diamond", tex: "ore-diamond", value: 8, weight: 8 },
+    { key: "ore.emerald", tex: "ore-emerald", value: 12, weight: 5 },
+    { key: "ore.tnt", tex: "tnt", value: -1, weight: 5 },
   ];
 
   const diamondRush = {
@@ -923,7 +998,7 @@ const Arcade = (() => {
     descKey: "game.rush.desc",
     howToKey: "game.rush.howto",
     start(mount, onFinish) {
-      const ROUND_SECONDS = 45;
+      const ROUND_SECONDS = 30;
       const COLS = 5;
       const ROWS = 4;
       const CELLS = COLS * ROWS;
@@ -942,19 +1017,18 @@ const Arcade = (() => {
       let points = 0;
       let mined = 0;
       let gems = 0;
-      let tntHits = 0;
       let best = ORES[0];
       let elapsed = 0;
-      let shuffleIn = 5;
-      let stunnedUntil = 0;
+      let shuffleIn = 3;
+      let blownUp = false;
       let done = false;
       const timers = [];
       const later = (fn, ms) => timers.push(setTimeout(fn, ms));
 
-      // TNT gets both more common and more expensive as the round runs.
+      // TNT gets steadily more common as the clock runs down.
       function weightFor(ore) {
         if (ore.key !== "ore.tnt") return ore.weight;
-        return ore.weight * (1 + (elapsed / ROUND_SECONDS) * 1.6);
+        return ore.weight * (1 + (elapsed / ROUND_SECONDS) * 1.8);
       }
       function rollOre() {
         const total = ORES.reduce((sum, ore) => sum + weightFor(ore), 0);
@@ -965,13 +1039,10 @@ const Arcade = (() => {
         }
         return ORES[0];
       }
-      function tntPenalty() {
-        return 10 + Math.floor(elapsed / 9) * 5;
-      }
 
       const cells = [];
       for (let i = 0; i < CELLS; i++) {
-        const node = el("button", "mine-cell", '<span class="mine-emoji"></span>');
+        const node = el("button", "mine-cell", '<img class="mine-tex" alt="" draggable="false" />');
         node.type = "button";
         const cell = { node, ore: rollOre(), empty: false };
         paint(cell);
@@ -981,33 +1052,38 @@ const Arcade = (() => {
       }
 
       function paint(cell) {
-        cell.node.querySelector(".mine-emoji").textContent = cell.empty ? "" : cell.ore.emoji;
+        const img = cell.node.querySelector(".mine-tex");
+        if (cell.empty) {
+          img.removeAttribute("src");
+          img.style.visibility = "hidden";
+        } else {
+          img.src = `/images/blocks/${cell.ore.tex}.png`;
+          img.style.visibility = "visible";
+        }
         cell.node.classList.toggle("mined", cell.empty);
         cell.node.classList.toggle("tnt", !cell.empty && cell.ore.key === "ore.tnt");
       }
 
       function dig(event, cell) {
-        if (done || cell.empty || performance.now() < stunnedUntil) return;
+        if (done || cell.empty) return;
         const ore = cell.ore;
         const box = grid.getBoundingClientRect();
         const px = event.clientX - box.left;
         const py = event.clientY - box.top;
 
         if (ore.key === "ore.tnt") {
-          const penalty = tntPenalty();
-          points = Math.max(0, points - penalty);
-          tntHits += 1;
-          stunnedUntil = performance.now() + 700; // the blast knocks your pick loose
+          // One wrong swing ends the run.
+          blownUp = true;
           grid.classList.add("mine-boom");
-          later(() => grid.classList.remove("mine-boom"), 300);
-          floatText(grid, px, py, `-${penalty}`, "bad");
-        } else {
-          points += ore.value;
-          if (ore.value > 0) mined += 1;
-          if (ore.value >= 15) gems += 1;
-          if (ore.value > best.value) best = ore;
-          floatText(grid, px, py, ore.value ? `+${ore.value}` : T("game.rush.rubble"), ore.value ? "good" : "bad");
+          floatText(grid, px, py, "💥", "bad");
+          return finish();
         }
+
+        points += ore.value;
+        if (ore.value > 0) mined += 1;
+        if (ore.value >= 8) gems += 1;
+        if (ore.value > best.value) best = ore;
+        floatText(grid, px, py, ore.value ? `+${ore.value}` : T("game.rush.rubble"), ore.value ? "good" : "bad");
 
         setHud("score", points);
         setHud("ores", mined);
@@ -1020,11 +1096,11 @@ const Arcade = (() => {
           cell.ore = rollOre();
           cell.empty = false;
           paint(cell);
-        }, 320);
+        }, 280);
       }
 
       // "Ores moving": every so often the whole face reshuffles, faster and
-      // faster, so a diamond you spotted may not be there when you reach it.
+      // faster, so the diamond you spotted may be TNT by the time you reach it.
       function reshuffle() {
         for (const cell of cells) {
           if (cell.empty) continue;
@@ -1042,7 +1118,7 @@ const Arcade = (() => {
         shuffleIn -= dt;
         if (shuffleIn <= 0) {
           reshuffle();
-          shuffleIn = Math.max(1.8, 5 - elapsed * 0.08);
+          shuffleIn = Math.max(1.2, 3 - elapsed * 0.06);
         }
 
         if (elapsed >= ROUND_SECONDS) finish();
@@ -1055,12 +1131,12 @@ const Arcade = (() => {
         timers.forEach(clearTimeout);
         onFinish({
           points,
-          scoreLabelKey: "hud.points",
           detail: [
             ["result.oresMined", mined],
             ["result.gems", gems],
-            ["result.bestFind", best.value > 0 ? `${best.emoji} ${T(best.key)}` : "—"],
-            ["result.tntHit", tntHits],
+            ["result.bestFind", best.value > 0 ? T(best.key) : "—"],
+            ["result.survived", fmtTime(elapsed)],
+            ["result.outcome", T(blownUp ? "result.blownUp" : "result.timeUp")],
           ],
         });
       }
@@ -1074,271 +1150,639 @@ const Arcade = (() => {
   };
 
   /* =============================================================
-     5. 🧱 BUILD IT! — memory + building. A structure is shown for a
-     few seconds, then it vanishes and you rebuild it from the block
-     palette. Correct blocks in the correct places score, wrong ones
-     cost, and finishing quickly pays a speed bonus. Structures grow
-     from 3x3 up to 6x6 with more block types as the levels climb.
-     Three hearts; a badly botched build costs one.
+     5. 💥 TNT ESCAPE — a small arena. TNT lands around you, flashes a
+     blast circle, and goes off. Keep moving; one explosion catching
+     you ends the run. Survive the 45 seconds to clear it.
      ============================================================= */
-  const BUILD_BLOCKS = [
-    { key: "block.dirt", emoji: "🟫" },
-    { key: "block.diamond", emoji: "💎" },
-    { key: "block.grass", emoji: "🟩" },
-    { key: "block.redstone", emoji: "🟥" },
-    { key: "block.lapis", emoji: "🟦" },
-    { key: "block.gold", emoji: "🟨" },
-    { key: "block.obsidian", emoji: "⬛" },
-  ];
-
-  const buildIt = {
-    id: "build-it",
-    icon: "🧱",
-    nameKey: "game.build.name",
-    descKey: "game.build.desc",
-    howToKey: "game.build.howto",
+  const tntEscape = {
+    id: "tnt-escape",
+    icon: "💥",
+    nameKey: "game.tnt.name",
+    descKey: "game.tnt.desc",
+    howToKey: "game.tnt.howto",
     start(mount, onFinish) {
-      const START_LIVES = 3;
+      const ROUND_SECONDS = 45;
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "level", labelKey: "hud.level", value: 1 },
-        { id: "lives", labelKey: "hud.lives", value: "❤️".repeat(START_LIVES) },
+        { id: "dodges", labelKey: "hud.dodges" },
+        { id: "time", labelKey: "hud.time", value: ROUND_SECONDS },
       ]);
+      const stage = buildStage(mount, "tnt-stage");
+      addHint(mount, "game.tnt.hint");
+      const { canvas, ctx, dispose } = fitCanvas(stage);
 
-      const banner = el("div", "build-banner");
-      mount.appendChild(banner);
-      const board = el("div", "build-grid");
-      mount.appendChild(board);
-      const palette = el("div", "build-palette");
-      mount.appendChild(palette);
-      const doneBtn = el("button", "continue-btn build-done", T("game.build.done"));
-      doneBtn.type = "button";
-      mount.appendChild(doneBtn);
-      addHint(mount, "game.build.hint");
+      const W = () => Number(canvas.dataset.w);
+      const H = () => Number(canvas.dataset.h);
+
+      const player = { x: W() / 2, y: H() / 2, r: 12, tx: W() / 2, ty: H() / 2 };
+      const bombs = [];
+      const blasts = [];
+      const keys = new Set();
 
       let points = 0;
-      let level = 1;
-      let lives = START_LIVES;
-      let built = 0;
-      let perfects = 0;
-      let placedTotal = 0;
-      let wrongTotal = 0;
+      let dodges = 0;
+      let elapsed = 0;
+      let survivalCarry = 0;
+      let spawnIn = 2.2; // a breath before the first stick lands
+      let survived = false;
       let done = false;
 
-      let target = [];     // the structure to copy: block key or null per cell
-      let placed = [];     // what the player has built so far
-      let selected = null;
-      let size = 3;
-      let phase = "memorise";
-      let phaseEndsAt = 0;
-      let buildSeconds = 0;
+      /* --- controls: drag, or arrow keys / WASD --- */
+      const movePointer = (event) => {
+        const box = stage.getBoundingClientRect();
+        player.tx = clamp(event.clientX - box.left, player.r, W() - player.r);
+        player.ty = clamp(event.clientY - box.top, player.r, H() - player.r);
+      };
+      const onDown = (event) => {
+        stage.setPointerCapture?.(event.pointerId);
+        movePointer(event);
+      };
+      stage.addEventListener("pointerdown", onDown);
+      stage.addEventListener("pointermove", (event) => {
+        if (event.pressure > 0 || event.pointerType === "mouse") movePointer(event);
+      });
+      const onKeyDown = (e) => keys.add(e.key.toLowerCase());
+      const onKeyUp = (e) => keys.delete(e.key.toLowerCase());
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
 
-      const timers = [];
-      const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+      function spawnBomb() {
+        const progress = elapsed / ROUND_SECONDS;
+        // Later bombs land closer to you, with a shorter fuse and a wider blast.
+        // The first few seconds are deliberately scattershot.
+        const aimAtPlayer = elapsed > 5 && Math.random() < 0.35 + progress * 0.4;
+        const spread = 150 - progress * 70;
+        const x = aimAtPlayer
+          ? clamp(player.x + rand(-spread, spread), 24, W() - 24)
+          : rand(24, W() - 24);
+        const y = aimAtPlayer
+          ? clamp(player.y + rand(-spread, spread), 24, H() - 24)
+          : rand(24, H() - 24);
+        bombs.push({
+          x, y,
+          fuse: Math.max(0.8, 1.7 - progress * 0.75),
+          maxFuse: Math.max(0.8, 1.7 - progress * 0.75),
+          radius: 46 + progress * 30,
+          counted: false,
+        });
+      }
 
-      // 3x3 at level 1, 5x5 by level 5, 6x6 from level 7 on.
-      const sizeFor = (lvl) => Math.min(6, 3 + Math.floor((lvl - 1) / 2));
-      const typesFor = (lvl) => Math.min(5, 1 + Math.ceil(lvl / 2));
-      const memoriseFor = (lvl) => Math.max(1.6, 4.2 - lvl * 0.25);
+      const stop = loop((dt) => {
+        elapsed += dt;
 
-      function newStructure() {
-        size = sizeFor(level);
-        const palettePool = [...BUILD_BLOCKS].sort(() => Math.random() - 0.5).slice(0, typesFor(level));
-        const cells = size * size;
-        // Between half and two thirds of the grid is solid - enough shape to
-        // remember, enough empty space that position actually matters.
-        const fillCount = Math.max(3, Math.round(cells * rand(0.5, 0.68)));
-        const order = [...Array(cells).keys()].sort(() => Math.random() - 0.5);
+        const kbSpeed = 330 * dt;
+        if (keys.has("arrowleft") || keys.has("a")) player.tx -= kbSpeed;
+        if (keys.has("arrowright") || keys.has("d")) player.tx += kbSpeed;
+        if (keys.has("arrowup") || keys.has("w")) player.ty -= kbSpeed;
+        if (keys.has("arrowdown") || keys.has("s")) player.ty += kbSpeed;
+        player.tx = clamp(player.tx, player.r, W() - player.r);
+        player.ty = clamp(player.ty, player.r, H() - player.r);
+        player.x += (player.tx - player.x) * Math.min(1, dt * 14);
+        player.y += (player.ty - player.y) * Math.min(1, dt * 14);
 
-        target = new Array(cells).fill(null);
-        for (let i = 0; i < fillCount; i++) target[order[i]] = pick(palettePool).key;
-        placed = new Array(cells).fill(null);
-
-        // From level 4 the palette carries a block that isn't in the answer.
-        const shown = [...palettePool];
-        if (level >= 4) {
-          const decoy = BUILD_BLOCKS.find((b) => !palettePool.some((p) => p.key === b.key));
-          if (decoy) shown.push(decoy);
+        /* +3 points per second alive */
+        survivalCarry += dt;
+        while (survivalCarry >= 1) {
+          survivalCarry -= 1;
+          points += 3;
         }
-        return shown.sort(() => Math.random() - 0.5);
-      }
 
-      function blockByKey(key) {
-        return BUILD_BLOCKS.find((b) => b.key === key) || null;
-      }
+        spawnIn -= dt;
+        if (spawnIn <= 0) {
+          spawnBomb();
+          spawnIn = Math.max(0.28, rand(0.6, 1.1) - elapsed * 0.012);
+        }
 
-      function drawBoard(cellsToShow, interactive, marks) {
-        board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
-        board.innerHTML = "";
-        cellsToShow.forEach((key, index) => {
-          const block = blockByKey(key);
-          const cell = el(
-            "button",
-            `build-cell${key ? " filled" : ""}${marks ? ` ${marks[index]}` : ""}`,
-            `<span class="build-emoji">${block ? block.emoji : ""}</span>`
-          );
-          cell.type = "button";
-          if (interactive) cell.addEventListener("pointerdown", () => place(index));
-          else cell.disabled = true;
-          board.appendChild(cell);
-        });
-      }
+        for (let i = bombs.length - 1; i >= 0; i--) {
+          const b = bombs[i];
+          b.fuse -= dt;
+          if (b.fuse > 0) continue;
 
-      function drawPalette(blocks, interactive) {
-        palette.innerHTML = "";
-        blocks.forEach((block) => {
-          const swatch = el(
-            "button",
-            `build-swatch${selected === block.key ? " active" : ""}`,
-            `<span class="build-emoji">${block.emoji}</span><span class="build-swatch-name">${T(block.key)}</span>`
-          );
-          swatch.type = "button";
-          swatch.disabled = !interactive;
-          swatch.addEventListener("pointerdown", () => {
-            selected = block.key;
-            drawPalette(blocks, interactive);
-          });
-          palette.appendChild(swatch);
-        });
-      }
-
-      function place(index) {
-        if (done || phase !== "build") return;
-        // Tapping a cell that already holds the selected block clears it.
-        placed[index] = placed[index] === selected ? null : selected;
-        drawBoard(placed, true, null);
-      }
-
-      /* ---- phases ---- */
-      let paletteBlocks = [];
-
-      function startLevel() {
-        paletteBlocks = newStructure();
-        selected = null;
-        phase = "memorise";
-        const secs = memoriseFor(level);
-        phaseEndsAt = performance.now() + secs * 1000;
-        setHud("level", level);
-        drawBoard(target, false, null);
-        drawPalette(paletteBlocks, false);
-        doneBtn.disabled = true;
-        board.classList.add("showing");
-      }
-
-      function startBuild() {
-        phase = "build";
-        board.classList.remove("showing");
-        selected = paletteBlocks[0] ? paletteBlocks[0].key : null;
-        buildSeconds = size * size * 1.5 + 8;
-        phaseEndsAt = performance.now() + buildSeconds * 1000;
-        drawBoard(placed, true, null);
-        drawPalette(paletteBlocks, true);
-        doneBtn.disabled = false;
-      }
-
-      function submit() {
-        if (done || phase !== "build") return;
-        phase = "review";
-        doneBtn.disabled = true;
-
-        const remaining = Math.max(0, phaseEndsAt - performance.now()) / 1000;
-        let correct = 0;
-        let wrong = 0;
-        let filled = 0;
-        const marks = [];
-        for (let i = 0; i < target.length; i++) {
-          if (target[i]) filled += 1;
-          if (placed[i] && placed[i] === target[i]) {
-            correct += 1;
-            marks.push("mark-right");
-          } else if (placed[i]) {
-            wrong += 1;
-            marks.push("mark-wrong");
-          } else {
-            marks.push(target[i] ? "mark-missed" : "");
+          const dist = Math.hypot(b.x - player.x, b.y - player.y);
+          blasts.push({ x: b.x, y: b.y, radius: b.radius, life: 0.35 });
+          bombs.splice(i, 1);
+          if (dist < b.radius + player.r) return finish(false);
+          // Standing just outside the blast pays.
+          if (dist < b.radius + player.r + 34) {
+            dodges += 1;
+            points += 5;
+            floatText(stage, player.x, player.y - 20, "+5", "good");
           }
         }
 
-        const accuracy = filled ? correct / filled : 0;
-        const perfect = correct === filled && wrong === 0;
-        let gained = correct * 8 - wrong * 4;
-        // Speed bonus, scaled by how much of the build clock was left.
-        if (correct > 0) gained += Math.round(25 * (remaining / buildSeconds));
-        if (perfect) gained += 20 * level;
+        for (let i = blasts.length - 1; i >= 0; i--) {
+          blasts[i].life -= dt;
+          if (blasts[i].life <= 0) blasts.splice(i, 1);
+        }
 
-        points = Math.max(0, points + gained);
-        placedTotal += correct + wrong;
-        wrongTotal += wrong;
-        built += 1;
-        if (perfect) perfects += 1;
         setHud("score", points);
+        setHud("dodges", dodges);
+        setHud("time", Math.max(0, Math.ceil(ROUND_SECONDS - elapsed)));
 
-        // Show the answer with right/wrong/missed marks before moving on.
-        drawBoard(target, false, marks);
-        banner.className = `build-banner ${perfect ? "perfect" : "review"}`;
-        banner.textContent = perfect
-          ? T("game.build.perfect")
-          : T("game.build.scored", { correct, total: filled });
-
-        if (accuracy < 0.6) {
-          lives -= 1;
-          setHud("lives", "❤️".repeat(Math.max(0, lives)) || "💀");
-        }
-
-        later(() => {
-          if (done) return;
-          if (lives <= 0) return finish();
-          level += 1;
-          startLevel();
-        }, 1500);
-      }
-
-      doneBtn.addEventListener("click", submit);
-
-      startLevel();
-
-      const stop = loop(() => {
-        if (phase === "review") return;
-        const left = Math.max(0, (phaseEndsAt - performance.now()) / 1000);
-        if (phase === "memorise") {
-          banner.className = "build-banner memorise";
-          banner.textContent = T("game.build.memorise", { secs: Math.ceil(left) });
-          if (left <= 0) startBuild();
-        } else {
-          banner.className = "build-banner building";
-          banner.textContent = T("game.build.rebuild", { secs: Math.ceil(left) });
-          if (left <= 0) submit(); // out of time - score whatever is on the grid
-        }
+        if (elapsed >= ROUND_SECONDS) return finish(true);
+        draw();
       });
 
-      function finish() {
+      function draw() {
+        const w = W();
+        const h = H();
+        ctx.clearRect(0, 0, w, h);
+
+        // arena floor
+        for (let y = 0; y < h; y += 32) {
+          for (let x = 0; x < w; x += 32) {
+            drawTex(ctx, (x / 32 + y / 32) % 2 ? "stone" : "dirt", x, y, 32, 32);
+          }
+        }
+        ctx.fillStyle = "rgba(0,0,0,0.28)";
+        ctx.fillRect(0, 0, w, h);
+
+        // live blast circles, so you can see where NOT to be
+        for (const b of bombs) {
+          const t = 1 - b.fuse / b.maxFuse;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, 90, 40, ${0.10 + t * 0.26})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(255, 170, 60, ${0.5 + t * 0.5})`;
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          const flash = b.fuse < 0.35 && Math.floor(b.fuse * 16) % 2;
+          ctx.globalAlpha = flash ? 0.55 : 1;
+          drawTex(ctx, "tnt", b.x - 14, b.y - 14, 28, 28, "#b02e26");
+          ctx.globalAlpha = 1;
+        }
+
+        for (const blast of blasts) {
+          const t = 1 - blast.life / 0.35;
+          ctx.beginPath();
+          ctx.arc(blast.x, blast.y, blast.radius * (0.7 + t * 0.5), 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255, ${Math.round(180 - t * 120)}, 60, ${0.75 * (1 - t)})`;
+          ctx.fill();
+        }
+
+        drawPlayerHead(ctx, player.x, player.y + 13);
+      }
+
+      function finish(clearedIt) {
         if (done) return;
         done = true;
+        survived = clearedIt;
+        if (clearedIt) points += 40; // made it to the end
         stop();
-        timers.forEach(clearTimeout);
+        cleanup();
         onFinish({
           points,
-          scoreLabelKey: "hud.points",
           detail: [
-            ["result.levelsBuilt", built],
-            ["result.perfectBuilds", perfects],
-            ["result.blocksPlaced", placedTotal],
-            ["result.wrongBlocks", wrongTotal],
+            ["result.survived", fmtTime(elapsed)],
+            ["result.dodges", dodges],
+            ["result.outcome", T(clearedIt ? "result.survivedAll" : "result.blownUp")],
           ],
         });
+      }
+
+      function cleanup() {
+        window.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("keyup", onKeyUp);
+        stage.removeEventListener("pointerdown", onDown);
+        dispose();
       }
 
       return () => {
         done = true;
         stop();
-        timers.forEach(clearTimeout);
+        cleanup();
+      };
+    },
+  };
+
+  /* =============================================================
+     6. 🧱 BLOCK PARKOUR — an auto-running course built from randomly
+     chosen sections, so nobody can memorise one perfect route. Tap to
+     jump. Fall in the lava and you restart at the last checkpoint
+     rather than losing the run. Reach the end for the big points.
+     ============================================================= */
+  const blockParkour = {
+    id: "block-parkour",
+    icon: "🧱",
+    nameKey: "game.parkour.name",
+    descKey: "game.parkour.desc",
+    howToKey: "game.parkour.howto",
+    start(mount, onFinish) {
+      const TILE = 34;
+      const RUN_SPEED = 185;
+      const GRAVITY = 1900;
+      const JUMP_V = -625;          // ~103px up, ~135px of reach — clears 3 tiles
+      const SLIME_V = -880;         // a slime block throws you much higher
+      const SECTION_COUNT = 20;
+      const CHECKPOINT_EVERY = 4;
+      const PAR_SECONDS = 55;
+      const DEATH_DEPTH = -3.2 * TILE;
+
+      const setHud = buildHud(mount, [
+        { id: "score", labelKey: "hud.points" },
+        { id: "gems", labelKey: "hud.diamonds" },
+        { id: "deaths", labelKey: "hud.deaths" },
+        { id: "time", labelKey: "hud.time", value: "0:00" },
+      ]);
+      const stage = buildStage(mount, "parkour-stage");
+      addHint(mount, "game.parkour.hint");
+      const { canvas, ctx, dispose } = fitCanvas(stage);
+
+      const W = () => Number(canvas.dataset.w);
+      const H = () => Number(canvas.dataset.h);
+      const GROUND = () => H() - 70;   // screen y of the course's base line
+
+      /* ---------------- course generation ----------------
+         Each section is a small hand-designed chunk. The course strings
+         twenty of them together at random, so the shape is different every
+         run but every chunk is known to be clearable. Coordinates are in
+         tiles: x rightward from the section start, y upward from the base. */
+      const SECTIONS = [
+        // Three rules keep a randomly assembled course always clearable, which
+        // a simulation of the physics confirmed across hundreds of courses:
+        // every section opens and closes on a 3-tile block at ground level, no
+        // gap is wider than 2 tiles, and nothing you must land on is narrower
+        // than 2. Without them the sections drift out of alignment and the
+        // generator can produce a jump nobody can make.
+        // plain ground with a short hop
+        { w: 10, blocks: [[0, 0, 4, "normal"], [5, 0, 4, "normal"]] },
+        // up and over
+        { w: 16, blocks: [[0, 0, 3, "normal"], [4, 1, 3, "normal"], [8, 2, 3, "normal"], [12, 0, 3, "normal"]] },
+        // down from a height
+        { w: 16, blocks: [[0, 0, 3, "normal"], [4, 2, 3, "normal"], [8, 1, 3, "normal"], [12, 0, 3, "normal"]] },
+        // narrow stepping stones over lava
+        { w: 14, blocks: [[0, 0, 3, "normal"], [4, 1, 2, "narrow"], [7, 1, 2, "narrow"], [10, 0, 3, "normal"]] },
+        // a platform that slides up and down over the gap
+        { w: 12, blocks: [[0, 0, 3, "normal"], [4, 1, 3, "moving"], [8, 0, 3, "normal"]] },
+        // blocks that crumble the moment you land
+        { w: 14, blocks: [[0, 0, 3, "normal"], [4, 1, 2, "disappear"], [7, 1, 2, "disappear"], [10, 0, 3, "normal"]] },
+        // slime launch onto a high ledge
+        { w: 16, blocks: [[0, 0, 3, "normal"], [4, 0, 2, "slime"], [7, 3, 3, "normal"], [11, 0, 4, "normal"]] },
+        // an ice run that speeds you up
+        { w: 12, blocks: [[0, 0, 3, "normal"], [3, 0, 4, "ice"], [8, 0, 3, "normal"]] },
+        // wind charges hanging over the path
+        { w: 11, blocks: [[0, 0, 5, "normal"], [6, 0, 4, "normal"]], winds: [[5.5, 1.6], [8, 2.4]] },
+        // the widest gap on the course: two tiles, and worth committing to
+        { w: 11, blocks: [[0, 0, 4, "normal"], [6, 0, 4, "normal"]] },
+      ];
+
+      const platforms = [];
+      const diamonds = [];
+      const winds = [];
+      const checkpoints = [];
+      let courseEnd = 0;
+
+      function buildCourse() {
+        let cursor = 4; // the starting pad is 4 tiles, so sections begin after it
+        platforms.push({ x: 0, y: 0, w: 4 * TILE, kind: "normal" });
+
+        for (let s = 0; s < SECTION_COUNT; s++) {
+          const spec = pick(SECTIONS);
+          for (const [bx, by, bw, kind] of spec.blocks) {
+            platforms.push({
+              x: (cursor + bx) * TILE,
+              y: by * TILE,
+              w: bw * TILE,
+              kind,
+              // moving platforms drift vertically between two heights
+              baseY: by * TILE,
+              phase: Math.random() * Math.PI * 2,
+              gone: false,
+              fading: 0,
+            });
+          }
+          for (const [wx, wy] of spec.winds || []) {
+            winds.push({ x: (cursor + wx) * TILE, y: wy * TILE, phase: Math.random() * Math.PI * 2 });
+          }
+          // A diamond over a random block in roughly half the sections.
+          if (Math.random() < 0.45 && spec.blocks.length) {
+            const [bx, by, bw] = pick(spec.blocks);
+            diamonds.push({ x: (cursor + bx + bw / 2) * TILE, y: (by + 1.6) * TILE, taken: false });
+          }
+          cursor += spec.w;
+
+          if ((s + 1) % CHECKPOINT_EVERY === 0 && s + 1 < SECTION_COUNT) {
+            // A safe, flat landing pad that doubles as the respawn point.
+            platforms.push({ x: cursor * TILE, y: 0, w: 4 * TILE, kind: "normal", baseY: 0, phase: 0, gone: false, fading: 0 });
+            checkpoints.push({ x: (cursor + 1) * TILE, claimed: false });
+            cursor += 5;
+          }
+        }
+        platforms.push({ x: cursor * TILE, y: 0, w: 5 * TILE, kind: "normal", baseY: 0, phase: 0, gone: false, fading: 0 });
+        courseEnd = (cursor + 3) * TILE;
+      }
+      buildCourse();
+
+      const player = { x: 40, y: TILE, vy: 0, onGround: false, iceBoost: 0, standingOn: null };
+      let spawnX = 40;
+      let camera = 0;
+      let points = 0;
+      let gems = 0;
+      let deaths = 0;
+      let claimed = 0;
+      let elapsed = 0;
+      let jumpBuffer = 0;
+      let coyote = 0;
+      let finished = false;
+      let done = false;
+
+      /* ---- controls: one button ---- */
+      const jump = () => { jumpBuffer = 0.12; };
+      const onDown = (e) => { e.preventDefault(); jump(); };
+      const onKeyDown = (e) => {
+        if ([" ", "arrowup", "w"].includes(e.key.toLowerCase())) {
+          e.preventDefault();
+          jump();
+        }
+      };
+      stage.addEventListener("pointerdown", onDown);
+      window.addEventListener("keydown", onKeyDown);
+
+      function respawn() {
+        deaths += 1;
+        setHud("deaths", deaths);
+        player.x = spawnX;
+        player.y = 2 * TILE;
+        player.vy = 0;
+        player.iceBoost = 0;
+        player.standingOn = null;
+        stage.classList.add("stage-hurt");
+        setTimeout(() => stage.classList.remove("stage-hurt"), 220);
+        // Crumbled blocks come back, so a checkpoint is always survivable.
+        for (const p of platforms) {
+          if (p.kind === "disappear") {
+            p.gone = false;
+            p.fading = 0;
+          }
+        }
+      }
+
+      const stop = loop((dt) => {
+        elapsed += dt;
+        jumpBuffer = Math.max(0, jumpBuffer - dt);
+        coyote = Math.max(0, coyote - dt);
+
+        /* run right, a touch faster just after an ice block */
+        player.iceBoost = Math.max(0, player.iceBoost - dt);
+        player.x += (RUN_SPEED + (player.iceBoost > 0 ? 95 : 0)) * dt;
+
+        /* jump */
+        if (jumpBuffer > 0 && (player.onGround || coyote > 0)) {
+          player.vy = JUMP_V;
+          player.onGround = false;
+          player.standingOn = null;
+          coyote = 0;
+          jumpBuffer = 0;
+        }
+
+        player.vy += GRAVITY * dt;
+        const prevY = player.y;
+        player.y -= player.vy * dt;
+
+        /* moving platforms */
+        for (const p of platforms) {
+          if (p.kind === "moving") p.y = p.baseY + Math.sin(elapsed * 1.6 + p.phase) * TILE * 0.9;
+          if (p.fading > 0) {
+            p.fading -= dt;
+            if (p.fading <= 0) p.gone = true;
+          }
+        }
+
+        /* Ride a moving platform up as well as down. Without this the
+           platform rises through you and quietly leaves you behind. */
+        if (player.standingOn && !player.standingOn.gone && player.vy >= 0) {
+          const p = player.standingOn;
+          const riding = player.x + 11 > p.x && player.x - 11 < p.x + p.w && player.y <= p.y + 4;
+          if (riding) {
+            player.y = p.y;
+            player.vy = 0;
+          } else {
+            player.standingOn = null;
+          }
+        }
+
+        /* landing */
+        const wasOnGround = player.onGround;
+        player.onGround = false;
+        for (const p of platforms) {
+          if (p.gone) continue;
+          const falling = player.vy > 0;
+          const crossed = prevY >= p.y && player.y <= p.y;
+          const overlaps = player.x + 11 > p.x && player.x - 11 < p.x + p.w;
+          if (falling && crossed && overlaps) {
+            player.y = p.y;
+            player.onGround = true;
+            player.standingOn = p;
+            if (p.kind === "slime") {
+              player.vy = SLIME_V;
+              player.onGround = false;
+              player.standingOn = null;
+            } else if (p.kind === "ice") {
+              player.vy = 0;
+              player.iceBoost = 0.45;
+            } else {
+              player.vy = 0;
+              if (p.kind === "disappear" && !p.fading) p.fading = 0.3;
+            }
+          }
+        }
+        if (wasOnGround && !player.onGround && player.vy >= 0) coyote = 0.1;
+
+        /* wind charges shove you backwards */
+        for (const wind of winds) {
+          if (Math.abs(wind.x - player.x) < 20 && Math.abs(wind.y - player.y) < 22) {
+            player.x -= 46;
+            player.vy = -260;
+          }
+        }
+
+        /* diamonds */
+        for (const gem of diamonds) {
+          if (gem.taken) continue;
+          if (Math.abs(gem.x - player.x) < 22 && Math.abs(gem.y - player.y) < 26) {
+            gem.taken = true;
+            gems += 1;
+            points += 10;
+            setHud("gems", gems);
+            floatText(stage, gem.x - camera, GROUND() - gem.y, "+10", "good");
+          }
+        }
+
+        /* checkpoints */
+        for (const cp of checkpoints) {
+          if (!cp.claimed && player.x >= cp.x) {
+            cp.claimed = true;
+            claimed += 1;
+            spawnX = cp.x;
+            points += 25;
+            floatText(stage, cp.x - camera, GROUND() - 60, "+25", "good");
+          }
+        }
+
+        if (player.y < DEATH_DEPTH) respawn();
+
+        camera = Math.max(0, player.x - W() * 0.32);
+        setHud("score", points);
+        setHud("time", fmtTime(elapsed));
+
+        if (player.x >= courseEnd) return finish(true);
+        if (elapsed > 180) return finish(false); // a safety net, not a real limit
+        draw();
+      });
+
+      function draw() {
+        const w = W();
+        const h = H();
+        const ground = GROUND();
+        const sx = (worldX) => worldX - camera;
+        const sy = (worldY) => ground - worldY;
+        ctx.clearRect(0, 0, w, h);
+
+        /* lava at the bottom of every gap */
+        const lavaTop = sy(DEATH_DEPTH) - 10;
+        const grad = ctx.createLinearGradient(0, lavaTop, 0, h);
+        grad.addColorStop(0, "#ffb43c");
+        grad.addColorStop(0.4, "#ff6a1f");
+        grad.addColorStop(1, "#c01c06");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, lavaTop, w, h - lavaTop);
+        ctx.fillStyle = "#ffd873";
+        for (let x = 0; x < w; x += 18) {
+          ctx.fillRect(x, lavaTop - 3 + Math.sin(elapsed * 4 + x * 0.08) * 3, 14, 5);
+        }
+
+        /* the course */
+        for (const p of platforms) {
+          if (p.gone) continue;
+          const x = sx(p.x);
+          if (x + p.w < -40 || x > w + 40) continue;
+          const y = sy(p.y);
+          ctx.globalAlpha = p.fading > 0 ? Math.max(0.25, p.fading / 0.3) : 1;
+
+          if (p.kind === "slime" || p.kind === "ice") {
+            ctx.fillStyle = p.kind === "slime" ? "#7bd44a" : "#9fe4f5";
+            ctx.fillRect(x, y, p.w, TILE * 0.6);
+            ctx.strokeStyle = p.kind === "slime" ? "#3f7a2c" : "#4b93ad";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, p.w, TILE * 0.6);
+          } else {
+            const tex =
+              p.kind === "moving" ? "planks" : p.kind === "disappear" ? "dirt" : p.kind === "narrow" ? "stone" : "grass";
+            for (let t = 0; t < p.w; t += TILE) {
+              drawTex(ctx, tex, x + t, y, Math.min(TILE, p.w - t), TILE * 0.6);
+            }
+            ctx.strokeStyle = "rgba(0,0,0,0.45)";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, p.w, TILE * 0.6);
+          }
+          ctx.globalAlpha = 1;
+        }
+
+        /* checkpoint banners */
+        for (const cp of checkpoints) {
+          const x = sx(cp.x);
+          if (x < -40 || x > w + 40) continue;
+          ctx.fillStyle = cp.claimed ? "#6bd36b" : "#ffd873";
+          ctx.fillRect(x, sy(0) - 54, 4, 54);
+          ctx.fillRect(x, sy(0) - 54, 22, 14);
+        }
+
+        /* wind charges */
+        for (const wind of winds) {
+          const x = sx(wind.x);
+          if (x < -40 || x > w + 40) continue;
+          const y = sy(wind.y) + Math.sin(elapsed * 3 + wind.phase) * 5;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(elapsed * 4 + wind.phase);
+          ctx.strokeStyle = "rgba(210,245,255,0.95)";
+          ctx.lineWidth = 3;
+          for (let ring = 0; ring < 3; ring++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, 11 - ring * 3, ring * 1.6, ring * 1.6 + 4.4);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+
+        /* diamonds */
+        for (const gem of diamonds) {
+          if (gem.taken) continue;
+          const x = sx(gem.x);
+          if (x < -30 || x > w + 30) continue;
+          const y = sy(gem.y) + Math.sin(elapsed * 3 + gem.x) * 4;
+          drawTex(ctx, "diamond", x - 10, y - 10, 20, 20, "#61dbd6");
+          ctx.strokeStyle = "#1c7d92";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x - 10, y - 10, 20, 20);
+        }
+
+        /* the finish */
+        const fx = sx(courseEnd);
+        if (fx < w + 60) {
+          for (let i = 0; i < 6; i++) {
+            ctx.fillStyle = i % 2 ? "#fdfdfd" : "#2b2b2b";
+            ctx.fillRect(fx, sy(0) - 20 - i * 16, 34, 16);
+          }
+          ctx.fillStyle = "#ffd873";
+          ctx.font = "bold 14px 'Baloo 2', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("🏆", fx + 17, sy(0) - 124);
+        }
+
+        drawPlayerHead(ctx, sx(player.x), sy(player.y));
+      }
+
+      function finish(reachedEnd) {
+        if (done) return;
+        done = true;
+        finished = reachedEnd;
+        stop();
+        cleanup();
+
+        let speedBonus = 0;
+        let perfect = 0;
+        if (reachedEnd) {
+          points += 100;
+          speedBonus = Math.round(clamp((PAR_SECONDS - elapsed) * 2, 0, 60));
+          points += speedBonus;
+          if (deaths === 0) {
+            perfect = 50;
+            points += perfect;
+          }
+        }
+
+        onFinish({
+          points,
+          detail: [
+            ["result.checkpoints", `${claimed}/${checkpoints.length}`],
+            ["result.diamonds", gems],
+            ["result.deaths", deaths],
+            ["result.runTime", fmtTime(elapsed)],
+            ["result.outcome", T(reachedEnd ? (deaths === 0 ? "result.perfectRun" : "result.finished") : "result.gaveUp")],
+          ],
+        });
+      }
+
+      function cleanup() {
+        stage.removeEventListener("pointerdown", onDown);
+        window.removeEventListener("keydown", onKeyDown);
+        dispose();
+      }
+
+      return () => {
+        done = true;
+        stop();
+        cleanup();
       };
     },
   };
 
   /* ----------------------------- registry ----------------------------- */
-  const list = [lavaRun, blockBreaker, windDodge, diamondRush, buildIt];
+  const list = [lavaRun, blockBreaker, windDodge, diamondRush, tntEscape, blockParkour];
   const byId = (id) => list.find((game) => game.id === id) || null;
 
   return {

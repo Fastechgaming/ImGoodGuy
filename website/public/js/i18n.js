@@ -26,8 +26,7 @@ const I18n = (() => {
       "nav.store": "💰 Store",
       "nav.map": "🗺️ Map",
       "nav.menu": "Menu",
-      "nav.langLabel": "Switch to Khmer",
-      "nav.langShort": "KH",
+      "nav.language": "Language",
       "footer.copy": "© {year} AngkorSMP · Cambodia Minecraft Server 🇰🇭",
 
       /* ---- home ---- */
@@ -51,6 +50,18 @@ const I18n = (() => {
 
       /* ---- store ---- */
       "store.subtitle": "STORE",
+      "store.gateTitle": "Who is this for?",
+      "store.gateHint":
+        "Enter your Minecraft name once so we know where to deliver your purchase — and so we can show your current rank and coins.",
+      "store.loggedInAs": "Logged in as",
+      "store.noRank": "No rank yet",
+      "store.upgradeNow": "Upgrade Now",
+      "store.currentRank": "Your current Rank",
+      "store.lowerRank": "This is a lower rank",
+      "store.confirm": "Confirm",
+      "store.cancel": "Cancel",
+      "store.changeHint":
+        "This is the name your purchases are delivered to, and the account your website coins and points are saved under.",
       "store.tab.ranks": "Ranks",
       "store.tab.coins": "Coins",
       "store.tab.other": "Other",
@@ -109,7 +120,8 @@ const I18n = (() => {
       "success.back": "Back to home",
 
       /* ---- map ---- */
-      "map.title": "🌿 Cambodia Map — Live BlueMap 🌿",
+      "map.title": "🌿 Cambodia Map 🌿",
+      "map.subtitle": "LIVE MAP",
       "map.age": "Map Age: {age}",
       "map.explain": "Explore AngkorSMP in real time. Having trouble viewing it below?",
       "map.openNew": "Open the map in a new tab ↗",
@@ -120,6 +132,17 @@ const I18n = (() => {
 
       /* ---- games: gate + hub ---- */
       "games.subtitle": "GAMES",
+      "games.verify": "Verify",
+      "games.coins": "Coins",
+      "games.topPoints": "Top Points",
+      "games.viewFull": "View full",
+      "games.earnedToday": "earned {earned}/{cap} today",
+      "games.playsLeft": "{left} of {cap} plays left today",
+      "games.noPlaysLeft": "No plays left today",
+      "games.noPlaysLeftToast": "You've used all 5 plays of this game today. Come back after the reset.",
+      "games.cannotStart": "Can't start this round",
+      "games.go": "GO!",
+
       "games.gateTitle": "Play & earn coins",
       "games.gateHint":
         "Play mini-games right here on the website and earn Angkor Coins for your in-game balance. Enter your Minecraft name once — we'll remember it next time.",
@@ -174,45 +197,49 @@ const I18n = (() => {
       "hud.diamonds": "Diamonds",
       "hud.height": "Height",
       "hud.ores": "Ores",
+      "hud.toGo": "To go",
+      "hud.deaths": "Falls",
       "hud.level": "Level",
 
       /* ---- games: the five games ---- */
       "game.lava.name": "Lava Run",
-      "game.lava.desc": "Climb the tower before the rising lava catches you. Grab diamonds on the way up.",
+      "game.lava.desc": "Climb 100m before the rising lava catches you. Grab diamonds on the way up.",
       "game.lava.howto":
-        "Drag left and right to steer — you bounce automatically. Diamond +10 · Checkpoint +25 · Finish +100, plus a bonus for a fast time and for how high you climbed. Blue platforms slide, brown ones crumble after one bounce.",
-      "game.lava.hint": "Drag to steer · 💎 +10 · 🏃 +25 · 🏆 +100",
+        "Drag left and right to steer — you bounce automatically. Diamond +5 · Checkpoint +15 · Finish +100, plus a point per metre climbed and a bonus for a fast time. The rail on the left shows the finish, you, and the lava.",
+      "game.lava.hint": "Drag to steer · 💎 +5 · 🏃 +15 · 🏆 +100",
 
       "game.breaker.name": "Block Breaker",
-      "game.breaker.desc": "Break only the block named at the top. The faster you tap, the more it pays.",
+      "game.breaker.desc": "Break only the block shown at the top. Four levels, ten blocks each, and the grid keeps growing.",
       "game.breaker.howto":
-        "The target block is shown above the grid. Break it fast for bonus points — a wrong block costs you 4.",
-      "game.breaker.hint": "Right block = points · Wrong block = -4",
+        "Break ten of the target block to clear a level. Later levels are worth more, and clearing all four pays the maximum. A wrong block costs you a second off the clock.",
+      "game.breaker.hint": "10 blocks a level · Wrong block = -1 second",
       "game.breaker.target": "BREAK",
+      "game.breaker.penalty": "-1s",
 
       "game.dodge.name": "Wind Charge Dodge",
       "game.dodge.desc": "Dodge the wind charges, grab emeralds, survive as long as you can.",
       "game.dodge.howto":
-        "Drag to move (or use the arrow keys). Grazing a wind charge pays +2 and emeralds are +10. One hit ends the run.",
-      "game.dodge.hint": "Drag to move · Close dodge +2 · Emerald +10",
+        "Drag to move (or use the arrow keys). Grazing a wind charge pays +2 and emeralds are +5. One hit ends the run.",
+      "game.dodge.hint": "Drag to move · Close dodge +2 · Emerald +5",
 
       "game.rush.name": "Diamond Rush",
-      "game.rush.desc": "Mine as much value as you can before time runs out. Watch for the TNT.",
+      "game.rush.desc": "Thirty seconds to mine as much value as you can. One tap on TNT and it's over.",
       "game.rush.howto":
-        "Tap ore to mine it. Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · TNT costs points and jams your pick. The seam reshuffles faster and faster.",
-      "game.rush.hint": "Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · 🧨 penalty",
+        "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12. TNT ends the run on the spot, and the seam reshuffles faster and faster — so look before you swing.",
+      "game.rush.hint": "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12 · TNT = over",
       "game.rush.rubble": "Rubble",
 
-      "game.build.name": "Build It!",
-      "game.build.desc": "Memorise the structure, then rebuild it block for block. Each one is bigger.",
-      "game.build.howto":
-        "Study the build before it disappears, then pick a block and place it. Right block in the right place +8, wrong block -4, and building fast pays a bonus. You have 3 hearts.",
-      "game.build.hint": "Right place +8 · Wrong block -4 · Build fast for a bonus",
-      "game.build.memorise": "Memorise it! {secs}",
-      "game.build.rebuild": "Rebuild it! {secs}",
-      "game.build.done": "Done",
-      "game.build.perfect": "PERFECT!",
-      "game.build.scored": "{correct} / {total} blocks right",
+      "game.tnt.name": "TNT Escape",
+      "game.tnt.desc": "Survive 45 seconds in an arena raining TNT. Keep moving.",
+      "game.tnt.howto":
+        "Drag to move (or use the arrow keys). Each TNT shows its blast circle before it goes off — stay out of it. Standing just outside pays +5, and you get +3 for every second alive.",
+      "game.tnt.hint": "Drag to move · Stay out of the red · Close call +5",
+
+      "game.parkour.name": "Block Parkour",
+      "game.parkour.desc": "Auto-run a randomly built course. Tap to jump, land the gaps, reach the finish.",
+      "game.parkour.howto":
+        "Tap anywhere (or press Space) to jump — you run forward on your own. Diamond +10 · Checkpoint +25 · Finish +100, with bonuses for a fast time and for finishing without falling. Fall in the lava and you restart at the last checkpoint.",
+      "game.parkour.hint": "Tap to jump · 💎 +10 · 🏁 +25 · 🏆 +100",
 
       /* ---- games: result screen ---- */
       "result.headline": "Nice run!",
@@ -225,21 +252,25 @@ const I18n = (() => {
       "result.checkpoints": "Checkpoints",
       "result.runTime": "Time",
       "result.outcome": "Result",
-      "result.finished": "🏆 Reached the top!",
+      "result.deaths": "Falls",
+      "result.finished": "🏆 Reached the finish!",
+      "result.perfectRun": "✨ Perfect run — no falls!",
       "result.burned": "🌋 Caught by the lava",
+      "result.gaveUp": "⏱️ Ran out of time",
+      "result.blownUp": "💥 Blown up",
+      "result.survivedAll": "🏆 Survived to the end!",
+      "result.timeUp": "⏱️ Time's up",
+      "result.allCleared": "🏆 All four levels cleared!",
+      "result.levelsCleared": "Levels cleared",
       "result.blocksBroken": "Blocks broken",
       "result.wrongBlocks": "Wrong blocks",
-      "result.bestStreak": "Best streak",
+      "result.timeLost": "Time lost",
       "result.survived": "Survived",
       "result.dodges": "Close dodges",
       "result.emeralds": "Emeralds",
       "result.oresMined": "Ores mined",
       "result.gems": "Diamonds & Emeralds",
       "result.bestFind": "Best find",
-      "result.tntHit": "TNT hit",
-      "result.levelsBuilt": "Structures built",
-      "result.perfectBuilds": "Perfect builds",
-      "result.blocksPlaced": "Blocks placed",
 
       /* ---- block names (kept in English on purpose) ---- */
       "block.grass": "Grass Block",
@@ -270,8 +301,7 @@ const I18n = (() => {
       "nav.store": "💰 ហាង",
       "nav.map": "🗺️ ផែនទី",
       "nav.menu": "ម៉ឺនុយ",
-      "nav.langLabel": "ប្តូរទៅភាសាអង់គ្លេស",
-      "nav.langShort": "EN",
+      "nav.language": "ភាសា",
       "footer.copy": "© {year} AngkorSMP · Minecraft Server កម្ពុជា 🇰🇭",
 
       /* ---- home ---- */
@@ -295,6 +325,18 @@ const I18n = (() => {
 
       /* ---- store ---- */
       "store.subtitle": "ហាង",
+      "store.gateTitle": "ទិញសម្រាប់អ្នកណា?",
+      "store.gateHint":
+        "បញ្ចូលឈ្មោះ Minecraft តែម្តងគត់ ដើម្បីយើងដឹងថាត្រូវផ្ញើទំនិញទៅណា — ហើយអាចបង្ហាញ Rank និង Coins បច្ចុប្បន្នរបស់អ្នក។",
+      "store.loggedInAs": "ចូលជា",
+      "store.noRank": "មិនទាន់មាន Rank",
+      "store.upgradeNow": "ដំឡើងឥឡូវ",
+      "store.currentRank": "Rank បច្ចុប្បន្នរបស់អ្នក",
+      "store.lowerRank": "នេះជា Rank ទាបជាង",
+      "store.confirm": "បញ្ជាក់",
+      "store.cancel": "បោះបង់",
+      "store.changeHint":
+        "នេះជាឈ្មោះដែលទំនិញនឹងផ្ញើទៅ និងជាគណនីដែលរក្សាទុក Coins និងពិន្ទុរបស់អ្នក។",
       "store.tab.ranks": "Ranks",
       "store.tab.coins": "Coins",
       "store.tab.other": "ផ្សេងៗ",
@@ -353,7 +395,8 @@ const I18n = (() => {
       "success.back": "ត្រឡប់ទៅទំព័រដើម",
 
       /* ---- map ---- */
-      "map.title": "🌿 ផែនទីកម្ពុជា — Live BlueMap 🌿",
+      "map.title": "🌿 ផែនទីកម្ពុជា 🌿",
+      "map.subtitle": "ផែនទីបន្តផ្ទាល់",
       "map.age": "អាយុផែនទី៖ {age}",
       "map.explain": "រុករក AngkorSMP ជាក់ស្តែង។ មើលមិនឃើញនៅខាងក្រោមមែនទេ?",
       "map.openNew": "បើកផែនទីក្នុង Tab ថ្មី ↗",
@@ -364,6 +407,17 @@ const I18n = (() => {
 
       /* ---- games: gate + hub ---- */
       "games.subtitle": "ហ្គេម",
+      "games.verify": "ផ្ទៀងផ្ទាត់",
+      "games.coins": "Coins",
+      "games.topPoints": "ពិន្ទុខ្ពស់បំផុត",
+      "games.viewFull": "មើលទាំងអស់",
+      "games.earnedToday": "រកបាន {earned}/{cap} ថ្ងៃនេះ",
+      "games.playsLeft": "នៅសល់ {left} ក្នុងចំណោម {cap} ដងថ្ងៃនេះ",
+      "games.noPlaysLeft": "អស់ចំនួនលេងថ្ងៃនេះ",
+      "games.noPlaysLeftToast": "អ្នកបានលេងហ្គេមនេះគ្រប់ ៥ ដងហើយថ្ងៃនេះ។ សូមត្រឡប់មកវិញក្រោយពេលកំណត់ឡើងវិញ។",
+      "games.cannotStart": "មិនអាចចាប់ផ្តើមជុំនេះបានទេ",
+      "games.go": "ចាប់ផ្តើម!",
+
       "games.gateTitle": "លេង ហើយរក Coins",
       "games.gateHint":
         "លេងហ្គេមតូចៗនៅលើ Website នេះ ហើយរក Angkor Coins សម្រាប់ Balance ក្នុងហ្គេម។ បញ្ចូលឈ្មោះ Minecraft តែម្តងគត់ — យើងនឹងចាំវាទុក។",
@@ -418,45 +472,49 @@ const I18n = (() => {
       "hud.diamonds": "Diamonds",
       "hud.height": "កម្ពស់",
       "hud.ores": "រ៉ែ",
+      "hud.toGo": "នៅសល់",
+      "hud.deaths": "ធ្លាក់",
       "hud.level": "កម្រិត",
 
       /* ---- games: the five games ---- */
       "game.lava.name": "Lava Run",
-      "game.lava.desc": "ឡើងលើឲ្យបានមុនពេល Lava ឡើងមកដល់។ ប្រមូល Diamond តាមផ្លូវ។",
+      "game.lava.desc": "ឡើងឲ្យបាន ១០០ម មុនពេល Lava ឡើងមកដល់។ ប្រមូល Diamond តាមផ្លូវ។",
       "game.lava.howto":
-        "អូសទៅឆ្វេង-ស្តាំដើម្បីបញ្ជា — តួអង្គលោតដោយស្វ័យប្រវត្តិ។ Diamond +10 · Checkpoint +25 · ដល់គោល +100 បូកបន្ថែមបើលឿន និងបើឡើងបានខ្ពស់។ ផ្ទាំងពណ៌ខៀវរំកិល ផ្ទាំងពណ៌ត្នោតបាក់ក្រោយលោតម្តង។",
-      "game.lava.hint": "អូសដើម្បីបញ្ជា · 💎 +10 · 🏃 +25 · 🏆 +100",
+        "អូសទៅឆ្វេង-ស្តាំដើម្បីបញ្ជា — តួអង្គលោតដោយស្វ័យប្រវត្តិ។ Diamond +5 · Checkpoint +15 · ដល់គោល +100 បូកមួយពិន្ទុរាល់មួយម៉ែត្រ និងរង្វាន់បន្ថែមបើលឿន។ របារខាងឆ្វេងបង្ហាញគោល ទីតាំងអ្នក និង Lava។",
+      "game.lava.hint": "អូសដើម្បីបញ្ជា · 💎 +5 · 🏃 +15 · 🏆 +100",
 
       "game.breaker.name": "Block Breaker",
-      "game.breaker.desc": "ទម្លាយតែ Block ដែលមានឈ្មោះនៅខាងលើ។ ចុចកាន់តែលឿន ពិន្ទុកាន់តែច្រើន។",
+      "game.breaker.desc": "ទម្លាយតែ Block ដែលបង្ហាញនៅខាងលើ។ ៤ កម្រិត កម្រិតនីមួយៗ ១០ Block។",
       "game.breaker.howto":
-        "Block គោលដៅបង្ហាញនៅខាងលើតារាង។ ចុចវាឲ្យលឿនដើម្បីបានពិន្ទុបន្ថែម — Block ខុសនឹងកាត់ ៤ ពិន្ទុ។",
-      "game.breaker.hint": "Block ត្រូវ = ពិន្ទុ · Block ខុស = -4",
+        "ទម្លាយ Block គោលដៅ ១០ ដងដើម្បីឆ្លងកម្រិត។ កម្រិតខ្ពស់ផ្តល់ពិន្ទុច្រើនជាង ហើយឆ្លងគ្រប់ ៤ កម្រិតបានរង្វាន់ពេញ។ Block ខុសកាត់ពេល ១ វិនាទី។",
+      "game.breaker.hint": "១០ Block ក្នុងមួយកម្រិត · Block ខុស = -1 វិនាទី",
       "game.breaker.target": "ទម្លាយ",
+      "game.breaker.penalty": "-1វិ",
 
       "game.dodge.name": "Wind Charge Dodge",
       "game.dodge.desc": "គេច Wind Charge ប្រមូល Emerald ហើយរស់ឲ្យបានយូរបំផុត។",
       "game.dodge.howto":
-        "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ គេចជិត Wind Charge បាន +2 និង Emerald បាន +10។ ប៉ះម្តងគឺចប់។",
-      "game.dodge.hint": "អូសដើម្បីផ្លាស់ទី · គេចជិត +2 · Emerald +10",
+        "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ គេចជិត Wind Charge បាន +2 និង Emerald បាន +5។ ប៉ះម្តងគឺចប់។",
+      "game.dodge.hint": "អូសដើម្បីផ្លាស់ទី · គេចជិត +2 · Emerald +5",
 
       "game.rush.name": "Diamond Rush",
-      "game.rush.desc": "ជីករករ៉ែឲ្យបានតម្លៃច្រើនបំផុតមុនអស់ពេល។ ប្រយ័ត្ន TNT!",
+      "game.rush.desc": "៣០ វិនាទីដើម្បីជីករករ៉ែឲ្យបានតម្លៃច្រើនបំផុត។ ចុច TNT ម្តងគឺចប់។",
       "game.rush.howto":
-        "ចុចលើរ៉ែដើម្បីជីក។ Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · TNT ដកពិន្ទុ ហើយធ្វើឲ្យជាប់ចប។ រ៉ែនឹងផ្លាស់ទីកាន់តែញឹកញាប់។",
-      "game.rush.hint": "Coal +1 · Iron +3 · Gold +5 · Diamond +15 · Emerald +20 · 🧨 ដកពិន្ទុ",
+        "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12។ TNT បញ្ចប់ជុំភ្លាម ហើយរ៉ែផ្លាស់ទីកាន់តែញឹកញាប់ — មើលឲ្យច្បាស់មុនចុច។",
+      "game.rush.hint": "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12 · TNT = ចប់",
       "game.rush.rubble": "ថ្ម",
 
-      "game.build.name": "Build It!",
-      "game.build.desc": "ចាំរូបសំណង់ រួចសង់វាឡើងវិញឲ្យដូចដើម។ កម្រិតកាន់តែខ្ពស់ សំណង់កាន់តែធំ។",
-      "game.build.howto":
-        "មើលសំណង់ឲ្យច្បាស់មុនវាបាត់ រួចជ្រើស Block ហើយដាក់វា។ ត្រូវកន្លែង +8 · ខុស -4 · សង់លឿនបានពិន្ទុបន្ថែម។ អ្នកមាន ៣ បេះដូង។",
-      "game.build.hint": "ត្រូវកន្លែង +8 · Block ខុស -4 · សង់លឿនបានបន្ថែម",
-      "game.build.memorise": "ចាំឲ្យបាន! {secs}",
-      "game.build.rebuild": "សង់ឡើងវិញ! {secs}",
-      "game.build.done": "រួចរាល់",
-      "game.build.perfect": "ល្អឥតខ្ចោះ!",
-      "game.build.scored": "ត្រូវ {correct} / {total} Block",
+      "game.tnt.name": "TNT Escape",
+      "game.tnt.desc": "រស់ឲ្យបាន ៤៥ វិនាទីក្នុងទីលានដែលមាន TNT ធ្លាក់។ កុំឈប់ផ្លាស់ទី។",
+      "game.tnt.howto":
+        "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ TNT នីមួយៗបង្ហាញរង្វង់ផ្ទុះមុនពេលផ្ទុះ — កុំនៅក្នុងវា។ ឈរជិតៗខាងក្រៅបាន +5 ហើយបាន +3 រាល់មួយវិនាទីដែលរស់។",
+      "game.tnt.hint": "អូសដើម្បីផ្លាស់ទី · ចេញពីរង្វង់ក្រហម · គេចជិត +5",
+
+      "game.parkour.name": "Block Parkour",
+      "game.parkour.desc": "រត់ស្វ័យប្រវត្តិលើផ្លូវដែលបង្កើតចៃដន្យ។ ចុចដើម្បីលោត រួចទៅដល់គោល។",
+      "game.parkour.howto":
+        "ចុចកន្លែងណាក៏បាន (ឬចុច Space) ដើម្បីលោត — តួអង្គរត់ទៅមុខដោយខ្លួនឯង។ Diamond +10 · Checkpoint +25 · ដល់គោល +100 បូករង្វាន់បើលឿន និងបើមិនធ្លាក់សោះ។ ធ្លាក់ក្នុង Lava នឹងចាប់ផ្តើមពី Checkpoint ចុងក្រោយ។",
+      "game.parkour.hint": "ចុចដើម្បីលោត · 💎 +10 · 🏁 +25 · 🏆 +100",
 
       /* ---- games: result screen ---- */
       "result.headline": "លេងបានល្អ!",
@@ -469,21 +527,25 @@ const I18n = (() => {
       "result.checkpoints": "Checkpoints",
       "result.runTime": "រយៈពេល",
       "result.outcome": "លទ្ធផល",
-      "result.finished": "🏆 ដល់កំពូលហើយ!",
+      "result.deaths": "ចំនួនធ្លាក់",
+      "result.finished": "🏆 ដល់គោលហើយ!",
+      "result.perfectRun": "✨ ល្អឥតខ្ចោះ — មិនធ្លាក់សោះ!",
       "result.burned": "🌋 ត្រូវ Lava ចាប់បាន",
+      "result.gaveUp": "⏱️ អស់ពេល",
+      "result.blownUp": "💥 ត្រូវផ្ទុះ",
+      "result.survivedAll": "🏆 រស់រហូតដល់ចប់!",
+      "result.timeUp": "⏱️ អស់ពេលហើយ",
+      "result.allCleared": "🏆 ឆ្លងគ្រប់ ៤ កម្រិត!",
+      "result.levelsCleared": "កម្រិតដែលឆ្លងបាន",
       "result.blocksBroken": "Block ដែលទម្លាយបាន",
       "result.wrongBlocks": "Block ខុស",
-      "result.bestStreak": "Streak ល្អបំផុត",
+      "result.timeLost": "ពេលដែលបាត់",
       "result.survived": "រស់បាន",
       "result.dodges": "គេចជិត",
       "result.emeralds": "Emeralds",
       "result.oresMined": "រ៉ែដែលជីកបាន",
       "result.gems": "Diamond និង Emerald",
       "result.bestFind": "រកឃើញល្អបំផុត",
-      "result.tntHit": "ប៉ះ TNT",
-      "result.levelsBuilt": "សំណង់ដែលសង់បាន",
-      "result.perfectBuilds": "សង់ត្រូវទាំងស្រុង",
-      "result.blocksPlaced": "Block ដែលដាក់",
 
       /* ---- block and ore names stay in English ---- */
       "block.grass": "Grass Block",
@@ -572,11 +634,11 @@ const I18n = (() => {
   }
 
   function syncButtons() {
-    document.querySelectorAll(".lang-toggle").forEach((btn) => {
-      // Show the language you'd switch TO, matching the theme button.
-      btn.textContent = translate("nav.langShort");
-      btn.setAttribute("aria-label", translate("nav.langLabel"));
-      btn.setAttribute("title", translate("nav.langLabel"));
+    // The nav carries a real <select>, so the current language is always the
+    // one shown — no guessing which way a toggle goes.
+    document.querySelectorAll(".lang-select").forEach((select) => {
+      select.value = lang;
+      select.setAttribute("aria-label", translate("nav.language"));
     });
   }
 
@@ -619,6 +681,6 @@ const I18n = (() => {
 // Short global aliases so page scripts stay readable.
 const t = I18n.t;
 const formatPrice = I18n.formatPrice;
-function toggleLang() {
-  I18n.toggle();
+function setLang(next) {
+  I18n.set(next);
 }

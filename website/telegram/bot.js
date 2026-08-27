@@ -10,7 +10,8 @@ const https = require("https");
 const TelegramBot = require("node-telegram-bot-api");
 const { nanoid } = require("nanoid");
 const store = require("../lib/store");
-const { runCommand } = require("../lib/rcon");
+const { runCommand, buildCommand } = require("../lib/rcon");
+const angkorlink = require("../lib/angkorlink");
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
@@ -324,6 +325,43 @@ async function sendOrderForReview(order, proofPath) {
   }
 }
 
+// Deliver a paid order. The AngkorLink plugin is preferred when it is running:
+// it is idempotent on the order id and queues the delivery if the player is
+// offline. RCON stays as the fallback for servers without the plugin.
+async function deliver(order, item) {
+  const template = item && item.deliveryCommand;
+  if (!template) return { ok: false, reason: "This item has no delivery command configured." };
+
+  const context = { player: order.playerName, itemName: order.itemName, orderId: order.id };
+  const command = buildCommand(template, context);
+
+  if (angkorlink.enabled()) {
+    const res = await angkorlink.deliverPurchase({
+      transactionId: `order_${order.id}`,
+      uuid: order.playerUuid || null,
+      name: order.playerName,
+      itemId: order.itemId,
+      itemName: order.itemName,
+      commands: [command],
+      requiresOnline: Boolean(item.requiresOnline),
+    });
+    if (res.ok) {
+      return {
+        ok: true,
+        command,
+        via: "plugin",
+        response: res.queued ? "Player is offline — queued for their next login." : res.duplicate ? "Already delivered." : "",
+      };
+    }
+    // Plugin configured but unhappy: fall through to RCON rather than stranding
+    // a paid order, and say which path actually ran.
+    console.warn(`[delivery] plugin refused order ${order.id}: ${res.error || res.status}`);
+  }
+
+  const viaRcon = await runCommand(template, context);
+  return { ...viaRcon, via: "rcon" };
+}
+
 async function handleOrderDecision(query) {
   const data = String(query.data || "");
   if (!data.startsWith("ord:")) return;
@@ -360,11 +398,7 @@ async function handleOrderDecision(query) {
 
   await bot.answerCallbackQuery(query.id, { text: "Delivering…" });
   const item = store.findItem(order.itemId);
-  const result = await runCommand(item && item.deliveryCommand, {
-    player: order.playerName,
-    itemName: order.itemName,
-    orderId: order.id,
-  });
+  const result = await deliver(order, item);
 
   if (result.ok) {
     store.updateOrder(orderId, {

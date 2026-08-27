@@ -86,6 +86,29 @@ function formatConfigDate(iso) {
   });
 }
 
+// 1300 -> "1.3k", 15700 -> "15.7k", 2000 -> "2k". Anything under a thousand
+// is printed in full, because "0.9k" helps nobody.
+function formatCompact(value) {
+  const n = Number(value) || 0;
+  if (Math.abs(n) < 1000) return String(Math.round(n));
+  // 999,999 must read "1M", not "1000k", so switch unit just before the round-up.
+  const [divisor, suffix] = Math.abs(n) < 999950 ? [1000, "k"] : [1e6, "M"];
+  const scaled = n / divisor;
+  // One decimal, but drop it when it would just be ".0".
+  const text = scaled.toFixed(1).replace(/\.0$/, "");
+  return `${text}${suffix}`;
+}
+
+// "6h 12m" / "12m" / "45s" - used for reset clocks and short cooldowns.
+function humanDuration(ms) {
+  const total = Math.max(0, ms);
+  if (total < 60000) return `${Math.ceil(total / 1000)}s`;
+  const minutes = Math.ceil(total / 60000);
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return hours ? `${hours}h ${mins}m` : `${mins}m`;
+}
+
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str ?? "";
