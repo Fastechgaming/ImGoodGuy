@@ -20,29 +20,31 @@
   --sky-top: #ffe9b8;
   --sky-bottom: #f7a238;
 
-  /* carved sandstone (Angkor temple stone) palette for buttons, cards & panels */
-  --stone-light: #e5d7ae;
-  --stone: #c9b587;
-  --stone-mid: #a58e63;
-  --stone-dark: #7a6544;
-  --stone-darkest: #45391f;
-  --moss: #5c8a3a;
-  --moss-dark: #3c5e26;
-  --moss-light: #82b358;
+  /* cute illustrated parchment/stone palette - bright & warm, not muddy/realistic */
+  --stone-light: #fbeecb;
+  --stone: #f0d99a;
+  --stone-mid: #dfb96a;
+  --stone-dark: #a8783f;
+  --stone-darkest: #6b4726;
+  --moss: #6bb544;
+  --moss-dark: #438029;
+  --moss-light: #99d66d;
+  --flower-pink: #ff9ec4;
+  --flower-white: #fffaf0;
 
   --stone-surface:
-    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.32) 0%, transparent 5%),
-    radial-gradient(circle at 74% 62%, rgba(0, 0, 0, 0.16) 0%, transparent 6%),
-    radial-gradient(circle at 42% 82%, rgba(255, 255, 255, 0.18) 0%, transparent 4%),
-    radial-gradient(circle at 86% 22%, rgba(0, 0, 0, 0.14) 0%, transparent 5%),
-    radial-gradient(circle at 30% 48%, rgba(0, 0, 0, 0.1) 0%, transparent 4%),
+    radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.4) 0%, transparent 5%),
+    radial-gradient(circle at 74% 62%, rgba(0, 0, 0, 0.08) 0%, transparent 6%),
+    radial-gradient(circle at 42% 82%, rgba(255, 255, 255, 0.22) 0%, transparent 4%),
+    radial-gradient(circle at 86% 22%, rgba(0, 0, 0, 0.07) 0%, transparent 5%),
+    radial-gradient(circle at 30% 48%, rgba(0, 0, 0, 0.05) 0%, transparent 4%),
     linear-gradient(155deg, var(--stone-light) 0%, var(--stone) 55%, var(--stone-mid) 100%);
-  --stone-bevel: inset 0 2px 0 rgba(255, 255, 255, 0.45), inset 0 -3px 0 rgba(0, 0, 0, 0.28);
+  --stone-bevel: inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -3px 0 rgba(0, 0, 0, 0.16);
 
-  --shadow-hard: 5px 5px 0 rgba(42, 22, 8, 0.35), 6px 10px 16px rgba(42, 22, 8, 0.22);
-  --press-shadow: 0 5px 0 var(--stone-darkest), 0 8px 14px rgba(42, 22, 8, 0.3);
+  --shadow-hard: 4px 4px 0 rgba(107, 71, 38, 0.28), 5px 8px 14px rgba(107, 71, 38, 0.16);
+  --press-shadow: 0 5px 0 var(--stone-darkest), 0 7px 12px rgba(107, 71, 38, 0.22);
   --press-shadow-active: 0 1px 0 var(--stone-darkest);
-  --radius: 16px;
+  --radius: 18px;
   --nav-h: 72px;
 }
 
@@ -87,6 +89,27 @@ button { font-family: inherit; }
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 1.25rem;
+}
+
+/* Small carved temple-frieze border used between sections. */
+.khmer-strip {
+  height: 20px;
+  background-image: url("/images/site/khmer-pattern.svg");
+  background-repeat: repeat-x;
+  background-size: 34px 20px;
+  background-position: center;
+}
+
+.flower-accent {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  pointer-events: none;
+  animation: flower-sway 5s ease-in-out infinite;
+}
+@keyframes flower-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
 }
 
 /* ---------- Nav ---------- */
@@ -257,8 +280,9 @@ button { font-family: inherit; }
   text-align: left;
   background: var(--stone-surface);
   box-shadow: var(--stone-bevel), var(--press-shadow);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.action-btn:hover { transform: scale(1.05) rotate(-1deg); }
 .action-btn:active { transform: translateY(4px); box-shadow: var(--stone-bevel), var(--press-shadow-active); }
 .action-btn::after {
   content: "";
@@ -370,9 +394,9 @@ button { font-family: inherit; }
   padding: 1.25rem;
   text-align: center;
   box-shadow: var(--stone-bevel), var(--shadow-hard);
-  transition: transform 0.15s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
 }
-.info-card:hover { transform: translateY(-3px); }
+.info-card:hover { transform: translateY(-4px) rotate(-0.6deg); }
 .info-card::after {
   content: "";
   position: absolute;
@@ -414,11 +438,11 @@ button { font-family: inherit; }
   padding: 1.1rem 1rem;
   text-align: center;
   box-shadow: var(--stone-bevel), var(--shadow-hard);
-  transition: transform 0.15s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
   text-decoration: none;
   display: block;
 }
-.feature-card:hover { transform: translateY(-3px); }
+.feature-card:hover { transform: translateY(-4px) rotate(0.6deg); }
 .feature-card::after {
   content: "";
   position: absolute;
@@ -477,8 +501,9 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   cursor: pointer;
   color: var(--ink-soft);
   box-shadow: var(--stone-bevel), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.store-tabs button:hover { transform: scale(1.06); }
 .store-tabs button:active { transform: translateY(3px); box-shadow: var(--stone-bevel), 0 1px 0 var(--stone-darkest); }
 .store-tabs button.active { background: linear-gradient(180deg, var(--moss-light), var(--moss)); border-color: var(--moss-dark); color: #fff; box-shadow: var(--stone-bevel), 0 4px 0 var(--moss-dark); }
 
@@ -496,9 +521,9 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   display: flex;
   flex-direction: column;
   border: 3px solid var(--stone-darkest);
-  transition: transform 0.15s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
 }
-.item-card:hover { transform: translateY(-4px); }
+.item-card:hover { transform: translateY(-5px) rotate(-0.5deg); }
 .item-card::after {
   content: "";
   position: absolute;
@@ -528,8 +553,9 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   font-family: "Baloo 2", sans-serif;
   cursor: pointer;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.buy-btn:hover { transform: scale(1.05); }
 .buy-btn:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 1px 0 var(--stone-darkest); }
 .info-btn {
   width: 42px;
@@ -543,8 +569,9 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   cursor: pointer;
   font-family: "Baloo 2", serif;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.info-btn:hover { transform: scale(1.1) rotate(8deg); }
 .info-btn:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 1px 0 var(--stone-darkest); }
 
 .empty-note { text-align: center; color: var(--ink-soft); padding: 2rem; font-weight: 600; }
@@ -648,8 +675,9 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   cursor: pointer;
   font-size: 1.05rem;
   box-shadow: var(--press-shadow);
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.continue-btn:hover, .primary-btn:hover { transform: scale(1.03); }
 .continue-btn:active, .primary-btn:active { transform: translateY(4px); box-shadow: var(--press-shadow-active); }
 .continue-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .back-link { background: none; border: none; color: var(--brown-dark); cursor: pointer; font-weight: 700; padding: 0.3rem 0; }
