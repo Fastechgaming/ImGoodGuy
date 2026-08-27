@@ -43,25 +43,30 @@ function renderGrid() {
     return;
   }
   grid.innerHTML = items
-    .map(
-      (item) => `
-    <div class="item-card">
+    .map((item) => {
+      const soon = Boolean(item.comingSoon);
+      return `
+    <div class="item-card${soon ? " coming-soon" : ""}">
       <div class="item-image-wrap">
         <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
-        <img class="sparkle sparkle-1" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
-        <img class="sparkle sparkle-2" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
+        ${soon ? "" : `<img class="sparkle sparkle-1" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
+        <img class="sparkle sparkle-2" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />`}
       </div>
       <div class="item-body">
         <h3>${escapeHtml(item.name)}</h3>
         <p>${escapeHtml(item.shortDesc)}</p>
-        <div class="price">$${Number(item.price).toFixed(2)}</div>
+        <div class="price">${soon ? "—" : `$${Number(item.price).toFixed(2)}`}</div>
         <div class="item-actions">
-          <button class="buy-btn" data-buy="${item.id}">Buy Now</button>
+          ${
+            soon
+              ? `<button class="buy-btn" disabled>Coming Soon</button>`
+              : `<button class="buy-btn" data-buy="${item.id}">Buy Now</button>`
+          }
           <button class="info-btn" data-info="${item.id}" title="Item info & kit video">!</button>
         </div>
       </div>
-    </div>`
-    )
+    </div>`;
+    })
     .join("");
 
   grid.querySelectorAll("[data-buy]").forEach((btn) =>
@@ -97,15 +102,22 @@ function openInfoModal(item) {
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
     <div class="info-buy-row">
-      <span class="price">$${Number(item.price).toFixed(2)}</span>
-      <button class="continue-btn info-buy-btn" data-info-buy="${item.id}">Buy Now</button>
+      <span class="price">${item.comingSoon ? "—" : `$${Number(item.price).toFixed(2)}`}</span>
+      ${
+        item.comingSoon
+          ? `<button class="continue-btn info-buy-btn" disabled>Coming Soon</button>`
+          : `<button class="continue-btn info-buy-btn" data-info-buy="${item.id}">Buy Now</button>`
+      }
     </div>
   `;
   // Buying straight from the info popup: swap this modal for the buy modal.
-  overlay.querySelector("[data-info-buy]").addEventListener("click", () => {
-    closeInfoModal();
-    openBuyModal(item);
-  });
+  const infoBuy = overlay.querySelector("[data-info-buy]");
+  if (infoBuy) {
+    infoBuy.addEventListener("click", () => {
+      closeInfoModal();
+      openBuyModal(item);
+    });
+  }
   overlay.classList.add("open");
 }
 

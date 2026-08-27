@@ -1,68 +1,143 @@
 {
   "ranks": [
     {
-      "id": "rank-devata",
-      "name": "Devata Rank",
-      "price": 4.99,
+      "id": "rank-bee",
+      "name": "Bee Rank",
+      "price": 3,
       "currency": "USD",
-      "image": "/images/items/placeholder-rank.svg",
-      "shortDesc": "A great starting rank with extra homes and a colored name.",
-      "infoText": "The Devata Rank gives you:\n- /home x3\n- Colored name tag in chat\n- Access to /kit devata (once every 24h)\n- 2 extra sethomes",
+      "image": "/images/items/rank-bee.svg",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Bee Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add devata"
+      "deliveryCommand": "lp user {player} parent add bee"
     },
     {
-      "id": "rank-apsara",
-      "name": "Apsara Rank",
-      "price": 9.99,
+      "id": "rank-zombie",
+      "name": "Zombie Rank",
+      "price": 6,
       "currency": "USD",
-      "image": "/images/items/placeholder-rank.svg",
-      "shortDesc": "For the dedicated builder. More homes, more perks.",
-      "infoText": "The Apsara Rank includes everything in Devata, plus:\n- /home x6\n- /kit apsara (once every 12h)\n- Particle trail cosmetics\n- Priority queue on join",
+      "image": "/images/items/rank-zombie.svg",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Zombie Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add apsara"
+      "deliveryCommand": "lp user {player} parent add zombie"
+    },
+    {
+      "id": "rank-warden",
+      "name": "Warden Rank",
+      "price": 10,
+      "currency": "USD",
+      "image": "/images/items/rank-warden.svg",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Warden Rank\n\nPerks and kit contents will be listed here soon.",
+      "videoUrl": "",
+      "category": "ranks",
+      "deliveryCommand": "lp user {player} parent add warden"
+    },
+    {
+      "id": "rank-wither",
+      "name": "Wither Rank",
+      "price": 15,
+      "currency": "USD",
+      "image": "/images/items/rank-wither.svg",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Wither Rank\n\nPerks and kit contents will be listed here soon.",
+      "videoUrl": "",
+      "category": "ranks",
+      "deliveryCommand": "lp user {player} parent add wither"
+    },
+    {
+      "id": "rank-dragon",
+      "name": "Dragon Rank",
+      "price": 20,
+      "currency": "USD",
+      "image": "/images/items/rank-dragon.svg",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Dragon Rank\n\nPerks and kit contents will be listed here soon.",
+      "videoUrl": "",
+      "category": "ranks",
+      "deliveryCommand": "lp user {player} parent add dragon"
     }
   ],
   "coins": [
     {
-      "id": "coins-500",
-      "name": "500 Angkor Coins",
-      "price": 2.5,
+      "id": "coins-1500",
+      "name": "1,500 Coins",
+      "price": 1,
       "currency": "USD",
-      "image": "/images/items/placeholder-coins.svg",
-      "shortDesc": "Spend at the in-game /shop for cosmetics and crates.",
-      "infoText": "500 Angkor Coins are added to your in-game balance within a few minutes of payment. Use /coins to check your balance in-game.",
+      "image": "/images/items/coins-1500.svg",
+      "shortDesc": "Spend at the in-game shop.",
+      "infoText": "1,500 Angkor Coins are added to your in-game balance once your payment is confirmed.",
       "videoUrl": "",
       "category": "coins",
-      "deliveryCommand": "eco give {player} 500"
+      "deliveryCommand": "eco give {player} 1500"
     },
     {
-      "id": "coins-1200",
-      "name": "1200 Angkor Coins",
+      "id": "coins-10000",
+      "name": "10,000 Coins",
       "price": 5,
       "currency": "USD",
-      "image": "/images/items/placeholder-coins.svg",
-      "shortDesc": "Best value coin pack.",
-      "infoText": "1200 Angkor Coins (includes bonus coins) are added to your in-game balance within a few minutes of payment.",
+      "image": "/images/items/coins-10000.svg",
+      "shortDesc": "Better value than the 1,500 pack.",
+      "infoText": "10,000 Angkor Coins are added to your in-game balance once your payment is confirmed.",
       "videoUrl": "",
       "category": "coins",
-      "deliveryCommand": "eco give {player} 1200"
+      "deliveryCommand": "eco give {player} 10000"
+    },
+    {
+      "id": "coins-25000",
+      "name": "25,000 Coins",
+      "price": 10,
+      "currency": "USD",
+      "image": "/images/items/coins-25000.svg",
+      "shortDesc": "Best value coin pack.",
+      "infoText": "25,000 Angkor Coins are added to your in-game balance once your payment is confirmed.",
+      "videoUrl": "",
+      "category": "coins",
+      "deliveryCommand": "eco give {player} 25000"
     }
   ],
   "other": [
     {
-      "id": "other-vote-crate-key",
-      "name": "Vote Crate Key x5",
-      "price": 1.5,
+      "id": "other-slot-1",
+      "name": "Coming Soon",
+      "price": 0,
       "currency": "USD",
-      "image": "/images/items/placeholder-other.svg",
-      "shortDesc": "5 keys for the Vote Crate at spawn.",
-      "infoText": "Delivered straight to your in-game inventory/mailbox. Use /crates to open them at any crate location.",
+      "image": "/images/items/coming-soon.svg",
+      "shortDesc": "A new block or item is on the way.",
+      "infoText": "This slot is reserved for an upcoming block or item. Check back soon!",
       "videoUrl": "",
       "category": "other",
-      "deliveryCommand": "crates give {player} vote 5"
+      "comingSoon": true,
+      "deliveryCommand": ""
+    },
+    {
+      "id": "other-slot-2",
+      "name": "Coming Soon",
+      "price": 0,
+      "currency": "USD",
+      "image": "/images/items/coming-soon.svg",
+      "shortDesc": "A new block or item is on the way.",
+      "infoText": "This slot is reserved for an upcoming block or item. Check back soon!",
+      "videoUrl": "",
+      "category": "other",
+      "comingSoon": true,
+      "deliveryCommand": ""
+    },
+    {
+      "id": "other-slot-3",
+      "name": "Coming Soon",
+      "price": 0,
+      "currency": "USD",
+      "image": "/images/items/coming-soon.svg",
+      "shortDesc": "A new block or item is on the way.",
+      "infoText": "This slot is reserved for an upcoming block or item. Check back soon!",
+      "videoUrl": "",
+      "category": "other",
+      "comingSoon": true,
+      "deliveryCommand": ""
     }
   ]
 }

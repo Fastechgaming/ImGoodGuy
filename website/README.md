@@ -46,6 +46,10 @@ Everything below lives in **`website/.env`** (secrets) and **`website/config/sit
 
 1. **Web admin panel** (recommended, easiest): go to `http://your-domain/admin`, log in, and add/edit/delete items with a normal form — upload an image straight from your computer, write the description, set the price. No file editing needed.
 2. **Telegram bot**: message your bot `/additem` and it'll walk you through it step by step (category → name → price → description → info text → video link → send a photo for the image). Also supports `/listitems`, `/edititem <id> <field> <value>`, `/edititem <id> image` (then send a photo), and `/delitem <id>`. Only works for the Telegram account set as `TELEGRAM_ADMIN_CHAT_ID`.
+An item can also be marked `"comingSoon": true` in `data/items.json` — it then
+shows in the store as a greyed-out **Coming Soon** card that can't be bought
+(the server rejects it too, not just the button).
+
 3. **Directly edit `website/data/items.json`** — it's a plain JSON file with `ranks`, `coins`, and `other` arrays. Useful for bulk edits.
 
 All three write to the same file, so mix and match freely.

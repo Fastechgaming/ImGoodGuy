@@ -94,6 +94,7 @@ router.post("/checkout", (req, res) => {
 
     const item = store.findItem(itemId);
     if (!item) return res.status(404).json({ error: "Item not found" });
+    if (item.comingSoon) return res.status(400).json({ error: "This item isn't available for purchase yet." });
 
     if (!isValidRawName(playerName, edition)) {
       return res.status(400).json({

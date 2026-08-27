@@ -5,7 +5,7 @@
   "logo": "/images/site/logo-full.png",
   "logoIcon": "/images/site/logo-icon.png",
   "telegramLink": "https://t.me/angkor_smp",
-  "khqrImage": "/images/site/khqr.svg",
+  "khqrImage": "/images/site/khqr.png",
   "javaIp": "angkorsmp.com",
   "javaPort": 25565,
   "bedrockIp": "angkorsmp.com",
@@ -18,7 +18,6 @@
   "serverFeatures": [
     { "icon": "🌴", "title": "Chill Community", "desc": "A relaxed, friendly SMP — no drama, just building and surviving together." },
     { "icon": "🛡️", "title": "No Raiding", "desc": "Bases and builds are protected. Griefing and raiding other players is not allowed." },
-    { "icon": "⚔️", "title": "PvP Your Way", "desc": "Toggle PvP on or off anytime — play how you want, fight who wants to fight back." },
     { "icon": "🗺️", "title": "Live Cambodia Map", "desc": "Explore the world in real time.", "link": "/map.html" }
   ],
   "socials": {
