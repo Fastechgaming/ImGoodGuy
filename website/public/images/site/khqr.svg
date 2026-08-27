@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 380">
+  <rect width="300" height="380" rx="12" fill="#ffffff"/>
+  <rect x="0" y="0" width="300" height="58" rx="12" fill="#e2231a"/>
+  <text x="150" y="38" text-anchor="middle" font-family="Georgia, serif" font-size="24" fill="#fff" font-weight="700">KHQR</text>
+  <rect x="45" y="82" width="210" height="210" fill="#f2f2f2" stroke="#bbb" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="150" y="180" text-anchor="middle" font-family="Georgia, serif" font-size="15" fill="#888">Your KHQR goes here</text>
+  <text x="150" y="205" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#aaa">replace public/images/site/khqr.png</text>
+  <text x="150" y="330" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#333" font-weight="700">AngkorSMP</text>
+  <text x="150" y="352" text-anchor="middle" font-family="Georgia, serif" font-size="12" fill="#777">Scan with any Cambodian banking app</text>
+</svg>

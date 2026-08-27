@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Store — AngkorSMP</title>
+<title>Submit successful — AngkorSMP</title>
 <link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="stylesheet" href="/css/style.css" />
 <script>
@@ -24,7 +24,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
       <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
       <ul class="nav-links">
         <li><a href="/">🏠 Home</a></li>
-        <li><a href="/store.html" class="active">💰 Store</a></li>
+        <li><a href="/store.html">💰 Store</a></li>
         <li><a href="/map.html">🗺️ Map</a></li>
       </ul>
       <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
@@ -34,38 +34,37 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <main>
     <section class="section">
-      <div class="container">
-        <h2>🌿 AngkorSMP Store 🌿</h2>
-        <div class="store-tabs" id="store-tabs"></div>
-        <div class="item-grid" id="item-grid"></div>
+      <div class="container checkout-wrap">
+        <div class="checkout-panel success-panel">
+          <div class="success-icon">✅</div>
+          <h2 class="success-title">Submit successful!</h2>
+          <p class="checkout-hint centered">
+            Thanks! Your payment receipt has been sent to the owner for review.
+            Please wait for them to confirm your payment — your item is usually
+            delivered in-game within a few minutes.
+          </p>
+
+          <div class="receipt" id="order-receipt"></div>
+
+          <p class="checkout-hint centered" id="support-line">
+            Haven't received your items after an hour? Please contact support.
+          </p>
+
+          <div class="success-actions">
+            <a class="continue-btn" href="/">Back to home</a>
+          </div>
+        </div>
       </div>
     </section>
   </main>
 
   <div class="khmer-strip" aria-hidden="true"></div>
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> AngkorSMP. Payments processed via KHQR. Purchases are non-refundable.</p>
+    <p>&copy; <span id="year"></span> AngkorSMP. Not affiliated with Mojang or Microsoft.</p>
   </footer>
 
-  <!-- Info ("!") modal -->
-  <div class="modal-overlay" id="info-modal">
-    <div class="modal-box wide">
-      <button class="modal-close" id="info-modal-close">&times;</button>
-      <div id="info-modal-body"></div>
-    </div>
-  </div>
-
-  <!-- Buy flow modal -->
-  <div class="modal-overlay" id="buy-modal">
-    <div class="modal-box">
-      <button class="modal-close" id="buy-modal-close">&times;</button>
-      <div id="buy-modal-body"></div>
-    </div>
-  </div>
-
-  <script src="/js/playername.js"></script>
   <script src="/js/main.js"></script>
-  <script src="/js/store.js"></script>
+  <script src="/js/success.js"></script>
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>

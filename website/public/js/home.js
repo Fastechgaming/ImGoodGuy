@@ -9,8 +9,8 @@ async function loadHome() {
   document.getElementById("hero-tagline").textContent = cfg.tagline || "";
   document.getElementById("welcome-message").textContent = cfg.welcomeMessage || "";
 
-  const discordBtn = document.getElementById("discord-btn");
-  discordBtn.href = cfg.discordInvite || "#";
+  const telegramBtn = document.getElementById("telegram-btn");
+  telegramBtn.href = cfg.telegramLink || "#";
 
   const ipBtn = document.getElementById("ip-btn");
   const javaAddress = `${cfg.javaIp}${cfg.javaPort && Number(cfg.javaPort) !== 25565 ? ":" + cfg.javaPort : ""}`;

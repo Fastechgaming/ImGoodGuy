@@ -1,11 +1,74 @@
 /* ===== AngkorSMP — cartoony Angkor Wat / jungle Minecraft theme ===== */
 @import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Press+Start+2P&family=Noto+Sans:wght@400;600;700&display=swap");
 
+/* ---------------------------------------------------------------
+   Theming. DARK is the default (plain :root); light is opt-in via
+   <html data-theme="light">, set by the ☀️/🌙 toggle in the nav.
+   Brand accents (gold, moss, terracotta) stay the same in both.
+   --------------------------------------------------------------- */
 :root {
-  /* warm sunset + temple-gold palette, pulled from the server banner */
+  /* shared brand accents */
   --gold: #f7b537;
   --gold-light: #ffd873;
   --gold-deep: #c2760f;
+  --jungle: #2f8a4a;
+  --jungle-dark: #1f6636;
+  --moss: #6bb544;
+  --moss-dark: #438029;
+  --moss-light: #99d66d;
+  --flower-pink: #ff9ec4;
+  --flower-white: #fffaf0;
+  /* nav + footer stay dark stone in both themes, so these never flip */
+  --link-accent: #9fe07a;
+  --on-dark: #f8ecd3;
+  --on-dark-soft: #d8c39c;
+  --bar-bg: linear-gradient(180deg, #2a1c0e, #150e06);
+  --radius: 18px;
+  --nav-h: 72px;
+
+  /* --- DARK theme (default): jungle night --- */
+  --cream: #1d1409;
+  --cream-dark: #2c2013;
+  --ink: #f8ecd3;
+  --ink-soft: #cdb28a;
+  --brown: #8a6238;
+  --brown-dark: #ffd873;
+  --brown-darkest: #100a04;
+  --terracotta: #ff8f5e;
+  --success: #7ad06a;
+  --sky-top: #3a4f6b;
+  --sky-bottom: #23324a;
+  --sky-deep: #14202f;
+  --input-bg: #33251c;
+
+  --stone-light: #74593a;
+  --stone: #5d4527;
+  --stone-mid: #48331a;
+  --stone-dark: #8a6a3f;
+  --stone-darkest: #120c06;
+
+  --stone-surface:
+    radial-gradient(circle at 16% 20%, rgba(255, 235, 200, 0.14) 0%, transparent 5%),
+    radial-gradient(circle at 74% 62%, rgba(0, 0, 0, 0.22) 0%, transparent 6%),
+    radial-gradient(circle at 42% 82%, rgba(255, 235, 200, 0.09) 0%, transparent 4%),
+    radial-gradient(circle at 86% 22%, rgba(0, 0, 0, 0.2) 0%, transparent 5%),
+    radial-gradient(circle at 30% 48%, rgba(0, 0, 0, 0.16) 0%, transparent 4%),
+    linear-gradient(155deg, var(--stone-light) 0%, var(--stone) 55%, var(--stone-mid) 100%);
+  --stone-bevel: inset 0 2px 0 rgba(255, 224, 176, 0.24), inset 0 -3px 0 rgba(0, 0, 0, 0.4);
+
+  --wood-surface:
+    repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 9px),
+    linear-gradient(155deg, #8f6339 0%, #6f4a28 55%, #58391d 100%);
+  --wood-bevel: inset 0 2px 0 rgba(255, 214, 156, 0.28), inset 0 -3px 0 rgba(0, 0, 0, 0.42);
+
+  --shadow-hard: 4px 4px 0 rgba(0, 0, 0, 0.45), 5px 8px 14px rgba(0, 0, 0, 0.35);
+  --press-shadow: 0 5px 0 var(--stone-darkest), 0 7px 12px rgba(0, 0, 0, 0.4);
+  --press-shadow-active: 0 1px 0 var(--stone-darkest);
+}
+
+/* --- LIGHT theme: warm parchment daylight --- */
+:root[data-theme="light"] {
+  --link-accent: #2f7d1f;
   --cream: #fff3d9;
   --cream-dark: #ffe4ad;
   --ink: #3a2210;
@@ -13,24 +76,18 @@
   --brown: #7a4a22;
   --brown-dark: #40230f;
   --brown-darkest: #2a1608;
-  --jungle: #2f8a4a;
-  --jungle-dark: #1f6636;
   --terracotta: #d9542f;
   --success: #2f8a4a;
   --sky-top: #ffe9b8;
   --sky-bottom: #f7a238;
+  --sky-deep: #c9631f;
+  --input-bg: #fffdf7;
 
-  /* cute illustrated parchment/stone palette - bright & warm, not muddy/realistic */
   --stone-light: #fbeecb;
   --stone: #f0d99a;
   --stone-mid: #dfb96a;
   --stone-dark: #a8783f;
   --stone-darkest: #6b4726;
-  --moss: #6bb544;
-  --moss-dark: #438029;
-  --moss-light: #99d66d;
-  --flower-pink: #ff9ec4;
-  --flower-white: #fffaf0;
 
   --stone-surface:
     radial-gradient(circle at 16% 20%, rgba(255, 255, 255, 0.4) 0%, transparent 5%),
@@ -41,7 +98,6 @@
     linear-gradient(155deg, var(--stone-light) 0%, var(--stone) 55%, var(--stone-mid) 100%);
   --stone-bevel: inset 0 2px 0 rgba(255, 255, 255, 0.55), inset 0 -3px 0 rgba(0, 0, 0, 0.16);
 
-  /* warm wood-plank surface for the main action buttons */
   --wood-surface:
     repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.08) 0 2px, transparent 2px 9px),
     linear-gradient(155deg, #c9945c 0%, #a8723f 55%, #8a5a30 100%);
@@ -50,8 +106,6 @@
   --shadow-hard: 4px 4px 0 rgba(107, 71, 38, 0.28), 5px 8px 14px rgba(107, 71, 38, 0.16);
   --press-shadow: 0 5px 0 var(--stone-darkest), 0 7px 12px rgba(107, 71, 38, 0.22);
   --press-shadow-active: 0 1px 0 var(--stone-darkest);
-  --radius: 18px;
-  --nav-h: 72px;
 }
 
 * { box-sizing: border-box; }
@@ -129,7 +183,7 @@ button { font-family: inherit; }
   background:
     repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 2px, transparent 2px 26px),
     repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 2px, transparent 2px 58px),
-    linear-gradient(180deg, var(--stone-darkest), #241b0f);
+    var(--bar-bg);
   border-bottom: 4px solid var(--gold);
   box-shadow: 0 2px 12px rgba(0,0,0,0.35);
 }
@@ -147,6 +201,28 @@ button { font-family: inherit; }
 .nav-guardian.left { left: -8px; }
 .nav-guardian.right { right: -8px; transform: translateY(-46%) scaleX(-1); }
 @media (max-width: 900px) { .nav-guardian { display: none; } }
+
+/* ☀️/🌙 dark-light switch, sits just left of the nav links. */
+.theme-toggle {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  margin-left: auto;
+  margin-right: 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1.15rem;
+  line-height: 1;
+  background: linear-gradient(180deg, #7d5936, #5c3f22);
+  border: 2px solid var(--stone-darkest);
+  box-shadow: 0 3px 0 var(--stone-darkest);
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
+}
+.theme-toggle:hover { transform: translateY(-2px) scale(1.08) rotate(-8deg); }
+.theme-toggle:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--stone-darkest); }
+@media (max-width: 760px) {
+  .theme-toggle { margin-left: auto; margin-right: 0.5rem; }
+}
 
 /* Vine tendrils hanging just below the nav wall. */
 .nav-vine {
@@ -177,7 +253,7 @@ button { font-family: inherit; }
   align-items: center;
   gap: 0.4rem;
   text-decoration: none;
-  color: var(--cream);
+  color: var(--on-dark);
   font-weight: 700;
   padding: 0.45rem 1rem;
   border-radius: 10px;
@@ -221,7 +297,7 @@ button { font-family: inherit; }
 /* ---------- Hero (home) ---------- */
 .hero {
   position: relative;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 60%, #c9631f 100%);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 60%, var(--sky-deep) 100%);
   padding: 2.75rem 1.25rem 0;
   text-align: center;
   overflow: hidden;
@@ -345,7 +421,7 @@ button { font-family: inherit; }
   border: 2px solid var(--stone-darkest);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.25);
 }
-.action-btn.discord .btn-icon { background: #5865f2; }
+.action-btn.telegram .btn-icon { background: #229ed9; }
 .action-btn.server-ip .btn-icon { background: linear-gradient(180deg, var(--gold-light), var(--gold)); }
 .action-btn.store .btn-icon { background: linear-gradient(180deg, var(--moss-light), var(--moss)); }
 .action-btn .btn-text { display: flex; flex-direction: column; gap: 0.1rem; }
@@ -363,7 +439,7 @@ button { font-family: inherit; }
   margin: 0 auto 2rem;
   font-weight: 700;
   font-size: 0.85rem;
-  color: var(--cream);
+  color: var(--on-dark);
   box-shadow: var(--shadow-hard);
 }
 .status-dot { width: 11px; height: 11px; border-radius: 50%; background: #888; border: 2px solid rgba(0,0,0,0.3); }
@@ -502,19 +578,19 @@ button { font-family: inherit; }
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #fff6e2, var(--cream-dark) 70%);
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.14) 70%);
   border: 2px solid var(--stone-darkest);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -2px 0 rgba(0, 0, 0, 0.15), 0 2px 0 var(--stone-dark);
 }
 .feature-card .feature-title { font-family: "Baloo 2", sans-serif; font-weight: 800; color: var(--brown-dark); font-size: 1.02rem; margin-bottom: 0.2rem; }
 .feature-card .feature-desc { color: var(--ink-soft); font-size: 0.85rem; font-weight: 600; }
-a.feature-card.linked { border-color: var(--moss-dark); }
-a.feature-card.linked .feature-title { color: var(--moss-dark); }
+a.feature-card.linked { border-color: var(--moss); }
+a.feature-card.linked .feature-title { color: var(--link-accent); }
 
 /* ---------- Footer ---------- */
 .site-footer {
-  background: linear-gradient(180deg, var(--brown-dark), var(--brown-darkest));
-  color: var(--cream-dark);
+  background: var(--bar-bg);
+  color: var(--on-dark-soft);
   text-align: center;
   padding: 2rem 1.25rem;
   font-size: 0.85rem;
@@ -700,16 +776,17 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
 .field input[type="text"] {
   padding: 0.7rem 0.8rem;
   border-radius: 10px;
-  border: 3px solid var(--brown-dark);
+  border: 3px solid var(--stone-darkest);
   font-size: 1rem;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--ink);
 }
 .edition-toggle { display: flex; border-radius: 999px; overflow: hidden; border: 3px solid var(--brown-dark); }
 .edition-toggle button {
   flex: 1;
   padding: 0.6rem;
   border: none;
-  background: #fff;
+  background: var(--input-bg);
   cursor: pointer;
   font-weight: 800;
   color: var(--brown-dark);
@@ -744,7 +821,7 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
 .success-icon { font-size: 3rem; }
 .success-box .receipt {
   text-align: left;
-  background: #fff;
+  background: var(--input-bg);
   border-radius: 10px;
   padding: 1rem;
   margin: 1rem 0;
@@ -784,9 +861,153 @@ a.feature-card.linked .feature-title { color: var(--moss-dark); }
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  color: var(--cream);
+  color: var(--on-dark);
   text-align: center;
   padding: 1.5rem;
 }
 .map-fallback.show { display: flex; }
 .map-fallback a { background: linear-gradient(180deg, var(--gold-light), var(--gold)); color: var(--brown-darkest); padding: 0.7rem 1.4rem; border-radius: 10px; font-weight: 800; text-decoration: none; border: 3px solid var(--stone-darkest); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest); }
+
+/* ---------- Checkout & success pages ---------- */
+.checkout-wrap { max-width: 720px; }
+.checkout-panel {
+  background: var(--stone-surface);
+  border: 3px solid var(--stone-darkest);
+  border-radius: var(--radius);
+  box-shadow: var(--stone-bevel), var(--shadow-hard);
+  padding: 1.5rem;
+  position: relative;
+}
+.checkout-panel::after {
+  content: "";
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  width: 36px;
+  height: 36px;
+  background: url("/images/site/moss-sprig.svg") no-repeat center / contain;
+  transform: scale(-1, -1);
+  pointer-events: none;
+}
+
+.checkout-summary {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 1.1rem;
+  border-bottom: 2px dashed var(--stone-dark);
+}
+.checkout-item-img {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 3px solid var(--stone-darkest);
+  background: var(--cream-dark);
+}
+.checkout-summary-text { flex: 1; min-width: 0; }
+.checkout-summary-text h3 { margin: 0 0 0.25rem; }
+.checkout-summary-text p { margin: 0 0 0.6rem; color: var(--ink-soft); font-size: 0.9rem; font-weight: 600; }
+.checkout-rows div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.9rem;
+  padding: 0.22rem 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.checkout-rows strong { color: var(--ink); }
+.checkout-rows .price { color: var(--terracotta); font-family: "Baloo 2", sans-serif; font-size: 1.1rem; }
+
+.checkout-step { padding: 1.25rem 0 0; }
+.checkout-step h3 { margin: 0 0 0.3rem; font-size: 1.1rem; }
+.checkout-hint { color: var(--ink-soft); font-size: 0.88rem; font-weight: 600; margin: 0 0 0.8rem; }
+.checkout-hint.centered { text-align: center; margin-top: 0.7rem; }
+.checkout-hint a { color: var(--terracotta); font-weight: 800; }
+
+.checkout-khqr {
+  width: min(280px, 80%);
+  margin: 0 auto;
+  border-radius: 12px;
+  border: 4px solid var(--stone-darkest);
+  background: #fff;
+  padding: 8px;
+  box-shadow: var(--shadow-hard);
+}
+
+.file-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  border: 3px dashed var(--stone-dark);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.file-drop:hover, .file-drop.dragging {
+  border-color: var(--moss);
+  background: rgba(107, 181, 68, 0.12);
+  transform: translateY(-2px);
+}
+.file-drop-icon { font-size: 2rem; }
+.file-drop-text { font-weight: 700; color: var(--ink-soft); font-size: 0.9rem; word-break: break-all; }
+.file-preview {
+  max-width: 220px;
+  max-height: 220px;
+  border-radius: 10px;
+  border: 3px solid var(--stone-darkest);
+  margin-top: 0.4rem;
+}
+
+#submit-btn { margin-top: 1.4rem; letter-spacing: 0.06em; }
+#submit-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.success-panel { text-align: center; }
+.success-title { margin: 0.3rem 0 0.6rem; }
+.success-panel .receipt {
+  text-align: left;
+  background: var(--input-bg);
+  border-radius: 10px;
+  padding: 1rem;
+  margin: 1.2rem 0;
+  border: 3px solid var(--stone-dark);
+}
+.success-panel .receipt div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px dashed var(--stone-dark);
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.success-panel .receipt div:last-child { border-bottom: none; }
+.success-panel .receipt strong { color: var(--ink); }
+.success-actions { margin-top: 1.2rem; }
+.success-actions .continue-btn { display: inline-block; width: auto; padding: 0.85rem 2.2rem; text-decoration: none; }
+
+/* Buy Now row inside the "!" info popup */
+.info-buy-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--stone-dark);
+}
+.info-buy-row .price { font-family: "Baloo 2", sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--terracotta); }
+.info-buy-btn { flex: 1; width: auto; }
+
+@media (max-width: 560px) {
+  .checkout-summary { flex-direction: column; align-items: center; text-align: center; }
+  .checkout-rows div { justify-content: space-between; }
+  .info-buy-row { flex-direction: column; align-items: stretch; }
+  .info-buy-row .price { text-align: center; }
+}

@@ -1,4 +1,41 @@
-// Shared behavior across all pages: nav toggle, site config, toasts.
+// Shared behavior across all pages: theme, nav toggle, site config, toasts.
+
+/* ---------------- Dark / light theme ---------------- */
+// Dark is the default. The stored choice is applied by a tiny inline script in
+// each page's <head> (see applyStoredTheme below) so there is no flash of the
+// wrong theme before this file loads.
+const THEME_KEY = "angkorsmp-theme";
+
+function getStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(theme) {
+  const isLight = theme === "light";
+  if (isLight) document.documentElement.setAttribute("data-theme", "light");
+  else document.documentElement.removeAttribute("data-theme");
+
+  document.querySelectorAll(".theme-toggle").forEach((btn) => {
+    // Show the theme you'd switch TO, which is the common convention.
+    btn.textContent = isLight ? "🌙" : "☀️";
+    btn.setAttribute("aria-label", isLight ? "Switch to dark theme" : "Switch to light theme");
+    btn.setAttribute("title", isLight ? "Switch to dark theme" : "Switch to light theme");
+  });
+}
+
+function toggleTheme() {
+  const nowLight = document.documentElement.getAttribute("data-theme") !== "light";
+  applyTheme(nowLight ? "light" : "dark");
+  try {
+    localStorage.setItem(THEME_KEY, nowLight ? "light" : "dark");
+  } catch {
+    /* private browsing - the choice just won't persist */
+  }
+}
 
 function toggleNav() {
   document.querySelector(".nav-links")?.classList.toggle("open");
@@ -91,6 +128,11 @@ function copyToClipboard(text) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  // Sync the toggle glyph with whatever theme the inline head script applied.
+  // The click handler is the inline onclick="toggleTheme()" in the markup —
+  // don't also addEventListener here or every click would fire twice.
+  applyTheme(getStoredTheme() === "light" ? "light" : "dark");
+
   document.querySelectorAll(".nav-links a").forEach((a) => {
     if (a.getAttribute("href") === location.pathname) a.classList.add("active");
   });

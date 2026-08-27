@@ -6,6 +6,10 @@
 <title>Map — AngkorSMP</title>
 <link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="stylesheet" href="/css/style.css" />
+<script>
+// Apply the saved theme before first paint so there's no flash. Dark is default.
+try { if (localStorage.getItem("angkorsmp-theme") === "light") document.documentElement.setAttribute("data-theme","light"); } catch (e) {}
+</script>
 </head>
 <body>
   <nav class="site-nav">
@@ -17,6 +21,7 @@
         <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
         AngkorSMP
       </a>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
       <ul class="nav-links">
         <li><a href="/">🏠 Home</a></li>
         <li><a href="/store.html">💰 Store</a></li>

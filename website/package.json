@@ -9,16 +9,15 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "bakong-khqr": "^1.0.3",
     "cookie-session": "^2.1.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "minecraft-server-util": "^5.4.4",
     "multer": "^2.2.0",
-    "node-telegram-bot-api": "^0.66.0",
     "nanoid": "^3.3.7",
-    "qrcode": "^1.5.4"
+    "node-telegram-bot-api": "^0.66.0",
+    "rcon-client": "^4.2.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

@@ -55,7 +55,7 @@ router.get("/items/new", requireAuth, (req, res) => {
 
 router.post("/items", requireAuth, upload.single("imageFile"), (req, res, next) => {
   try {
-    const { category, name, price, shortDesc, infoText, videoUrl, imageUrl } = req.body;
+    const { category, name, price, shortDesc, infoText, videoUrl, imageUrl, deliveryCommand } = req.body;
     if (!store.CATEGORIES.includes(category)) throw new Error("Invalid category");
 
     const slug = name
@@ -72,6 +72,7 @@ router.post("/items", requireAuth, upload.single("imageFile"), (req, res, next) 
       shortDesc: shortDesc || "",
       infoText: infoText || "",
       videoUrl: videoUrl || "",
+      deliveryCommand: deliveryCommand || "",
       image: req.file ? `/images/items/${req.file.filename}` : imageUrl || "/images/items/placeholder-other.svg",
       category,
     };
@@ -93,7 +94,7 @@ router.post("/items/:id", requireAuth, upload.single("imageFile"), (req, res, ne
     const existing = store.findItem(req.params.id);
     if (!existing) return res.status(404).send("Item not found");
 
-    const { category, name, price, shortDesc, infoText, videoUrl, imageUrl } = req.body;
+    const { category, name, price, shortDesc, infoText, videoUrl, imageUrl, deliveryCommand } = req.body;
     if (!store.CATEGORIES.includes(category)) throw new Error("Invalid category");
 
     const updated = {
@@ -103,6 +104,7 @@ router.post("/items/:id", requireAuth, upload.single("imageFile"), (req, res, ne
       shortDesc: shortDesc || "",
       infoText: infoText || "",
       videoUrl: videoUrl || "",
+      deliveryCommand: deliveryCommand || "",
       image: req.file ? `/images/items/${req.file.filename}` : imageUrl || existing.image,
       category,
     };

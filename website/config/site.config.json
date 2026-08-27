@@ -4,7 +4,8 @@
   "welcomeMessage": "Welcome to AngkorSMP! Build among the ruins, survive the jungle, and write your own chapter of the empire.",
   "logo": "/images/site/logo-full.png",
   "logoIcon": "/images/site/logo-icon.png",
-  "discordInvite": "https://discord.gg/your-invite-code",
+  "telegramLink": "https://t.me/angkor_smp",
+  "khqrImage": "/images/site/khqr.svg",
   "javaIp": "angkorsmp.com",
   "javaPort": 25565,
   "bedrockIp": "angkorsmp.com",
@@ -21,7 +22,7 @@
     { "icon": "🗺️", "title": "Live Cambodia Map", "desc": "Explore the world in real time.", "link": "/map.html" }
   ],
   "socials": {
-    "discord": "https://discord.gg/your-invite-code",
+    "telegram": "https://t.me/angkor_smp",
     "youtube": "",
     "tiktok": ""
   }

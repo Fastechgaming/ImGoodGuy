@@ -96,7 +96,16 @@ function openInfoModal(item) {
     ${embed ? `<iframe class="video-embed" src="${escapeHtml(embed)}" allowfullscreen></iframe>` : ""}
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
+    <div class="info-buy-row">
+      <span class="price">$${Number(item.price).toFixed(2)}</span>
+      <button class="continue-btn info-buy-btn" data-info-buy="${item.id}">Buy Now</button>
+    </div>
   `;
+  // Buying straight from the info popup: swap this modal for the buy modal.
+  overlay.querySelector("[data-info-buy]").addEventListener("click", () => {
+    closeInfoModal();
+    openBuyModal(item);
+  });
   overlay.classList.add("open");
 }
 
@@ -110,34 +119,38 @@ document.getElementById("info-modal").addEventListener("click", (e) => {
   if (e.target.id === "info-modal") closeInfoModal();
 });
 
-/* ---------------- Buy flow modal ---------------- */
+
+/* ---------------- Buy flow modal (step 1: who is this for?) ----------------
+   Payment itself happens on /checkout.html - the customer scans our KHQR,
+   uploads their receipt, and we approve it from Telegram. */
 const buyModal = document.getElementById("buy-modal");
 const buyModalBody = document.getElementById("buy-modal-body");
 let buyState = null;
-let pollTimer = null;
 
 function closeBuyModal() {
   buyModal.classList.remove("open");
-  clearInterval(pollTimer);
   buyState = null;
 }
 document.getElementById("buy-modal-close").addEventListener("click", closeBuyModal);
+buyModal.addEventListener("click", (e) => {
+  if (e.target.id === "buy-modal") closeBuyModal();
+});
 
 function openBuyModal(item) {
   if (!item) return;
   buyState = { item, edition: "java", name: "" };
-  renderBuyStep1();
+  renderBuyForm();
   buyModal.classList.add("open");
 }
 
-function renderBuyStep1() {
+function renderBuyForm() {
   const { item, edition, name } = buyState;
   buyModalBody.innerHTML = `
     <h3>Buy: ${escapeHtml(item.name)}</h3>
     <p class="price">$${Number(item.price).toFixed(2)}</p>
     <div class="field">
       <label for="buy-name">Minecraft username</label>
-      <input type="text" id="buy-name" placeholder="Steve123" maxlength="20" value="${escapeHtml(name)}" autocomplete="off" />
+      <input type="text" id="buy-name" placeholder="Steve123" maxlength="24" value="${escapeHtml(name)}" autocomplete="off" />
     </div>
     <div class="field">
       <label>Edition</label>
@@ -153,8 +166,8 @@ function renderBuyStep1() {
   const nameInput = document.getElementById("buy-name");
   const preview = document.getElementById("name-preview");
   const updatePreview = () => {
-    const clean = nameInput.value.trim();
-    preview.textContent = clean ? `Will be shown as: ${buyState.edition === "bedrock" ? "." + clean : clean}` : "";
+    const shown = normalizeServerName(nameInput.value, buyState.edition);
+    preview.textContent = shown ? `In server name: ${shown}` : "";
   };
   nameInput.addEventListener("input", () => {
     buyState.name = nameInput.value;
@@ -175,13 +188,17 @@ function renderBuyStep1() {
 
 async function startCheckout() {
   const name = buyState.name.trim();
-  if (!/^[A-Za-z0-9_]{2,16}$/.test(name)) {
-    showToast("Enter a valid Minecraft username (letters, numbers, underscore).");
+  if (!isValidRawName(name, buyState.edition)) {
+    showToast(
+      buyState.edition === "bedrock"
+        ? "Enter a valid Bedrock gamertag (letters, numbers, spaces or underscores)."
+        : "Enter a valid Java username (letters, numbers, underscore)."
+    );
     return;
   }
   const continueBtn = document.getElementById("continue-btn");
   continueBtn.disabled = true;
-  continueBtn.textContent = "Generating KHQR…";
+  continueBtn.textContent = "Please wait…";
 
   try {
     const result = await fetchJSON("/api/checkout", {
@@ -189,84 +206,12 @@ async function startCheckout() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId: buyState.item.id, playerName: name, edition: buyState.edition }),
     });
-    buyState.order = result;
-    renderBuyStep2();
-    updateQrStatusCountdown();
-    pollTimer = setInterval(pollPaymentStatus, 4000);
+    window.location.href = `/checkout.html?order=${encodeURIComponent(result.orderId)}`;
   } catch (err) {
     showToast(err.message);
     continueBtn.disabled = false;
     continueBtn.textContent = "Continue";
   }
-}
-
-function renderBuyStep2() {
-  const { order } = buyState;
-  buyModalBody.innerHTML = `
-    <button class="back-link" id="back-to-form">&larr; Back</button>
-    <div class="qr-box">
-      <h3>Scan to pay with KHQR</h3>
-      <img src="${order.qrDataUrl}" alt="KHQR code" />
-      <div class="qr-meta"><span>Item</span><strong>${escapeHtml(order.itemName)}</strong></div>
-      <div class="qr-meta"><span>Player</span><strong>${escapeHtml(order.playerName)}</strong></div>
-      <div class="qr-meta"><span>Amount</span><strong>$${Number(order.amount).toFixed(2)} ${escapeHtml(order.currency)}</strong></div>
-      <p class="qr-status" id="qr-status">Waiting for payment…</p>
-    </div>
-  `;
-  document.getElementById("back-to-form").addEventListener("click", () => {
-    clearInterval(pollTimer);
-    renderBuyStep1();
-  });
-}
-
-function updateQrStatusCountdown() {
-  const statusEl = document.getElementById("qr-status");
-  const expiresAt = buyState?.order?.expiresAt;
-  if (!statusEl || !expiresAt) return;
-  const msLeft = expiresAt - Date.now();
-  if (msLeft <= 0) {
-    statusEl.textContent = "This KHQR has expired. Go back and try again.";
-    clearInterval(pollTimer);
-    return;
-  }
-  const mins = Math.floor(msLeft / 60000);
-  const secs = Math.floor((msLeft % 60000) / 1000);
-  statusEl.textContent = `Waiting for payment… expires in ${mins}:${String(secs).padStart(2, "0")}`;
-}
-
-async function pollPaymentStatus() {
-  if (!buyState?.order) return;
-  updateQrStatusCountdown();
-  if (buyState.order.expiresAt && Date.now() > buyState.order.expiresAt) return;
-  try {
-    const res = await fetchJSON(`/api/checkout/${buyState.order.orderId}/status`);
-    if (res.status === "paid") {
-      clearInterval(pollTimer);
-      renderBuySuccess();
-    }
-  } catch {
-    /* keep polling silently */
-  }
-}
-
-function renderBuySuccess() {
-  const { order } = buyState;
-  buyModalBody.innerHTML = `
-    <div class="success-box">
-      <div class="success-icon">✅</div>
-      <h3>Purchase successful!</h3>
-      <div class="receipt">
-        <div><span>Item</span><strong>${escapeHtml(order.itemName)}</strong></div>
-        <div><span>Player</span><strong>${escapeHtml(order.playerName)}</strong></div>
-        <div><span>Amount paid</span><strong>$${Number(order.amount).toFixed(2)} ${escapeHtml(order.currency)}</strong></div>
-        <div><span>Order ID</span><strong>${escapeHtml(order.orderId)}</strong></div>
-      </div>
-      <p>Your item will be delivered in-game shortly. Need help? Contact support:</p>
-      ${supportTelegram ? `<a class="tg-support-btn" href="https://t.me/${encodeURIComponent(supportTelegram)}" target="_blank" rel="noopener">💬 Telegram Support</a>` : ""}
-      <br /><button class="back-link" id="back-to-store" style="margin-top:1rem;">&larr; Back to store</button>
-    </div>
-  `;
-  document.getElementById("back-to-store").addEventListener("click", closeBuyModal);
 }
 
 initStore();

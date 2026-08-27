@@ -42,6 +42,11 @@
         <input type="text" name="videoUrl" value="<%= item ? item.videoUrl : '' %>" placeholder="https://www.youtube.com/embed/xxxxx" />
       </label>
 
+      <label>Delivery command (run when you Accept an order in Telegram)
+        <input type="text" name="deliveryCommand" value="<%= item ? (item.deliveryCommand || '') : '' %>" placeholder="lp user {player} parent add apsara" />
+        <small style="font-weight:400; color:#7a7060;">Use <code>{player}</code> for the in-server name. Leave blank to deliver this item by hand.</small>
+      </label>
+
       <label>Upload image
         <input type="file" name="imageFile" accept="image/*" />
       </label>

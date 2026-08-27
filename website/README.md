@@ -1,8 +1,8 @@
 # AngkorSMP Website
 
-A self-contained Node.js + Express website for the **AngkorSMP** Minecraft server: home page with live server status, a webstore with KHQR (Bakong) checkout, a live BlueMap page, and two ways to manage store items (a web admin panel and a Telegram bot).
+A self-contained Node.js + Express website for the **AngkorSMP** Minecraft server: home page with live server status, a webstore with KHQR checkout and Telegram order approval, a live BlueMap page, and two ways to manage store items (a web admin panel and a Telegram bot).
 
-This lives in its own folder (`website/`) with its own `package.json`, separate from the Discord bot in the rest of this repo.
+This lives in its own folder (`website/`) with its own `package.json`, separate from the Discord bot source in the rest of this repo.
 
 ## 1. Install & run
 
@@ -23,7 +23,8 @@ Everything below lives in **`website/.env`** (secrets) and **`website/config/sit
 | Field | What it is |
 |---|---|
 | `logo` | Path to your logo. Replace `public/images/site/logo.svg` with your own image, or point this at a new file. |
-| `discordInvite` | Your Discord invite link (used by the Home page Discord button). |
+| `telegramLink` | Your Telegram community link (used by the Home page Telegram button). |
+| `khqrImage` | Path to the KHQR image customers scan to pay. Drop your own PNG in at `public/images/site/khqr.png` and point this at it. |
 | `javaIp` / `javaPort` | Your Java server address. |
 | `bedrockIp` / `bedrockPort` | Your Bedrock server address (used for the mobile "tap to join" button and for status checks if the Java ping fails). |
 | `releaseDate` | ISO date your server launched — used to compute the "server age" (days/hours) on the Home page. |
@@ -39,12 +40,7 @@ Everything below lives in **`website/.env`** (secrets) and **`website/config/sit
 | `TELEGRAM_BOT_TOKEN` | Create a bot via [@BotFather](https://t.me/BotFather) on Telegram. |
 | `TELEGRAM_ADMIN_CHAT_ID` | Your personal numeric Telegram ID — message [@userinfobot](https://t.me/userinfobot) to get it. Purchase alerts and the `/additem` etc. admin commands are locked to this ID only. |
 | `TELEGRAM_SUPPORT_USERNAME` | Your public support `@username` shown on the purchase-success screen. |
-| `BAKONG_ACCOUNT_ID` | Your Bakong account ID that receives payments (e.g. `yourname@bank`), from your bank/wallet's Bakong-linked app. |
-| `BAKONG_MERCHANT_NAME` / `BAKONG_MERCHANT_CITY` | Shown on the generated KHQR. |
-| `BAKONG_MERCHANT_ID` | Only needed if you have a registered **merchant** Bakong account (leave blank for a personal/individual account). |
-| `BAKONG_OPENAPI_TOKEN` | From the [Bakong Open API Developer Portal](https://api-bakong.nbc.gov.kh) — required to auto-detect when a KHQR has been paid. **Without this, KHQR codes still generate and can be paid, but the site can't automatically confirm payment** — see the note below. |
-
-**Important — test before going live:** KHQR generation is fully implemented and tested (it builds a spec-compliant EMVCo/Bakong QR string locally, no external calls needed). Payment **verification** calls Bakong's Open API (`check_transaction_by_md5`) — that endpoint's exact response format can change on NBC's side and couldn't be tested live from this dev environment, so before launch: make one real small payment and confirm the order flips to "paid" and you get the Telegram alert. If the response shape has drifted, the only file to touch is `website/lib/khqr.js` (`checkPaymentByMd5`).
+| `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` | Your Minecraft server's RCON details, used to run an item's delivery command when you press **Accept** in Telegram. Enable `enable-rcon=true`, `rcon.port`, `rcon.password` in `server.properties` first. Leave blank to approve orders manually. |
 
 ## 3. Managing store items (3 ways — pick whichever is easiest for you)
 
@@ -56,13 +52,26 @@ All three write to the same file, so mix and match freely.
 
 ## 4. Purchase flow
 
-1. Customer clicks **Buy Now** on an item → enters their Minecraft username → toggles **Java/Bedrock** (Bedrock automatically prepends a `.` to the name, since that's the standard way Bedrock players are told apart on Java-based servers via Geyser/Floodgate).
-2. Continue → the server generates a Bakong **KHQR** code for the exact item price and shows it in a QR modal.
-3. The page polls every 4 seconds to check if it's been paid (via Bakong's Open API). The QR is valid for 15 minutes.
-4. Once paid, the modal switches to a success screen with the amount, item, order ID, and a link to your Telegram support — with a **Back to store** button, no page reload needed.
-5. You get a Telegram message the moment a payment is confirmed.
+Payment is **manual review** — no bank API is involved, so nothing is slow or
+can time out. The customer pays your KHQR and uploads a receipt; you approve it
+from Telegram with one tap.
 
-Delivering the actual in-game item/rank (e.g. running a console command) is **not** wired up yet since that depends on your server's plugins (LuckPerms, an economy plugin, etc.) — `telegram/bot.js`'s `notifyPurchase()` and `routes/api.js`'s `/checkout/:id/status` are the two places to hook in an automatic delivery command (e.g. via RCON) if you want that later.
+1. Customer clicks **Buy Now** (on the card, or inside the "!" info popup) → enters their Minecraft username → picks **Java** or **Bedrock**.
+   - Bedrock names are normalised the way Geyser/Floodgate does it: a single leading `.` is added and spaces become `_`. So `Play er`, `.Play er` and `Play_er` all become `.Play_er` — never `..Play er`. The form shows the exact result live as **"In server name: …"**.
+2. **Continue** → they land on **Complete your Purchase** (`/checkout.html`): a summary of what they're buying, your KHQR to scan, and a drop zone for their payment screenshot.
+3. **SUBMIT** → they get a **Submit successful** page telling them to wait for the owner to confirm, with a support link and a **Back to home** button.
+4. You receive a Telegram message with the receipt photo, the item, the price, and the in-server name, plus **✅ Accept** and **❌ Reject** buttons.
+   - **Reject** → the order is marked rejected. Nothing else happens.
+   - **Accept** → the website runs that item's **delivery command** on your Minecraft server over RCON (e.g. `lp user .Play_er parent add apsara`) and replies telling you what it ran and what the server said. If delivery fails (RCON not set up, plugin missing, etc.) it tells you why and leaves the order pending so you can fix it and press Accept again.
+
+Each item's delivery command is configured per item — set it in the web admin
+form ("Delivery command") or via `/edititem <id> deliveryCommand <command>` in
+Telegram. Use `{player}` where the in-server name should go. Leave it blank to
+handle that item by hand. The command needs a plugin that provides it — e.g.
+LuckPerms for `lp user … parent add …`, an economy plugin for `eco give …`.
+
+Payment screenshots are stored in `website/data/proofs/` and are **not** served
+publicly — they only go to your Telegram.
 
 ## 5. The Map page (BlueMap)
 
@@ -83,7 +92,9 @@ BlueMap's web app doesn't send restrictive framing headers by default, so embedd
 
 ## 7. Theme & assets
 
-The look is a bright, cute, hand-drawn-cartoon "Angkor Wat temple" UI (`public/css/style.css`). The nav is a stone-brick wall with a carved guardian face (`public/images/site/guardian-face.svg`) peeking from each end and vines hanging off the bottom edge (`public/images/site/vine-drape.svg`); nav links and the main hero buttons (Discord/Server IP/Store) are wood-plank pills with a circular colored icon badge, a wood-grain texture, and a moss sprig growing off one corner. Store/feature cards are golden parchment/stone tablets with the same moss-sprig corner and a beveled edge (light highlight + soft dark shadow); item cards get a couple of little twinkling sparkles over their icon. Every button and card has a playful scale/wiggle animation on hover. A carved temple-frieze border strip (`public/images/site/khmer-pattern.svg`) runs between the nav/hero and above the footer on every page, section headings are flanked by small leaf glyphs, and a few little sway-animated flowers (`public/images/site/flower.svg`) dot the hero. The hero itself keeps a warm sunset gradient with a jungle canopy/palm silhouette (`public/images/site/forest-silhouette.svg`) along the bottom, hanging vine/frond decorations in the top corners (`public/images/site/leaf-corner.svg`), a soft glow behind the logo, and a few animated "firefly" particles for atmosphere. The real logo is dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon) — both cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. Item placeholder art (`public/images/items/placeholder-*.svg`) is still simple vector placeholder art — swap those any time too.
+The site ships with a **dark theme by default** and a light theme; visitors switch with the ☀️/🌙 button in the nav and the choice is remembered in their browser. Both themes are defined as CSS custom properties at the top of `public/css/style.css` (`:root` = dark, `:root[data-theme="light"]` = light), so re-colouring either one is a matter of editing those two blocks.
+
+The look is a bright, cute, hand-drawn-cartoon "Angkor Wat temple" UI (`public/css/style.css`). The nav is a stone-brick wall with a carved guardian face (`public/images/site/guardian-face.svg`) peeking from each end and vines hanging off the bottom edge (`public/images/site/vine-drape.svg`); nav links and the main hero buttons (Telegram/Server IP/Store) are wood-plank pills with a circular colored icon badge, a wood-grain texture, and a moss sprig growing off one corner. Store/feature cards are golden parchment/stone tablets with the same moss-sprig corner and a beveled edge (light highlight + soft dark shadow); item cards get a couple of little twinkling sparkles over their icon. Every button and card has a playful scale/wiggle animation on hover. A carved temple-frieze border strip (`public/images/site/khmer-pattern.svg`) runs between the nav/hero and above the footer on every page, section headings are flanked by small leaf glyphs, and a few little sway-animated flowers (`public/images/site/flower.svg`) dot the hero. The hero itself keeps a warm sunset gradient with a jungle canopy/palm silhouette (`public/images/site/forest-silhouette.svg`) along the bottom, hanging vine/frond decorations in the top corners (`public/images/site/leaf-corner.svg`), a soft glow behind the logo, and a few animated "firefly" particles for atmosphere. The real logo is dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon) — both cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. Item placeholder art (`public/images/items/placeholder-*.svg`) is still simple vector placeholder art — swap those any time too.
 
 The "Chill Community / No Raiding / PvP Your Way / Live Cambodia Map" badges on the Home page come from the `serverFeatures` array in `config/site.config.json` — edit, add, or remove entries there (each has `icon`, `title`, `desc`, and an optional `link`) to change what's shown, no code changes needed.
 
@@ -100,14 +111,18 @@ The layout is responsive: a hamburger nav under ~760px, a stacked hero on mobile
 
 ```
 website/
-  server.js              Express app entrypoint
-  config/site.config.json  Public site settings (server IP, dates, links…)
-  data/items.json         Store items (ranks/coins/other)
-  data/orders.json        Purchase/checkout records
-  lib/                    KHQR generation+verification, Minecraft status ping, JSON data store
-  routes/api.js           Public JSON API (config, status, items, checkout)
+  server.js               Express app entrypoint
+  config/site.config.json Public site settings (server IP, dates, links, KHQR image…)
+  data/items.json         Store items (ranks/coins/other) + their delivery commands
+  data/orders.json        Orders and their status
+  data/proofs/            Uploaded payment screenshots (git-ignored, never served publicly)
+  lib/store.js            Tiny JSON-file data layer
+  lib/minecraft.js        Java+Bedrock status ping
+  lib/rcon.js             Runs an item's delivery command on Accept
+  routes/api.js           Public JSON API (config, status, items, checkout, proof upload)
   routes/admin.js         Password-protected admin panel (item CRUD + image upload)
-  telegram/bot.js         Telegram bot: purchase alerts + /additem etc.
+  telegram/bot.js         Telegram bot: order review (Accept/Reject) + /additem etc.
   views/                  EJS templates for the admin panel
-  public/                 Everything served to visitors: index.html, store.html, map.html, css/js/images
+  public/                 index / store / checkout / success / map pages, css, js, images
+    js/playername.js      Shared Java/Bedrock name rules (used by BOTH browser and server)
 ```
