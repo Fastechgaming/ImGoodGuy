@@ -11,7 +11,17 @@ const telegram = require("./telegram/bot");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+// Bind to 0.0.0.0 by default so it works anywhere. Behind a Cloudflare Tunnel
+// set HOST=127.0.0.1 so the app is only reachable through the tunnel and never
+// directly on the box's public IP.
+const HOST = process.env.HOST || "0.0.0.0";
 const SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
+
+// Served over HTTPS? Then we are behind a proxy (Cloudflare, nginx), so trust
+// its forwarded headers and mark the session cookies Secure. Derived from
+// SITE_URL so a local http:// run keeps working untouched.
+const BEHIND_HTTPS = String(process.env.SITE_URL || "").startsWith("https://");
+if (BEHIND_HTTPS) app.set("trust proxy", 1);
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
@@ -27,6 +37,7 @@ const adminSession = cookieSession({
   maxAge: 12 * 60 * 60 * 1000, // 12h
   httpOnly: true,
   sameSite: "lax",
+  secure: BEHIND_HTTPS,
 });
 const playerSession = cookieSession({
   name: "angkorsmp_player",
@@ -34,7 +45,12 @@ const playerSession = cookieSession({
   maxAge: 400 * 24 * 60 * 60 * 1000,
   httpOnly: true,
   sameSite: "lax",
+  secure: BEHIND_HTTPS,
 });
+
+// Liveness probe for the tunnel / process manager. Deliberately does not touch
+// the Minecraft server, so it stays instant even when the game server is down.
+app.get("/healthz", (req, res) => res.json({ ok: true, uptime: Math.round(process.uptime()) }));
 
 app.use("/api", playerSession);
 app.use("/api/account", accountRoutes);
@@ -50,8 +66,9 @@ app.use((err, req, res, next) => {
   res.status(400).send(`Something went wrong: ${err.message}`);
 });
 
-app.listen(PORT, () => {
-  console.log(`AngkorSMP website running at http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`AngkorSMP website running on ${HOST}:${PORT}`);
+  if (BEHIND_HTTPS) console.log(`[https] trusting proxy headers, session cookies marked Secure (SITE_URL=${process.env.SITE_URL})`);
   if (require("./lib/angkorlink").enabled()) {
     console.log("[angkorlink] plugin bridge configured — verifying names against the Minecraft server");
   } else {

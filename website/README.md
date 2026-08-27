@@ -233,10 +233,19 @@ because letter-spacing pulls Khmer vowels away from their consonants.
 
 ## 11. Running in production
 
-- Use a process manager: `pm2 start server.js --name angkorsmp-web` (or systemd).
-- Put it behind a reverse proxy (nginx/Caddy) with HTTPS.
-- Make sure `.env` is never committed (it's already in `.gitignore`).
-- Back up `website/data/items.json` and `website/data/orders.json` periodically — they're the entire "database".
+**See `DEPLOY.md` for the full walkthrough** — Node 22, `.env`, a systemd unit
+and a Cloudflare Tunnel that puts the site on your domain with HTTPS without
+opening a port. Short version of the two things people get wrong:
+
+* GitHub Pages and Cloudflare Workers/Pages **cannot host this** — it is a
+  Node server that needs raw TCP (RCON, Minecraft pings), a filesystem and a
+  long-running process. Cloudflare *Tunnel* is the Cloudflare product that fits.
+* Run it on the same machine as Minecraft if you can. RCON and the AngkorLink
+  plugin then sit on `127.0.0.1` and never touch the internet.
+
+Whatever you host on, two rules: never commit `.env` (it's already
+git-ignored), and back up `data/` — it is the entire "database". `DEPLOY.md`
+has a one-line cron job for that.
 
 ## 12. Project structure
 
@@ -252,6 +261,9 @@ website/
   lib/store.js            Tiny JSON-file data layer
   lib/gamestats.js        Play limits, coin allowance and points ledger (UTC+7 day boundary)
   lib/angkorlink.js       Client for the AngkorLink Minecraft plugin
+  deploy/                 systemd unit, Cloudflare Tunnel config, update script
+  DEPLOY.md               How to put the site online
+  PLUGIN_PROMPT.md        Brief for building the AngkorLink plugin
   lib/minecraft.js        Java+Bedrock status ping
   lib/rcon.js             Runs an item's delivery command on Accept
   routes/api.js           Public JSON API (config, status, items, checkout, proof upload)

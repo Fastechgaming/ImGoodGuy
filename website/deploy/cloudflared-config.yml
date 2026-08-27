@@ -1,0 +1,29 @@
+# Cloudflare Tunnel config for the AngkorSMP website.
+#
+# Put this at /etc/cloudflared/config.yml (or ~/.cloudflared/config.yml) after
+# running `cloudflared tunnel create angkorsmp-web`. Replace the tunnel id and
+# the hostnames with your own.
+#
+# The tunnel dials OUT to Cloudflare, so you never open a port on the box and
+# the website is not reachable on the server's raw IP at all.
+
+tunnel: PUT-YOUR-TUNNEL-ID-HERE
+credentials-file: /etc/cloudflared/PUT-YOUR-TUNNEL-ID-HERE.json
+
+ingress:
+  # The website itself.
+  - hostname: angkorsmp.com
+    service: http://127.0.0.1:3000
+  - hostname: www.angkorsmp.com
+    service: http://127.0.0.1:3000
+
+  # Optional: put BlueMap behind the same tunnel instead of the raw
+  # http://15.235.229.65:25613 link, so the map iframe is HTTPS too. If you do
+  # this, set "bluemapUrl": "https://map.angkorsmp.com" in
+  # config/site.config.json — browsers block a plain-http iframe inside an
+  # https page, so the map will otherwise show the fallback link.
+  - hostname: map.angkorsmp.com
+    service: http://127.0.0.1:25613
+
+  # Everything else gets a 404 rather than reaching your box.
+  - service: http_status:404
