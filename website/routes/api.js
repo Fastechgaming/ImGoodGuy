@@ -26,6 +26,7 @@ router.get("/config", (req, res) => {
     seasonStartDate: cfg.seasonStartDate,
     mapStartDate: cfg.mapStartDate,
     bluemapUrl: cfg.bluemapUrl,
+    serverFeatures: cfg.serverFeatures || [],
     socials: cfg.socials,
     supportTelegram: process.env.TELEGRAM_SUPPORT_USERNAME || "",
   });
