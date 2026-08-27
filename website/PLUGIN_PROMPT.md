@@ -47,6 +47,16 @@ line up.
    tells the plugin to credit that player's in-game balance. This must work
    whether the player is online or offline, and it must never double-credit.
 
+> ### Coins only move one way across this bridge: **in**
+>
+> Players **earn** coins on the website and **spend** them in game. The website
+> never spends, withdraws, deducts or transfers a player's coins, so this plugin
+> must expose **no endpoint that takes coins away**. Do not add one, however
+> convenient it looks — a website account is only a typed name, and a spend path
+> would let anyone drain anyone's balance. Rank upgrades bought on the website
+> are paid for with real money through KHQR, which the owner approves by hand in
+> Telegram before anything reaches the server.
+
 ---
 
 ## Architecture
@@ -95,8 +105,8 @@ X-AngkorSMP-Key: <api-key from config.yml>
 Reject with `401` and `code: "BAD_KEY"` if it is missing or wrong. Compare in
 constant time.
 
-**2. HMAC signature** on every `POST` (the mutating routes mint or spend
-currency, so a leaked key alone must not be enough):
+**2. HMAC signature** on every `POST` (the mutating routes mint currency and
+grant ranks, so a leaked key alone must not be enough):
 
 ```
 X-AngkorSMP-Timestamp: <unix millis>
@@ -330,65 +340,16 @@ Rules:
   `&e+{amount} Coins &7from &a{reason}&7 on the website`.
 - Log every grant to `plugins/AngkorLink/transactions.log` with a timestamp.
 
-### `POST /api/v1/coins/take`
-
-Same shape, for spending coins on the website (a rank upgrade paid in coins).
-Must be **atomic**: read balance, check sufficiency, withdraw — all inside one
-sync task, so two simultaneous requests cannot both pass the check.
-
-If the balance is short, return `200` with:
-
-```json
-{ "ok": true, "applied": false, "insufficient": true, "balance": 800, "required": 1500 }
-```
-
-Insufficient funds is a normal outcome, not an error — the website needs to show
-a friendly message, not a stack trace.
-
-#### Spending needs the player's say-so
-
-A website account is only a typed name — anyone can type anyone's. That is fine
-for *reading* a balance and fine for *granting* coins (the worst case is giving
-somebody a present), but it is not fine for **spending** someone else's coins:
-without a check, a stranger could drain a player's balance by buying them ranks
-they never asked for.
-
-So `coins/take` does not spend on its own. It asks the player in game:
-
-1. The request arrives with a `confirmationId` and a description of what is being
-   bought.
-2. If the player is **offline**, respond `200` with
-   `{ "ok": true, "applied": false, "pending": false, "reason": "PLAYER_OFFLINE" }`.
-   The website will tell them to log in first.
-3. If they are **online**, send them a chat prompt — a clickable
-   `[Confirm] [Cancel]`, plus `/angkorlink confirm <id>` as a fallback — and
-   respond immediately with
-   `{ "ok": true, "applied": false, "pending": true, "confirmationId": "...", "expiresAt": ... }`.
-4. The website then polls `GET /api/v1/confirm/{confirmationId}` (or you may add
-   an optional outbound webhook) until it reads `approved`, `denied` or `expired`.
-   Only on `approved` do you actually withdraw — atomically, as above.
-5. Confirmations expire after a configurable `confirm-ttl-seconds` (default 120)
-   and are single use.
-
-`GET /api/v1/confirm/{confirmationId}` returns:
-
-```json
-{ "ok": true, "status": "approved", "uuid": "8f4e...", "amount": 4000, "balanceAfter": 8500 }
-```
-
-with `status` one of `pending` / `approved` / `denied` / `expired`.
-
-This keeps the simple type-your-name flow the owner asked for, and puts the one
-irreversible action behind proof that the person is actually holding the account.
-
 ### `POST /api/v1/rank/upgrade` — *job 2*
+
+Called after the owner approves a KHQR payment in Telegram. There is no coin
+payment here — see the rule above.
 
 ```json
 {
   "transactionId": "order_Kd82nfQ1",
   "uuid": "8f4e...",
   "toRankId": "wither",
-  "payWithCoins": 4000,
   "expectedFromRankId": "warden"
 }
 ```
@@ -397,20 +358,12 @@ Do all of this as one idempotent unit:
 
 1. If `expectedFromRankId` is present and does not match the player's current
    rank, refuse with `409` / `code: "RANK_CHANGED"` and return their real rank.
-   (This stops a stale store page from selling an upgrade they already bought.)
-2. If `payWithCoins` is set, it goes through the same in-game confirmation as
-   `coins/take` above — prompt, return `pending: true`, and only withdraw once the
-   player has approved. On insufficient funds change nothing and return
-   `insufficient: true`. When `payWithCoins` is `null` (paid in real money through
-   KHQR, which the owner has already approved in Telegram) no confirmation is
-   needed — apply the rank straight away.
-3. Remove the old ladder group and add the new one — via the LuckPerms API where
+   (This stops a stale store page from selling an upgrade they already bought,
+   or from downgrading someone who ranked up in the meantime.)
+2. Remove the old ladder group and add the new one — via the LuckPerms API where
    available, falling back to Vault permissions, falling back to running the
    configured command. Never leave the player holding two ladder groups.
-4. Return the new profile.
-
-`payWithCoins: null` means the upgrade was paid for in real money through the
-website's KHQR flow, so just apply the rank.
+3. Return the new profile.
 
 ### `POST /api/v1/purchase/deliver`
 
@@ -448,8 +401,6 @@ replaces the current raw-RCON delivery.
 
 | Command | Permission | Does |
 |---|---|---|
-| `/angkorlink confirm <id>` | `angkorlink.confirm` (default: true) | Approves a pending website coin spend (fallback for the clickable prompt) |
-| `/angkorlink deny <id>` | `angkorlink.confirm` (default: true) | Rejects one |
 | `/angkorlink reload` | `angkorlink.admin` (default: op) | Reloads `config.yml` |
 | `/angkorlink status` | `angkorlink.admin` | API port, hooks detected, last website call, pending deliveries |
 | `/angkorlink test` | `angkorlink.admin` | Self-check: economy read/write, rank read, HTTP server bound |
@@ -473,9 +424,6 @@ coins:
   max-grant-per-transaction: 5000
   notify-online-players: true
   message: "&e+{amount} Coins &7from &a{reason}&7 on the website"
-  # Spending coins from the website asks the player in game first.
-  confirm-ttl-seconds: 120
-  confirm-message: "&6The website wants to spend &e{amount} Coins&6 on &a{reason}&6."
 
 ranks:
   # Ascending order. `id` must match the website's store item ids.
@@ -504,8 +452,7 @@ logging:
    `/player/verify`, plus `/player/{uuid}/profile` and `/ranks`.
 3. **Phase 3** — `/coins/grant` with the persisted transaction log and
    idempotency.
-4. **Phase 4** — `/coins/take` and `/rank/upgrade` with the in-game spend
-   confirmation, then `/purchase/deliver` and the offline queue.
+4. **Phase 4** — `/rank/upgrade`, `/purchase/deliver` and the offline queue.
 
 ---
 
@@ -521,22 +468,16 @@ logging:
    first call's balances.
 4. `/coins/grant` for an **offline** player changes their balance, and they see
    the message when they next log in.
-5. `/coins/take` for an **offline** player spends nothing and returns
-   `reason: "PLAYER_OFFLINE"`.
-6. `/coins/take` for an online player spends nothing until they click Confirm,
-   spends nothing at all if they click Cancel, and expires on its own after the
-   TTL.
-7. Two simultaneous approved spends for more than half the balance each: exactly
-   one succeeds, the other returns `insufficient: true`. The balance never goes
-   negative.
-8. `/rank/upgrade` leaves the player in exactly one ladder group.
-9. `/purchase/deliver` with `requiresOnline: true` for an offline player queues
+5. There is **no** endpoint anywhere in the plugin that reduces a player's coin
+   balance. Say so explicitly in your final message.
+6. `/rank/upgrade` leaves the player in exactly one ladder group.
+7. `/purchase/deliver` with `requiresOnline: true` for an offline player queues
    it, survives a **server restart**, and delivers on their next join.
-10. A request with a wrong key, a tampered body, or a 5-minute-old timestamp is
+8. A request with a wrong key, a tampered body, or a 5-minute-old timestamp is
    rejected.
-11. Hammer `/player/verify` 200×/second and confirm the server TPS does not move
+9. Hammer `/player/verify` 200×/second and confirm the server TPS does not move
    — no Bukkit API is being touched off the main thread, and nothing blocks it.
-12. The plugin starts cleanly with Vault, LuckPerms and Floodgate all **absent**,
+10. The plugin starts cleanly with Vault, LuckPerms and Floodgate all **absent**,
     logging what is disabled rather than throwing.
 
 ---
@@ -560,6 +501,7 @@ logging:
 - Do not touch the Bukkit API from an HTTP thread.
 - Do not swallow exceptions — log them with the transaction id.
 - Do not rename anything in this contract.
+- Do not add any way for the website to spend, withdraw or transfer coins.
 
 ---
 
@@ -576,9 +518,8 @@ Once the plugin is running, the website will:
   the `transactionId`, replacing the local `data/gamestats.json` ledger with the
   real in-game balance.
 - Show live coins and current rank on the store page, and offer rank upgrades
-  priced at the difference, paid in KHQR or in coins via `/coins/take` — the
-  latter showing a "confirm it in game" step while the plugin waits on the
-  player.
+  priced at the difference — paid in KHQR, like every other store purchase.
+  Coins earned on the website are spent in game, never on the site.
 - Replace the current RCON delivery on Telegram "Accept" with
   `/purchase/deliver`.
 
