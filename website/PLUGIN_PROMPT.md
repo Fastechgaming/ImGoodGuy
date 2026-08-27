@@ -34,12 +34,15 @@ line up.
 
 ## The three jobs the server owner asked for
 
-1. **Verify that a player name is real.** Both the store's "Buy Now" form and the
-   games page's name entry must be able to ask: *does this player exist, have
-   they ever joined this server, and what is their exact in-server name?*
-2. **Give the store the player's live info** — their coin balance and their
-   current highest rank — so the store can offer a **rank upgrade** and charge
-   the difference rather than the full price.
+1. **Verify that a player name is real, and hand back who they are.** On both
+   the store's "Buy Now" form and the games page, the player types their name and
+   presses **Verify**. One call to the plugin answers *does this player exist,
+   have they ever joined this server, what is their exact in-server name* — and
+   returns their **UUID, coin balance and current rank** in the same reply. This
+   is `POST /player/verify`, the endpoint the whole website hangs off.
+2. **Keep that info live for the store** — so the store can offer a **rank
+   upgrade** priced at the difference rather than the full price, and show a real
+   balance.
 3. **Grant coins.** When someone finishes a mini-game on the website, the website
    tells the plugin to credit that player's in-game balance. This must work
    whether the player is online or offline, and it must never double-credit.
@@ -175,13 +178,17 @@ No auth required (used for an "is the bridge up?" indicator).
   "bedrockPrefix": ".",
   "economy": "EssentialsX Economy",
   "permissions": "LuckPerms",
-  "features": { "coins": true, "ranks": true, "linking": true }
+  "features": { "coins": true, "ranks": true }
 }
 ```
 
 `features` reports what actually loaded, so the website can hide UI it cannot use.
 
-### `POST /api/v1/player/resolve` — *job 1*
+### `POST /api/v1/player/verify` — *jobs 1 and 2, in one call*
+
+This is the endpoint behind the **Verify** button on the website. The player
+types their name, hits Verify, and this single call both confirms the name is
+real and returns everything the store and games pages need to render.
 
 Request:
 
@@ -203,6 +210,10 @@ Response when found:
   "edition": "bedrock",
   "hasPlayedBefore": true,
   "online": false,
+  "coins": 12500,
+  "rank":     { "id": "warden", "displayName": "Warden", "weight": 30 },
+  "nextRank": { "id": "wither", "displayName": "Wither", "weight": 40 },
+  "playtimeMinutes": 4210,
   "firstSeen": 1748563200000,
   "lastSeen": 1756310400000
 }
@@ -221,10 +232,21 @@ Rules:
   Java players who have never joined, do it through an async cache with a
   timeout, and return `found: false, reason: "NEVER_JOINED"` rather than hanging.
 - For Bedrock names, resolve through the Floodgate API when it is present.
-- Cache results for ~60s. This endpoint gets hit on every keystroke-debounce from
-  the store form.
+- `coins` is the Vault economy balance, **rounded down to a whole number**. Vault
+  works in doubles; the website treats coins as integers everywhere, so floor it
+  and say so in your docs.
+- `rank` is the highest-weight group from the ladder in `config.yml` that the
+  player actually has. If they have none, return `null` — do **not** invent a
+  "default" rank.
+- `nextRank` is the next rung up the ladder, or `null` at the top.
+- Cache the *resolve* half for ~60s, but always read `coins` and `rank` fresh —
+  a stale balance on the store page leads to a purchase that fails at the till.
 
-### `GET /api/v1/player/{uuid}/profile` — *job 2*
+### `GET /api/v1/player/{uuid}/profile`
+
+The same body as above, minus the resolve fields, for refreshing a player the
+website has already verified — after a mini-game payout or a rank purchase,
+where re-typing the name would be silly.
 
 ```json
 {
@@ -235,22 +257,9 @@ Rules:
   "coins": 12500,
   "rank": { "id": "warden", "displayName": "Warden", "weight": 30 },
   "nextRank": { "id": "wither", "displayName": "Wither", "weight": 40 },
-  "playtimeMinutes": 4210,
-  "firstSeen": 1748563200000,
-  "lastSeen": 1756310400000
+  "playtimeMinutes": 4210
 }
 ```
-
-- `coins` is the Vault economy balance, **rounded down to a whole number**. Vault
-  works in doubles; the website treats coins as integers everywhere, so floor it
-  and say so in your docs.
-- `rank` is the highest-weight group from the ladder in `config.yml` that the
-  player actually has. If they have none, return `null` — do **not** invent a
-  "default" rank.
-- `nextRank` is the next rung up the ladder, or `null` at the top.
-
-Accept `GET /api/v1/player/by-name/{name}?edition=java` as a convenience that
-resolves then returns the same body.
 
 ### `GET /api/v1/ranks` — *job 2*
 
@@ -336,6 +345,42 @@ If the balance is short, return `200` with:
 Insufficient funds is a normal outcome, not an error — the website needs to show
 a friendly message, not a stack trace.
 
+#### Spending needs the player's say-so
+
+A website account is only a typed name — anyone can type anyone's. That is fine
+for *reading* a balance and fine for *granting* coins (the worst case is giving
+somebody a present), but it is not fine for **spending** someone else's coins:
+without a check, a stranger could drain a player's balance by buying them ranks
+they never asked for.
+
+So `coins/take` does not spend on its own. It asks the player in game:
+
+1. The request arrives with a `confirmationId` and a description of what is being
+   bought.
+2. If the player is **offline**, respond `200` with
+   `{ "ok": true, "applied": false, "pending": false, "reason": "PLAYER_OFFLINE" }`.
+   The website will tell them to log in first.
+3. If they are **online**, send them a chat prompt — a clickable
+   `[Confirm] [Cancel]`, plus `/angkorlink confirm <id>` as a fallback — and
+   respond immediately with
+   `{ "ok": true, "applied": false, "pending": true, "confirmationId": "...", "expiresAt": ... }`.
+4. The website then polls `GET /api/v1/confirm/{confirmationId}` (or you may add
+   an optional outbound webhook) until it reads `approved`, `denied` or `expired`.
+   Only on `approved` do you actually withdraw — atomically, as above.
+5. Confirmations expire after a configurable `confirm-ttl-seconds` (default 120)
+   and are single use.
+
+`GET /api/v1/confirm/{confirmationId}` returns:
+
+```json
+{ "ok": true, "status": "approved", "uuid": "8f4e...", "amount": 4000, "balanceAfter": 8500 }
+```
+
+with `status` one of `pending` / `approved` / `denied` / `expired`.
+
+This keeps the simple type-your-name flow the owner asked for, and puts the one
+irreversible action behind proof that the person is actually holding the account.
+
 ### `POST /api/v1/rank/upgrade` — *job 2*
 
 ```json
@@ -353,8 +398,12 @@ Do all of this as one idempotent unit:
 1. If `expectedFromRankId` is present and does not match the player's current
    rank, refuse with `409` / `code: "RANK_CHANGED"` and return their real rank.
    (This stops a stale store page from selling an upgrade they already bought.)
-2. If `payWithCoins` is set, withdraw it atomically; on insufficient funds change
-   nothing and return `insufficient: true`.
+2. If `payWithCoins` is set, it goes through the same in-game confirmation as
+   `coins/take` above — prompt, return `pending: true`, and only withdraw once the
+   player has approved. On insufficient funds change nothing and return
+   `insufficient: true`. When `payWithCoins` is `null` (paid in real money through
+   KHQR, which the owner has already approved in Telegram) no confirmation is
+   needed — apply the rank straight away.
 3. Remove the old ladder group and add the new one — via the LuckPerms API where
    available, falling back to Vault permissions, falling back to running the
    configured command. Never leave the player holding two ladder groups.
@@ -395,36 +444,12 @@ replaces the current raw-RCON delivery.
 }
 ```
 
-### `POST /api/v1/link/verify` — recommended, closes a real hole
-
-The website currently binds a player to a typed name held in a browser cookie.
-Clearing cookies starts a fresh account, which is a coin-farming hole. A link
-code closes it properly:
-
-1. In game the player runs `/link`. You generate a 6-character code
-   (unambiguous alphabet — no `0/O`, `1/I`), store `code → uuid` with a 10-minute
-   TTL, and show it to them.
-2. They type the code on the website. The website calls this endpoint.
-3. You return the UUID and name, then invalidate the code (single use).
-
-```json
-{ "code": "K7M2QX" }
-```
-
-```json
-{ "ok": true, "uuid": "8f4e...", "name": ".Play_er", "edition": "bedrock" }
-```
-
-Unknown or expired codes: `404` / `code: "BAD_CODE"`. Rate-limit to a handful of
-attempts per minute per IP so the code space cannot be brute-forced.
-
----
-
 ## In-game commands
 
 | Command | Permission | Does |
 |---|---|---|
-| `/link` | `angkorlink.link` (default: true) | Generates the website link code |
+| `/angkorlink confirm <id>` | `angkorlink.confirm` (default: true) | Approves a pending website coin spend (fallback for the clickable prompt) |
+| `/angkorlink deny <id>` | `angkorlink.confirm` (default: true) | Rejects one |
 | `/angkorlink reload` | `angkorlink.admin` (default: op) | Reloads `config.yml` |
 | `/angkorlink status` | `angkorlink.admin` | API port, hooks detected, last website call, pending deliveries |
 | `/angkorlink test` | `angkorlink.admin` | Self-check: economy read/write, rank read, HTTP server bound |
@@ -448,6 +473,9 @@ coins:
   max-grant-per-transaction: 5000
   notify-online-players: true
   message: "&e+{amount} Coins &7from &a{reason}&7 on the website"
+  # Spending coins from the website asks the player in game first.
+  confirm-ttl-seconds: 120
+  confirm-message: "&6The website wants to spend &e{amount} Coins&6 on &a{reason}&6."
 
 ranks:
   # Ascending order. `id` must match the website's store item ids.
@@ -460,10 +488,6 @@ ranks:
   # Used only if neither the LuckPerms API nor Vault is available.
   fallback-set-command: "lp user {player} parent set {group}"
 
-linking:
-  code-ttl-seconds: 600
-  code-length: 6
-
 logging:
   transactions: true     # plugins/AngkorLink/transactions.log
   debug: false
@@ -474,20 +498,22 @@ logging:
 ## Build it in this order
 
 1. **Phase 1** — plugin skeleton, embedded HTTP server, auth (key + HMAC),
-   `/health`, `/server`, `/player/resolve`. This alone unblocks name
-   verification on both website pages.
-2. **Phase 2** — Vault/LuckPerms hooks, `/player/{uuid}/profile`, `/ranks`.
-3. **Phase 3** — `/coins/grant`, `/coins/take` with the persisted transaction log
-   and idempotency.
-4. **Phase 4** — `/rank/upgrade`, `/purchase/deliver`, the offline queue.
-5. **Phase 5** — `/link`, `/link/verify`.
+   `/health`, `/server`, and the resolve half of `/player/verify`. This alone
+   unblocks the Verify button on both website pages.
+2. **Phase 2** — Vault/LuckPerms hooks: the `coins` / `rank` / `nextRank` half of
+   `/player/verify`, plus `/player/{uuid}/profile` and `/ranks`.
+3. **Phase 3** — `/coins/grant` with the persisted transaction log and
+   idempotency.
+4. **Phase 4** — `/coins/take` and `/rank/upgrade` with the in-game spend
+   confirmation, then `/purchase/deliver` and the offline queue.
 
 ---
 
 ## Acceptance tests — state the result of each in your final message
 
-1. `POST /player/resolve` with `{"name":"Play er","edition":"bedrock"}` returns
-   `.Play_er`. Same for `.Play er`, `Play_er` and `..Play  er`.
+1. `POST /player/verify` with `{"name":"Play er","edition":"bedrock"}` returns
+   `.Play_er` **and** that player's real coin balance and rank. Same normalised
+   name for `.Play er`, `Play_er` and `..Play  er`.
 2. A name that has never joined returns `found: false`, not an error, and does
    not block for a network round-trip.
 3. `POST /coins/grant` sent **twice with the same `transactionId`** credits the
@@ -495,17 +521,22 @@ logging:
    first call's balances.
 4. `/coins/grant` for an **offline** player changes their balance, and they see
    the message when they next log in.
-5. Two simultaneous `/coins/take` calls for more than half the balance each:
-   exactly one succeeds, the other returns `insufficient: true`. The balance
-   never goes negative.
-6. `/rank/upgrade` leaves the player in exactly one ladder group.
-7. `/purchase/deliver` with `requiresOnline: true` for an offline player queues
+5. `/coins/take` for an **offline** player spends nothing and returns
+   `reason: "PLAYER_OFFLINE"`.
+6. `/coins/take` for an online player spends nothing until they click Confirm,
+   spends nothing at all if they click Cancel, and expires on its own after the
+   TTL.
+7. Two simultaneous approved spends for more than half the balance each: exactly
+   one succeeds, the other returns `insufficient: true`. The balance never goes
+   negative.
+8. `/rank/upgrade` leaves the player in exactly one ladder group.
+9. `/purchase/deliver` with `requiresOnline: true` for an offline player queues
    it, survives a **server restart**, and delivers on their next join.
-8. A request with a wrong key, a tampered body, or a 5-minute-old timestamp is
+10. A request with a wrong key, a tampered body, or a 5-minute-old timestamp is
    rejected.
-9. Hammer `/player/resolve` 200×/second and confirm the server TPS does not move
+11. Hammer `/player/verify` 200×/second and confirm the server TPS does not move
    — no Bukkit API is being touched off the main thread, and nothing blocks it.
-10. The plugin starts cleanly with Vault, LuckPerms and Floodgate all **absent**,
+12. The plugin starts cleanly with Vault, LuckPerms and Floodgate all **absent**,
     logging what is disabled rather than throwing.
 
 ---
@@ -536,16 +567,18 @@ logging:
 
 Once the plugin is running, the website will:
 
-- Call `/player/resolve` from the store's Buy Now form and the games page's name
-  gate, and refuse names that have never joined.
-- Replace the browser-cookie account with a **link code**, so a player's website
-  account is tied to a real UUID instead of a typed name — which also fixes the
-  current "clear your cookies for a fresh daily coin allowance" hole.
+- Put a **Verify** button next to the name field on the store's Buy Now form and
+  the games page, calling `/player/verify` and refusing names that have never
+  joined. The reply fills in the player's UUID, coins and rank in one go.
+- Store the verified UUID against the browser, and re-read the balance with
+  `/player/{uuid}/profile` rather than making people verify again.
 - Call `/coins/grant` at the end of every mini-game round, using the round id as
   the `transactionId`, replacing the local `data/gamestats.json` ledger with the
   real in-game balance.
 - Show live coins and current rank on the store page, and offer rank upgrades
-  priced at the difference, paid in KHQR or in coins via `/coins/take`.
+  priced at the difference, paid in KHQR or in coins via `/coins/take` — the
+  latter showing a "confirm it in game" step while the plugin waits on the
+  player.
 - Replace the current RCON delivery on Telegram "Accept" with
   `/purchase/deliver`.
 
