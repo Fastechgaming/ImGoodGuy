@@ -77,19 +77,33 @@ LuckPerms for `lp user … parent add …`, an economy plugin for `eco give …`
 Payment screenshots are stored in `website/data/proofs/` and are **not** served
 publicly — they only go to your Telegram.
 
-## 5. The Games page (preview)
+## 5. The Games page
 
-`/games.html` is a placeholder for the upcoming play-on-the-website feature:
-players enter their Minecraft name, then see a hub with **Playtime** and
-**Coins Earned**, a disabled **Withdraw** button, and a grid of coming-soon
-mini-games.
+`/games.html` — players enter their Minecraft name (same Java/Bedrock rules as
+the store), then get a hub with **Playtime**, **Coins Earned**, a Withdraw
+button (still disabled) and three playable mini-games:
 
-**Nothing is persisted yet, deliberately.** The name lives in `sessionStorage`
-only (so a page refresh doesn't bounce the player back to the form) and playtime
-is counted from when that browser session started. When the real games are
-built, replace the `Session` object at the top of `public/js/games.js` with
-calls to a real backend + database, and wire the Withdraw button to an RCON
-`eco give` command the same way store orders are delivered.
+| Game | Length | How it scores |
+|---|---|---|
+| 💥 **TNT Escape** | 60s | Dodge TNT blasts; reward scales with survival time. |
+| 💣 **Creeper Click** | 45s | Tap creepers before they blow. Normal +1, charged +3, combo bonus every 3 in a row, −1 for empty clicks. |
+| ⛏️ **Block Breaker** | 10 rounds | Each round names a block; tap every match before the timer. Wrong block = 1s penalty. |
+
+All three use the same payout ladder: **500 minimum, 5,000 for a perfect run**
+(500 / 1,000 / 2,000 / 3,000 / 4,000 / 5,000 by performance). Every session has
+a clear start and end with a results screen and a **Play Again** button. They
+work with mouse, keyboard (WASD/arrows in TNT Escape) and touch.
+
+**Nothing is persisted to a database yet, deliberately.** The session — name and
+coins earned — lives in `sessionStorage` only, so a refresh doesn't bounce the
+player back to the form, but the totals disappear when the tab closes and the
+stat cards say "Not saved yet". To make it real: replace the `Session` object at
+the top of `public/js/games.js` with API calls, and wire the Withdraw button to
+an RCON `eco give` the same way store orders are delivered.
+
+Adding a fourth game means adding one object to `Arcade.list` in
+`public/js/arcade.js` with `{ id, icon, name, desc, howTo, start(mount, onFinish) }`
+— the hub, intro screen and results screen are shared.
 
 ## 6. The Map page (BlueMap)
 

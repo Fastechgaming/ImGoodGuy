@@ -62,7 +62,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
           <button class="continue-btn" id="games-start-btn">Start Playing</button>
           <p class="checkout-hint centered games-disclaimer">
-            Nothing is saved yet — this is a preview while the games are being built.
+            Coins earned here are shown for this visit only — nothing is saved yet.
           </p>
         </div>
 
@@ -100,14 +100,15 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
             <div>
               <h3>Withdraw to in-game</h3>
               <p class="checkout-hint">
-                Once the games launch, your earned coins will be sent to your
-                in-game balance from here.
+                Withdrawing to your in-game balance opens soon — keep playing to
+                build up your coins.
               </p>
             </div>
             <button class="continue-btn withdraw-btn" disabled>Withdraw — Coming Soon</button>
           </div>
 
           <h3 class="games-list-heading">Mini-games</h3>
+          <p class="checkout-hint centered">Every game pays 500 – 5,000 coins depending on how well you play.</p>
           <div class="item-grid" id="games-grid"></div>
         </div>
       </div>
@@ -119,8 +120,20 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
     <p>&copy; <span id="year"></span> AngkorSMP &middot; Cambodia Minecraft Server 🇰🇭</p>
   </footer>
 
+  <!-- Fullscreen mini-game panel -->
+  <div class="modal-overlay game-overlay" id="game-overlay">
+    <div class="game-panel">
+      <div class="game-panel-head">
+        <h3 id="game-title">Game</h3>
+        <button class="modal-close" id="game-close" aria-label="Close game">&times;</button>
+      </div>
+      <div class="game-panel-body" id="game-body"></div>
+    </div>
+  </div>
+
   <script src="/js/playername.js"></script>
   <script src="/js/main.js"></script>
+  <script src="/js/arcade.js"></script>
   <script src="/js/games.js"></script>
   <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>

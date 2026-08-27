@@ -1,10 +1,10 @@
-// Games page (preview). Players enter their Minecraft name, then see a hub with
-// Playtime and Coins.
+// Games page. Players enter their Minecraft name, then get a hub with
+// Playtime / Coins and three playable mini-games.
 //
-// NOTHING IS PERSISTED YET, by design: the name lives in sessionStorage only so
-// a refresh doesn't kick you back to the form, and playtime is counted from when
-// this tab's session started. When the real games land, swap `Session` below for
-// calls to a proper backend + database.
+// NOTHING IS PERSISTED TO A DATABASE YET, by design: the session (name +
+// coins earned) lives in sessionStorage only, so a refresh doesn't kick the
+// player back to the form. When the real backend lands, replace the `Session`
+// object below with API calls and wire Withdraw to an RCON `eco give`.
 const SESSION_KEY = "angkorsmp-games-session";
 
 const gate = document.getElementById("games-gate");
@@ -15,6 +15,8 @@ const startBtn = document.getElementById("games-start-btn");
 
 let edition = "java";
 let tickTimer = null;
+let session = null;
+let stopCurrentGame = null;
 
 const Session = {
   read() {
@@ -39,30 +41,6 @@ const Session = {
     }
   },
 };
-
-/* ---------------- Placeholder game line-up ---------------- */
-const GAMES = [
-  { icon: "⛏️", name: "Temple Miner", desc: "Dig through Angkor ruins for buried treasure." },
-  { icon: "🐝", name: "Bee Rush", desc: "Guide the hive home before the rain arrives." },
-  { icon: "🎯", name: "Archer Trial", desc: "Hit the targets before the timer runs out." },
-  { icon: "🧩", name: "Khmer Puzzle", desc: "Rebuild the carvings tile by tile." },
-];
-
-function renderGamesGrid() {
-  document.getElementById("games-grid").innerHTML = GAMES.map(
-    (g) => `
-    <div class="item-card coming-soon game-card">
-      <div class="game-icon">${escapeHtml(g.icon)}</div>
-      <div class="item-body">
-        <h3>${escapeHtml(g.name)}</h3>
-        <p>${escapeHtml(g.desc)}</p>
-        <div class="item-actions">
-          <button class="buy-btn" disabled>Coming Soon</button>
-        </div>
-      </div>
-    </div>`
-  ).join("");
-}
 
 /* ---------------- Name gate ---------------- */
 function updatePreview() {
@@ -97,22 +75,28 @@ function startSession() {
     );
     return;
   }
-  const session = {
+  const fresh = {
     playerName: normalizeServerName(raw, edition),
     edition,
     startedAt: Date.now(),
     coins: 0,
+    played: 0,
   };
-  Session.write(session);
-  openHub(session);
+  Session.write(fresh);
+  openHub(fresh);
 }
 
 /* ---------------- Hub ---------------- */
-function openHub(session) {
+function refreshStats() {
+  document.getElementById("stat-coins").textContent = Number(session.coins || 0).toLocaleString();
+}
+
+function openHub(data) {
+  session = data;
   gate.hidden = true;
   hub.hidden = false;
   document.getElementById("hub-player-name").textContent = session.playerName;
-  document.getElementById("stat-coins").textContent = Number(session.coins || 0).toLocaleString();
+  refreshStats();
   renderGamesGrid();
 
   const tick = () => {
@@ -130,6 +114,7 @@ function openHub(session) {
 document.getElementById("games-switch-btn").addEventListener("click", () => {
   clearInterval(tickTimer);
   Session.clear();
+  session = null;
   hub.hidden = true;
   gate.hidden = false;
   nameInput.value = "";
@@ -137,7 +122,116 @@ document.getElementById("games-switch-btn").addEventListener("click", () => {
   nameInput.focus();
 });
 
-// Resume the session on refresh so the name form doesn't reappear mid-play.
+function renderGamesGrid() {
+  document.getElementById("games-grid").innerHTML = Arcade.list
+    .map(
+      (g) => `
+    <div class="item-card game-card">
+      <div class="game-icon">${g.icon}</div>
+      <div class="item-body">
+        <h3>${escapeHtml(g.name)}</h3>
+        <p>${escapeHtml(g.desc)}</p>
+        <div class="item-actions">
+          <button class="buy-btn" data-play="${g.id}">Play</button>
+        </div>
+      </div>
+    </div>`
+    )
+    .join("");
+
+  document
+    .querySelectorAll("[data-play]")
+    .forEach((b) => b.addEventListener("click", () => openGame(b.dataset.play)));
+}
+
+/* ---------------- Game shell ---------------- */
+const overlay = document.getElementById("game-overlay");
+const gameTitle = document.getElementById("game-title");
+const gameBody = document.getElementById("game-body");
+
+function closeGame() {
+  if (stopCurrentGame) {
+    stopCurrentGame();
+    stopCurrentGame = null;
+  }
+  overlay.classList.remove("open");
+  gameBody.innerHTML = "";
+  document.body.classList.remove("game-open");
+}
+document.getElementById("game-close").addEventListener("click", closeGame);
+
+function openGame(id) {
+  const game = Arcade.byId(id);
+  if (!game) return;
+  overlay.classList.add("open");
+  document.body.classList.add("game-open");
+  gameTitle.textContent = `${game.icon} ${game.name}`;
+  showIntro(game);
+}
+
+function showIntro(game) {
+  if (stopCurrentGame) { stopCurrentGame(); stopCurrentGame = null; }
+  gameBody.innerHTML = `
+    <div class="game-screen">
+      <div class="game-screen-icon">${game.icon}</div>
+      <h3>${escapeHtml(game.name)}</h3>
+      <p class="checkout-hint centered">${escapeHtml(game.howTo)}</p>
+      <p class="game-reward-note">Earn <strong>500 – 5,000 coins</strong> based on how well you do.</p>
+      <button class="continue-btn game-go-btn" id="game-go">Start</button>
+    </div>`;
+  document.getElementById("game-go").addEventListener("click", () => runGame(game));
+}
+
+function runGame(game) {
+  gameBody.innerHTML = "";
+  const mount = document.createElement("div");
+  mount.className = "game-mount";
+  gameBody.appendChild(mount);
+  // Give the layout a frame to settle so canvas sizing measures correctly.
+  requestAnimationFrame(() => {
+    stopCurrentGame = game.start(mount, (result) => showResult(game, result));
+  });
+}
+
+function showResult(game, result) {
+  stopCurrentGame = null;
+  // Coins are added to the in-page session only - nothing is written to a DB.
+  if (session) {
+    session.coins = Number(session.coins || 0) + Number(result.coins || 0);
+    session.played = Number(session.played || 0) + 1;
+    Session.write(session);
+    refreshStats();
+  }
+
+  const rows = (result.detail || [])
+    .map(([k, v]) => `<div><span>${escapeHtml(k)}</span><strong>${escapeHtml(String(v))}</strong></div>`)
+    .join("");
+
+  gameBody.innerHTML = `
+    <div class="game-screen result-screen">
+      <div class="game-screen-icon">${result.coins >= 5000 ? "🏆" : "🎉"}</div>
+      <h3>${escapeHtml(Arcade.rankLabel(result.coins))}</h3>
+      <div class="result-score">
+        <span class="result-score-label">${escapeHtml(result.scoreLabel || "Score")}</span>
+        <span class="result-score-value">${escapeHtml(String(result.score))}</span>
+      </div>
+      <div class="coins-won">+${Number(result.coins).toLocaleString()} <span>coins</span></div>
+      <div class="receipt result-detail">${rows}</div>
+      <div class="result-actions">
+        <button class="continue-btn" id="play-again">Play Again</button>
+        <button class="back-link" id="back-to-hub">&larr; Back to games</button>
+      </div>
+    </div>`;
+
+  document.getElementById("play-again").addEventListener("click", () => runGame(game));
+  document.getElementById("back-to-hub").addEventListener("click", closeGame);
+}
+
+// Esc closes the game panel.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && overlay.classList.contains("open")) closeGame();
+});
+
+/* ---------------- Boot ---------------- */
 const existing = Session.read();
 if (existing && existing.playerName) openHub(existing);
-else renderGamesGrid();
