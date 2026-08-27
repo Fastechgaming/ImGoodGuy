@@ -79,13 +79,13 @@ publicly — they only go to your Telegram.
 
 ## 5. The Games page
 
-`/games.html` — players enter their Minecraft name (same Java/Bedrock rules as
-the store), then get a hub with **Points** (this visit), **Coins Today** (from
-the server), a Withdraw button (still disabled) and five mini-games:
+`/games.html` — a player enters their Minecraft name **once** (same Java/Bedrock
+rules as the store) and then gets a hub with **Points** (this visit), **Coins
+Today** (from the server), the **Points Leaderboard** and five mini-games:
 
 | Game | Ends when | How it scores |
 |---|---|---|
-| 🏹 **Bow Shot** | after 30s | Shoot the targets that pop up: Normal +10, Small +25, Moving +40. A miss costs nothing. Targets shrink (further away) and appear faster as the round runs. |
+| 🌋 **Lava Run** | you reach the top, or the lava gets you | Climb a randomly generated tower while lava rises underneath. You bounce automatically and only steer left/right. Diamond +10, checkpoint +25, finish +100, plus 2 points per platform climbed and up to +120 for beating the 75s par. Blue ledges slide, brown ones crumble after one bounce, and ledges narrow as you climb. |
 | ⛏️ **Block Breaker** | after 45s | Break only the block named above the grid: 3 points plus up to 5 more for speed, −4 for a wrong block. The grid grows from 6 to 12 tiles as the round runs. |
 | 💨 **Wind Charge Dodge** | you get hit | +1 every half second alive, +2 for grazing a wind charge, +10 per emerald. Charges get faster and more frequent the longer you last. |
 | 💎 **Diamond Rush** | after 45s | Mine the seam: Coal +1, Iron +3, Gold +5, Diamond +15, Emerald +20. TNT costs points (more as time passes) and jams your pick for a moment. The ore reshuffles every few seconds, faster and faster. |
@@ -127,10 +127,39 @@ the real security boundary.
 
 The ledger lives in `data/gamestats.json` (git-ignored, created on first
 payout), keyed by day → player → game, and prunes itself after a couple of days.
-The player's name and this visit's points still live in `sessionStorage` so a
-refresh doesn't bounce them back to the form. Withdrawing into the server is
-still the one unfinished piece — wire the Withdraw button to an RCON `eco give`
-the same way store orders are delivered.
+
+Paying the coins into the game is the one piece still to come — it is meant to
+run through a plugin that keeps the in-game balance and the website balance in
+sync in real time, so there is deliberately no "withdraw" button on the page.
+
+### The player account and the 24-hour name lock
+
+The name a player types is stored in a signed, httpOnly cookie
+(`angkorsmp_player`, handled at the top of `routes/games.js`), so:
+
+* the games page asks for a name **once** and never again on that device;
+* every round runs as the name in that cookie — `round/start` ignores whatever
+  the request body claims, so the page cannot score for someone else;
+* changing the name is refused for **24 hours** after it was set. The button in
+  the hub shows the time remaining ("Name locked · 6h 12m left") and only opens
+  the change dialog once the lock has lifted. Re-submitting the same name is a
+  no-op and does not restart the clock.
+
+That is what stops someone farming a fresh 2,500-coin daily allowance every few
+minutes under a new name. Being honest about its limit: it is per browser, so
+clearing cookies or opening a private window starts a new account. Closing that
+hole needs real accounts (a login, or a code the player redeems in-game), which
+is the natural thing to add alongside the coin plugin.
+
+### Points leaderboard
+
+Lifetime points per player are kept in `data/leaderboard.json` (git-ignored),
+updated at the end of every round. It records the **counted** points — the
+figure that already passed the plausibility check — so it cannot be inflated any
+more easily than the coins can. The hub shows the top 5 under the Points card,
+and **Open Leaderboard** brings up the top 50 with the current player
+highlighted and their own rank underneath (also shown when they are outside the
+top 50). `GET /api/games/leaderboard?limit=50` is the endpoint.
 
 Adding a sixth game means adding one object to `Arcade.list` in
 `public/js/arcade.js` with `{ id, icon, nameKey, descKey, howToKey, start(mount, onFinish) }`,
@@ -158,7 +187,7 @@ BlueMap's web app doesn't send restrictive framing headers by default, so embedd
 
 The site ships with a **dark theme by default** and a light theme; visitors switch with the ☀️/🌙 button in the nav (the KH/EN language button sits beside it) and the choice is remembered in their browser. Both themes are defined as CSS custom properties at the top of `public/css/style.css` (`:root` = dark, `:root[data-theme="light"]` = light), so re-colouring either one is a matter of editing those two blocks.
 
-The look is a bright, cute, hand-drawn-cartoon "Angkor Wat temple" UI (`public/css/style.css`). The nav is a stone-brick wall with vines hanging off the bottom edge (`public/images/site/vine-drape.svg`); nav links and the main hero buttons (Telegram/Server IP/Store) are wood-plank pills with a circular colored icon badge, a wood-grain texture, and a moss sprig growing off one corner. Store/feature cards are golden parchment/stone tablets with the same moss-sprig corner and a beveled edge (light highlight + soft dark shadow); item cards get a couple of little twinkling sparkles over their icon. Every button and card has a playful scale/wiggle animation on hover. A carved temple-frieze border strip (`public/images/site/khmer-pattern.svg`) runs between the nav/hero and above the footer on every page, section headings are flanked by small leaf glyphs, and a few little sway-animated flowers (`public/images/site/flower.svg`) dot the hero. The hero itself keeps a warm sunset gradient with a jungle canopy/palm silhouette (`public/images/site/forest-silhouette.svg`) along the bottom, hanging vine/frond decorations in the top corners (`public/images/site/leaf-corner.svg`), a soft glow behind the logo, and a few animated "firefly" particles for atmosphere. The real logo is dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon) — both cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. Item placeholder art (`public/images/items/placeholder-*.svg`) is still simple vector placeholder art — swap those any time too.
+The look is a bright, cute, hand-drawn-cartoon "Angkor Wat temple" UI (`public/css/style.css`). The nav is a stone-brick wall with vines hanging off the bottom edge (`public/images/site/vine-drape.svg`); nav links and the main hero buttons (Telegram/Server IP/Store) are wood-plank pills with a circular colored icon badge, a wood-grain texture, and a moss sprig growing off one corner. Store/feature cards are golden parchment/stone tablets with a beveled edge (light highlight + soft dark shadow); item cards have four ✨ stars twinkling around their artwork instead of the corner sprig. Every button and card has a playful scale/wiggle animation on hover. A carved temple-frieze border strip (`public/images/site/khmer-pattern.svg`) runs between the nav/hero and above the footer on every page, section headings are flanked by small leaf glyphs, and a few little sway-animated flowers (`public/images/site/flower.svg`) dot the hero. The hero itself keeps a warm sunset gradient with a jungle canopy/palm silhouette (`public/images/site/forest-silhouette.svg`) along the bottom, hanging vine/frond decorations in the top corners (`public/images/site/leaf-corner.svg`), a soft glow behind the logo, and a few animated "firefly" particles for atmosphere. The real logo is dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon) — both cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. The five rank badges (`public/images/items/rank-*.png`) and the three coin packs (`public/images/items/coins-*.png`) are your own artwork, cropped square and resized to 512px; swap those files to change them. Item cards have four ✨ stars twinkling around the artwork — they are drawn in CSS (`.item-card .sparkle`), not an image, so they glow the same gold in both themes.
 
 The "Chill Community / No Raiding / Live Cambodia Map" badges on the Home page come from the `serverFeatures` array in `config/site.config.json` — edit, add, or remove entries there (each has `icon`, `title`, `desc`, and an optional `link`) to change what's shown, no code changes needed.
 
@@ -204,12 +233,13 @@ website/
   data/orders.json        Orders and their status
   data/proofs/            Uploaded payment screenshots (git-ignored, never served publicly)
   data/gamestats.json     Daily mini-game coin ledger (git-ignored, created on first payout)
+  data/leaderboard.json   Lifetime points per player (git-ignored, created on first payout)
   lib/store.js            Tiny JSON-file data layer
   lib/gamestats.js        Daily coin ledger for the mini-games (UTC+7 day boundary)
   lib/minecraft.js        Java+Bedrock status ping
   lib/rcon.js             Runs an item's delivery command on Accept
   routes/api.js           Public JSON API (config, status, items, checkout, proof upload)
-  routes/games.js         Mini-game rounds + daily coin caps (the server side of the games)
+  routes/games.js         Player account cookie, mini-game rounds, daily coin caps, leaderboard
   routes/admin.js         Password-protected admin panel (item CRUD + image upload)
   telegram/bot.js         Telegram bot: order review (Accept/Reject) + /additem etc.
   views/                  EJS templates for the admin panel

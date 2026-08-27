@@ -5,10 +5,10 @@
 // 2,500-coins-per-day limits actually live. The page only displays what the
 // server says it awarded.
 //
-// The name + this visit's points live in sessionStorage so a refresh doesn't
-// kick the player back to the form. The daily coin totals always come fresh
-// from the server.
-const SESSION_KEY = "angkorsmp-games-session";
+// The player's name is held in a signed cookie by the server, so this page asks
+// for it exactly once and then remembers it forever. Changing it is rate
+// limited to once every 24 hours, server-side, which is what stops someone
+// farming a fresh daily allowance under a new name every few minutes.
 
 const gate = document.getElementById("games-gate");
 const hub = document.getElementById("games-hub");
@@ -17,36 +17,23 @@ const namePreview = document.getElementById("games-name-preview");
 const startBtn = document.getElementById("games-start-btn");
 
 let edition = "java";
-let session = null;
-let daily = null; // last /api/games/daily payload
+let account = null;  // { player, edition, canChange, canChangeAt }
+let daily = null;    // last /api/games/daily payload
+let board = null;    // last /api/games/leaderboard payload
+let sessionPoints = 0;
+let sessionRounds = 0;
 let resetTimer = null;
 let stopCurrentGame = null;
 let activeGame = null;
 let activeRoundId = null;
 
-const Session = {
-  read() {
-    try {
-      return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null");
-    } catch {
-      return null;
-    }
-  },
-  write(data) {
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
-    } catch {
-      /* private mode - the hub still works, it just won't survive a refresh */
-    }
-  },
-  clear() {
-    try {
-      sessionStorage.removeItem(SESSION_KEY);
-    } catch {
-      /* nothing to clear */
-    }
-  },
-};
+/* ---------------- helpers ---------------- */
+function humanDuration(ms) {
+  const total = Math.max(0, Math.ceil(ms / 60000));
+  const hours = Math.floor(total / 60);
+  const mins = total % 60;
+  return hours ? `${hours}h ${mins}m` : `${mins}m`;
+}
 
 /* ---------------- Name gate ---------------- */
 function updatePreview() {
@@ -56,7 +43,7 @@ function updatePreview() {
 
 nameInput.addEventListener("input", updatePreview);
 nameInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") startSession();
+  if (e.key === "Enter") claimName();
 });
 
 document.querySelectorAll("#games-gate [data-edition]").forEach((btn) =>
@@ -69,48 +56,77 @@ document.querySelectorAll("#games-gate [data-edition]").forEach((btn) =>
   })
 );
 
-startBtn.addEventListener("click", startSession);
+startBtn.addEventListener("click", claimName);
 
-function startSession() {
+async function claimName() {
   const raw = nameInput.value.trim();
   if (!isValidRawName(raw, edition)) {
     showToast(t(edition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
     return;
   }
-  const fresh = {
-    playerName: normalizeServerName(raw, edition),
-    edition,
-    points: 0,
-    rounds: 0,
-  };
-  Session.write(fresh);
-  openHub(fresh);
+  startBtn.disabled = true;
+  try {
+    account = await fetchJSON("/api/games/player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ player: raw, edition }),
+    });
+    openHub();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    startBtn.disabled = false;
+  }
 }
 
 /* ---------------- Hub ---------------- */
-async function openHub(data) {
-  session = data;
+async function openHub() {
   gate.hidden = true;
   hub.hidden = false;
-  document.getElementById("hub-player-name").textContent = session.playerName;
+  document.getElementById("hub-player-name").textContent = account.player;
   renderSessionStats();
+  renderChangeButton();
   renderGamesGrid();
-  await refreshDaily();
+  await Promise.all([refreshDaily(), refreshBoard()]);
 }
 
 function renderSessionStats() {
-  document.getElementById("stat-points").textContent = Number(session.points || 0).toLocaleString();
-  document.getElementById("stat-rounds").textContent = Number(session.rounds || 0).toLocaleString();
+  document.getElementById("stat-points").textContent = sessionPoints.toLocaleString();
+  document.getElementById("stat-rounds").textContent = sessionRounds.toLocaleString();
+}
+
+// Outside the cooldown the button opens the change dialog; inside it, it just
+// shows how long is left.
+function renderChangeButton() {
+  const btn = document.getElementById("games-switch-btn");
+  btn.removeAttribute("data-i18n");
+  const left = account ? account.canChangeAt - Date.now() : 0;
+  if (account && left > 0) {
+    btn.textContent = t("games.changeLocked", { time: humanDuration(left) });
+    btn.classList.add("locked");
+  } else {
+    btn.textContent = t("games.changeName");
+    btn.classList.remove("locked");
+  }
 }
 
 async function refreshDaily() {
   try {
-    daily = await fetchJSON(`/api/games/daily?player=${encodeURIComponent(session.playerName)}`);
+    daily = await fetchJSON("/api/games/daily");
   } catch {
     daily = null;
   }
   renderDaily();
   renderGamesGrid();
+}
+
+async function refreshBoard() {
+  try {
+    board = await fetchJSON("/api/games/leaderboard?limit=50");
+  } catch {
+    board = null;
+  }
+  renderBoard();
 }
 
 function renderDaily() {
@@ -133,28 +149,154 @@ function startResetCountdown(node) {
   clearInterval(resetTimer);
   const tick = () => {
     if (!daily) return;
-    const left = Math.max(0, daily.resetAt - Date.now());
-    const hours = Math.floor(left / 3600000);
-    const mins = Math.floor((left % 3600000) / 60000);
-    node.textContent = t("games.resetsIn", { time: hours ? `${hours}h ${mins}m` : `${mins}m` });
-    if (left === 0) refreshDaily(); // rolled past midnight while the tab was open
+    node.textContent = t("games.resetsIn", { time: humanDuration(daily.resetAt - Date.now()) });
+    renderChangeButton(); // the name lock counts down on the same clock
+    if (daily.resetAt - Date.now() <= 0) refreshDaily();
   };
   tick();
   resetTimer = setInterval(tick, 30000);
 }
 
-document.getElementById("games-switch-btn").addEventListener("click", () => {
-  clearInterval(resetTimer);
-  Session.clear();
-  session = null;
-  daily = null;
-  hub.hidden = true;
-  gate.hidden = false;
-  nameInput.value = "";
-  updatePreview();
-  nameInput.focus();
+/* ---------------- Leaderboard ---------------- */
+function boardRowName(row) {
+  const isYou = account && row.name.toLowerCase() === account.player.toLowerCase();
+  return `${escapeHtml(row.name)}${isYou ? ` <span class="board-you">${escapeHtml(t("games.leaderboardYou"))}</span>` : ""}`;
+}
+
+function renderBoard() {
+  const top5 = document.getElementById("board-top5");
+  const yourRank = document.getElementById("board-your-rank");
+  if (!board || !board.top.length) {
+    top5.innerHTML = `<li class="board-empty">${escapeHtml(t("games.leaderboardEmpty"))}</li>`;
+    yourRank.textContent = "";
+  } else {
+    const medals = ["🥇", "🥈", "🥉"];
+    top5.innerHTML = board.top
+      .slice(0, 5)
+      .map((row) => {
+        const you = account && row.name.toLowerCase() === account.player.toLowerCase();
+        return `<li class="board-row${you ? " is-you" : ""}">
+            <span class="board-rank">${medals[row.rank - 1] || `#${row.rank}`}</span>
+            <span class="board-name">${boardRowName(row)}</span>
+            <span class="board-points">${row.points.toLocaleString()}</span>
+          </li>`;
+      })
+      .join("");
+    yourRank.textContent = board.you
+      ? t("games.leaderboardYourRank", { rank: board.you.rank, points: board.you.points.toLocaleString() })
+      : t("games.leaderboardUnranked");
+  }
+  renderBoardModal();
+}
+
+function renderBoardModal() {
+  const body = document.getElementById("board-full");
+  const note = document.getElementById("board-modal-rank");
+  if (!board || !board.top.length) {
+    body.innerHTML = `<tr><td colspan="3" class="board-empty">${escapeHtml(t("games.leaderboardEmpty"))}</td></tr>`;
+    note.textContent = "";
+    return;
+  }
+  const medals = ["🥇", "🥈", "🥉"];
+  body.innerHTML = board.top
+    .map((row) => {
+      const you = account && row.name.toLowerCase() === account.player.toLowerCase();
+      return `<tr class="${you ? "is-you" : ""}">
+          <td class="board-rank">${medals[row.rank - 1] || row.rank}</td>
+          <td>${boardRowName(row)}</td>
+          <td class="board-points">${row.points.toLocaleString()}</td>
+        </tr>`;
+    })
+    .join("");
+  note.textContent = board.you
+    ? t("games.leaderboardYourRank", { rank: board.you.rank, points: board.you.points.toLocaleString() })
+    : t("games.leaderboardUnranked");
+}
+
+const boardModal = document.getElementById("board-modal");
+document.getElementById("board-open").addEventListener("click", () => boardModal.classList.add("open"));
+document.getElementById("board-modal-close").addEventListener("click", () => boardModal.classList.remove("open"));
+boardModal.addEventListener("click", (e) => {
+  if (e.target === boardModal) boardModal.classList.remove("open");
 });
 
+/* ---------------- Change name (once a day) ---------------- */
+const nameModal = document.getElementById("name-modal");
+const changeInput = document.getElementById("change-name");
+const changePreview = document.getElementById("change-name-preview");
+let changeEdition = "java";
+
+function updateChangePreview() {
+  const shown = normalizeServerName(changeInput.value, changeEdition);
+  changePreview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
+}
+changeInput.addEventListener("input", updateChangePreview);
+document.querySelectorAll("#change-edition [data-edition]").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    changeEdition = btn.dataset.edition;
+    document
+      .querySelectorAll("#change-edition [data-edition]")
+      .forEach((b) => b.classList.toggle("active", b === btn));
+    updateChangePreview();
+  })
+);
+
+document.getElementById("games-switch-btn").addEventListener("click", () => {
+  const left = account ? account.canChangeAt - Date.now() : 0;
+  if (left > 0) {
+    showToast(t("games.nameLockedToast", { time: humanDuration(left) }));
+    return;
+  }
+  changeEdition = account ? account.edition : "java";
+  document
+    .querySelectorAll("#change-edition [data-edition]")
+    .forEach((b) => b.classList.toggle("active", b.dataset.edition === changeEdition));
+  changeInput.value = "";
+  updateChangePreview();
+  nameModal.classList.add("open");
+  changeInput.focus();
+});
+
+function closeNameModal() {
+  nameModal.classList.remove("open");
+}
+document.getElementById("name-modal-close").addEventListener("click", closeNameModal);
+nameModal.addEventListener("click", (e) => {
+  if (e.target === nameModal) closeNameModal();
+});
+changeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveNewName();
+});
+document.getElementById("change-name-save").addEventListener("click", saveNewName);
+
+async function saveNewName() {
+  const raw = changeInput.value.trim();
+  if (!isValidRawName(raw, changeEdition)) {
+    showToast(t(changeEdition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
+    return;
+  }
+  const btn = document.getElementById("change-name-save");
+  btn.disabled = true;
+  try {
+    account = await fetchJSON("/api/games/player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ player: raw, edition: changeEdition }),
+    });
+    closeNameModal();
+    document.getElementById("hub-player-name").textContent = account.player;
+    showToast(t("games.nameSaved", { name: account.player }));
+    renderChangeButton();
+    // Everything is keyed on the name, so both totals have to be re-read.
+    await Promise.all([refreshDaily(), refreshBoard()]);
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------------- Game cards ---------------- */
 // { earned, cap, complete } for one game, or null before the first fetch.
 function progressFor(gameId) {
   if (!daily || !daily.games[gameId]) return null;
@@ -255,7 +397,7 @@ async function runGame(game) {
     const started = await fetchJSON("/api/games/round/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ player: session.playerName, edition: session.edition, gameId: game.id }),
+      body: JSON.stringify({ gameId: game.id }),
     });
     activeRoundId = started.roundId;
     daily = started.daily;
@@ -277,13 +419,9 @@ async function runGame(game) {
 async function showResult(game, result) {
   stopCurrentGame = null;
   const points = Number(result.points || 0);
-
-  if (session) {
-    session.points = Number(session.points || 0) + points;
-    session.rounds = Number(session.rounds || 0) + 1;
-    Session.write(session);
-    renderSessionStats();
-  }
+  sessionPoints += points;
+  sessionRounds += 1;
+  renderSessionStats();
 
   // Cash the round in. Everything shown below comes back from the server.
   let payout = null;
@@ -297,6 +435,7 @@ async function showResult(game, result) {
       daily = payout.daily;
       renderDaily();
       renderGamesGrid();
+      refreshBoard();
     } catch {
       payout = null;
     }
@@ -334,16 +473,21 @@ async function showResult(game, result) {
   document.getElementById("back-to-hub").addEventListener("click", closeGame);
 }
 
-// Esc closes the game panel.
+// Esc closes whichever panel is open.
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && overlay.classList.contains("open")) closeGame();
+  if (e.key !== "Escape") return;
+  if (overlay.classList.contains("open")) closeGame();
+  else if (boardModal.classList.contains("open")) boardModal.classList.remove("open");
+  else if (nameModal.classList.contains("open")) closeNameModal();
 });
 
 // A language switch mid-session: re-label the hub. A game that is actually
 // being played is left alone so nobody loses a round to a mistyped tap.
 document.addEventListener("i18n:change", () => {
-  if (!session) return;
+  if (!account) return;
+  renderChangeButton();
   renderDaily();
+  renderBoard();
   renderGamesGrid();
   if (activeGame && !stopCurrentGame && overlay.classList.contains("open")) {
     gameTitle.textContent = `${activeGame.icon} ${Arcade.name(activeGame)}`;
@@ -351,5 +495,16 @@ document.addEventListener("i18n:change", () => {
 });
 
 /* ---------------- Boot ---------------- */
-const existing = Session.read();
-if (existing && existing.playerName) openHub(existing);
+(async function boot() {
+  try {
+    const known = await fetchJSON("/api/games/player");
+    if (known && known.player) {
+      account = known;
+      await openHub();
+      return;
+    }
+  } catch {
+    /* no server / no cookie - fall through to the name form */
+  }
+  updatePreview();
+})();

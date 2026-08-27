@@ -13,6 +13,7 @@ const path = require("path");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const STATS_FILE = path.join(DATA_DIR, "gamestats.json");
+const BOARD_FILE = path.join(DATA_DIR, "leaderboard.json");
 
 const PER_GAME_DAILY_CAP = 500;
 const TOTAL_DAILY_CAP = 2500;
@@ -23,7 +24,7 @@ const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 // `maxPointsPerSecond` is the plausibility ceiling: no honest player can score
 // faster than this, so anything above it gets clamped rather than paid out.
 const GAMES = {
-  "bow-shot": { name: "Bow Shot", coinsPerPoint: 0.2, maxPointsPerSecond: 45, maxCoinsPerRound: 200 },
+  "lava-run": { name: "Lava Run", coinsPerPoint: 0.25, maxPointsPerSecond: 25, maxCoinsPerRound: 200 },
   "block-breaker": { name: "Block Breaker", coinsPerPoint: 0.45, maxPointsPerSecond: 24, maxCoinsPerRound: 200 },
   "wind-charge-dodge": { name: "Wind Charge Dodge", coinsPerPoint: 0.5, maxPointsPerSecond: 12, maxCoinsPerRound: 200 },
   "diamond-rush": { name: "Diamond Rush", coinsPerPoint: 0.35, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
@@ -58,10 +59,14 @@ function readAll() {
 }
 
 function writeAll(data) {
+  writeJson(STATS_FILE, data);
+}
+
+function writeJson(file, data) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  const tmp = `${STATS_FILE}.${process.pid}.tmp`;
+  const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
-  fs.renameSync(tmp, STATS_FILE);
+  fs.renameSync(tmp, file);
 }
 
 // Names are matched case-insensitively so ".Steve" and ".steve" share a budget.
@@ -152,6 +157,75 @@ function award(playerName, gameId, coins, now = Date.now()) {
   return { granted, daily: getDaily(playerName, now) };
 }
 
+/* ------------------------- points leaderboard ------------------------- */
+//
+// Lifetime points per player, kept separately from the daily coin ledger so it
+// survives the nightly reset. Only the *counted* points from a finished round
+// are added, i.e. the figure that already passed the plausibility check.
+const MAX_BOARD_ROWS = 2000;
+
+function readBoard() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(BOARD_FILE, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function addPoints(playerName, points, now = Date.now()) {
+  const gained = Math.max(0, Math.floor(Number(points) || 0));
+  if (!gained) return;
+  const key = playerKey(playerName);
+  if (!key) return;
+
+  const board = readBoard();
+  const row = board[key] || { name: playerName, points: 0, rounds: 0, updatedAt: now };
+  row.name = playerName; // keep the latest capitalisation the player used
+  row.points += gained;
+  row.rounds += 1;
+  row.updatedAt = now;
+  board[key] = row;
+
+  // Cap the file: keep the best MAX_BOARD_ROWS players by points.
+  const keys = Object.keys(board);
+  if (keys.length > MAX_BOARD_ROWS) {
+    const trimmed = {};
+    keys
+      .sort((a, b) => board[b].points - board[a].points)
+      .slice(0, MAX_BOARD_ROWS)
+      .forEach((k) => {
+        trimmed[k] = board[k];
+      });
+    writeJson(BOARD_FILE, trimmed);
+    return;
+  }
+  writeJson(BOARD_FILE, board);
+}
+
+// Ranked list, plus where `playerName` sits even if they're off the end of it.
+function getLeaderboard(limit = 50, playerName = "") {
+  const board = readBoard();
+  const rows = Object.entries(board)
+    .map(([key, row]) => ({ key, name: row.name || key, points: row.points || 0, rounds: row.rounds || 0 }))
+    // Ties break on who got there first, so a new player can't leapfrog on equal points.
+    .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+
+  const wanted = playerKey(playerName);
+  const index = wanted ? rows.findIndex((r) => r.key === wanted) : -1;
+
+  return {
+    total: rows.length,
+    top: rows.slice(0, Math.max(1, Math.min(200, limit))).map((row, i) => ({
+      rank: i + 1,
+      name: row.name,
+      points: row.points,
+      rounds: row.rounds,
+    })),
+    you: index === -1 ? null : { rank: index + 1, name: rows[index].name, points: rows[index].points, rounds: rows[index].rounds },
+  };
+}
+
 module.exports = {
   GAMES,
   GAME_IDS,
@@ -162,4 +236,6 @@ module.exports = {
   getDaily,
   remainingFor,
   award,
+  addPoints,
+  getLeaderboard,
 };

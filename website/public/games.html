@@ -45,9 +45,9 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
           <div class="games-gate-icon">🎮</div>
           <h3 data-i18n="games.gateTitle">Play &amp; earn coins</h3>
           <p class="checkout-hint centered" data-i18n="games.gateHint">
-            Play mini-games right here on the website and earn Angkor Coins you
-            can withdraw straight into the server. Enter your Minecraft name to
-            open your play session.
+            Play mini-games right here on the website and earn Angkor Coins for
+            your in-game balance. Enter your Minecraft name once — we'll
+            remember it next time.
           </p>
 
           <div class="field">
@@ -65,7 +65,8 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
           <button class="continue-btn" id="games-start-btn" data-i18n="games.start">Start Playing</button>
           <p class="checkout-hint centered games-disclaimer" data-i18n="games.disclaimer">
-            Coins are counted per day and saved on the server. Withdrawing them into the game opens soon.
+            Your name is saved on this device, so you only enter it once. Coins
+            and points are stored on the server.
           </p>
         </div>
 
@@ -99,15 +100,13 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
             </div>
           </div>
 
-          <div class="withdraw-row checkout-panel">
-            <div>
-              <h3 data-i18n="games.withdrawTitle">Withdraw to in-game</h3>
-              <p class="checkout-hint" data-i18n="games.withdrawHint">
-                Withdrawing to your in-game balance opens soon — keep playing to
-                build up your coins.
-              </p>
+          <div class="checkout-panel board-panel">
+            <div class="board-head">
+              <h3 data-i18n="games.leaderboard">Points Leaderboard</h3>
+              <button class="back-link" id="board-open" data-i18n="games.leaderboardOpen">Open Leaderboard</button>
             </div>
-            <button class="continue-btn withdraw-btn" disabled data-i18n="games.withdrawBtn">Withdraw — Coming Soon</button>
+            <ol class="board-list" id="board-top5"></ol>
+            <p class="checkout-hint centered" id="board-your-rank"></p>
           </div>
 
           <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
@@ -125,6 +124,53 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
   <footer class="site-footer">
     <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
+
+  <!-- Change-name modal -->
+  <div class="modal-overlay" id="name-modal">
+    <div class="modal-box">
+      <button class="modal-close" id="name-modal-close" aria-label="Close">&times;</button>
+      <h3 data-i18n="games.changeTitle">Change your name</h3>
+      <p class="checkout-hint" data-i18n="games.changeHint">
+        Your name is what your coins and points are saved under, so it can only
+        be changed once a day.
+      </p>
+      <div class="field">
+        <label for="change-name" data-i18n="buy.username">Minecraft username</label>
+        <input type="text" id="change-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label data-i18n="buy.edition">Edition</label>
+        <div class="edition-toggle" id="change-edition">
+          <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>
+          <button type="button" data-edition="bedrock" data-i18n="buy.bedrock">Bedrock</button>
+        </div>
+        <span class="preview-name" id="change-name-preview"></span>
+      </div>
+      <button class="continue-btn" id="change-name-save" data-i18n="games.changeConfirm">Save new name</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard modal -->
+  <div class="modal-overlay" id="board-modal">
+    <div class="modal-box wide">
+      <button class="modal-close" id="board-modal-close" aria-label="Close">&times;</button>
+      <h3 data-i18n="games.leaderboardTitle">🏆 Points Leaderboard</h3>
+      <p class="checkout-hint centered" data-i18n="games.leaderboardSub">Top 50 players by lifetime points.</p>
+      <div class="board-table-wrap">
+        <table class="board-table">
+          <thead>
+            <tr>
+              <th data-i18n="games.leaderboardRank">#</th>
+              <th data-i18n="games.leaderboardPlayer">Player</th>
+              <th data-i18n="games.leaderboardPoints">Points</th>
+            </tr>
+          </thead>
+          <tbody id="board-full"></tbody>
+        </table>
+      </div>
+      <p class="checkout-hint centered" id="board-modal-rank"></p>
+    </div>
+  </div>
 
   <!-- Fullscreen mini-game panel -->
   <div class="modal-overlay game-overlay" id="game-overlay">

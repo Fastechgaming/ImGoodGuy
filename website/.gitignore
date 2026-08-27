@@ -3,3 +3,4 @@ node_modules/
 *.log
 data/gamestats.json
 data/proofs/
+data/leaderboard.json

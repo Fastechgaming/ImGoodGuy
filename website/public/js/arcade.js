@@ -119,178 +119,401 @@ const Arcade = (() => {
   };
 
   /* =============================================================
-     1. 🏹 BOW SHOT — 30s of archery. Targets pop up around the range;
-     shoot them before they vanish. Small ones and moving ones are
-     worth more, and everything gets smaller (further away) and quicker
-     as the round goes on. A missed arrow costs nothing but time.
+     1. 🌋 LAVA RUN — climb a randomly generated tower before the lava
+     catches you. The player bounces automatically; you only steer left
+     and right, which keeps it playable one-handed on a phone.
+
+     The course mixes solid, moving and crumbling platforms, gets meaner
+     the higher you go, and pays out for diamonds, checkpoints, the
+     finish, a fast time and the difficulty you reached.
      ============================================================= */
-  const bowShot = {
-    id: "bow-shot",
-    icon: "🏹",
-    nameKey: "game.bow.name",
-    descKey: "game.bow.desc",
-    howToKey: "game.bow.howto",
+  const lavaRun = {
+    id: "lava-run",
+    icon: "🌋",
+    nameKey: "game.lava.name",
+    descKey: "game.lava.desc",
+    howToKey: "game.lava.howto",
     start(mount, onFinish) {
-      const ROUND_SECONDS = 30;
-      const KINDS = [
-        { kind: "normal", weight: 56, points: 10, size: 76, life: 1900 },
-        { kind: "small", weight: 27, points: 25, size: 46, life: 1500 },
-        { kind: "moving", weight: 17, points: 40, size: 60, life: 2600 },
-      ];
-      const totalWeight = KINDS.reduce((sum, k) => sum + k.weight, 0);
+      const PLATFORMS = 56;          // how tall the course is
+      const GAP = 66;                // vertical spacing between platforms
+      const CHECKPOINT_EVERY = 11;   // 5 checkpoints on the way up
+      const GRAVITY = 1500;
+      const JUMP_V = -680;           // apex is ~154px, comfortably over one gap
+      const MOVE_SPEED = 340;
+      // The furthest the next ledge is ever placed sideways. A bounce gives
+      // about 0.75s of air, which at MOVE_SPEED covers ~250px - so anything
+      // inside this is genuinely reachable, and the course is always climbable.
+      const MAX_SIDE_STEP = 165;
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
-        { id: "hits", labelKey: "hud.hits" },
-        { id: "time", labelKey: "hud.time", value: ROUND_SECONDS },
+        { id: "gems", labelKey: "hud.diamonds" },
+        { id: "height", labelKey: "hud.height", value: "0m" },
       ]);
-      const stage = buildStage(mount, "bow-stage");
-      addHint(mount, "game.bow.hint");
+      const stage = buildStage(mount, "lava-stage");
+      addHint(mount, "game.lava.hint");
+      const { canvas, ctx, dispose } = fitCanvas(stage);
 
-      const targets = [];
+      const W = () => Number(canvas.dataset.w);
+      const H = () => Number(canvas.dataset.h);
+
+      /* ---- build the course ---- */
+      // y is measured upward from the floor; the camera converts to screen.
+      const platforms = [];
+      const diamonds = [];
+      const FLOOR_Y = 0;
+      const TOP_Y = PLATFORMS * GAP;
+
+      function buildCourse() {
+        const w = W();
+        platforms.length = 0;
+        diamonds.length = 0;
+
+        // A full-width stone floor plus a wide starting ledge: a fumbled first
+        // bounce drops you back onto the floor instead of straight into the
+        // lava. The floor is swallowed within a few seconds, which is what
+        // starts the climb.
+        platforms.push({ x: 0, y: FLOOR_Y, w, kind: "floor", vx: 0, gone: false, fading: 0 });
+        const startW = Math.min(180, w - 40);
+        platforms.push({ x: w / 2 - startW / 2, y: FLOOR_Y + 26, w: startW, kind: "solid", vx: 0, gone: false, fading: 0 });
+
+        let prevCenter = w / 2;
+        for (let i = 1; i <= PLATFORMS; i++) {
+          const difficulty = i / PLATFORMS; // 0 at the bottom, 1 at the top
+          const checkpoint = i % CHECKPOINT_EVERY === 0;
+          // Ledges narrow as you climb; checkpoints stay generous.
+          const width = checkpoint
+            ? Math.min(140, w - 40)
+            : Math.max(62, Math.round(rand(112, 146) - difficulty * 52));
+
+          // Each ledge sits within one bounce of the last one.
+          const half = width / 2;
+          const center = clamp(
+            prevCenter + rand(-MAX_SIDE_STEP, MAX_SIDE_STEP),
+            half + 6,
+            Math.max(half + 6, w - half - 6)
+          );
+          prevCenter = center;
+
+          let kind = "solid";
+          if (i > 6 && !checkpoint) {
+            const roll = Math.random();
+            if (roll < 0.1 + difficulty * 0.2) kind = "moving";
+            else if (roll < 0.16 + difficulty * 0.36) kind = "crumble";
+          }
+
+          platforms.push({
+            x: center - half,
+            y: FLOOR_Y + 26 + i * GAP,
+            w: width,
+            kind,
+            checkpoint,
+            claimed: false,
+            vx: kind === "moving" ? rand(40, 62) * (1 + difficulty) * (Math.random() < 0.5 ? -1 : 1) : 0,
+            gone: false,
+            fading: 0,
+          });
+
+          if (!checkpoint && Math.random() < 0.28) {
+            diamonds.push({ x: center, y: FLOOR_Y + 26 + i * GAP + 36, taken: false });
+          }
+        }
+      }
+      buildCourse();
+
+      const player = { x: W() / 2, y: FLOOR_Y + 60, vy: 0, dir: 0, r: 13, targetX: null };
+      let camera = 0;          // world y at the bottom of the screen
+      let lavaY = FLOOR_Y - 240;
       let points = 0;
-      let hits = 0;
-      let arrows = 0;
-      let smallHits = 0;
-      let movingHits = 0;
+      let gems = 0;
+      let checkpoints = 0;
+      let best = 0;            // highest y reached
       let elapsed = 0;
-      let spawnIn = 0.5;
       let done = false;
 
-      function rollKind() {
-        let roll = Math.random() * totalWeight;
-        for (const kind of KINDS) {
-          roll -= kind.weight;
-          if (roll <= 0) return kind;
-        }
-        return KINDS[0];
+      // Lava creeps faster the higher you get - the top of the tower is a
+      // sprint - but never quite outpaces a clean climb (~90px/s).
+      function lavaSpeed() {
+        return Math.min(86, 24 + (best / TOP_Y) * 52 + elapsed * 0.35);
       }
 
-      function spawn() {
-        const spec = rollKind();
-        const progress = elapsed / ROUND_SECONDS;
-        // Targets shrink over the round - the same idea as standing further back.
-        const size = Math.max(28, Math.round(spec.size * (1 - progress * 0.34)));
-        const life = spec.life * (1 - progress * 0.32);
-
-        const node = el("button", `target ${spec.kind}`, '<span class="target-face"></span>');
-        node.type = "button";
-        node.style.width = `${size}px`;
-        node.style.height = `${size}px`;
-
-        const target = {
-          node,
-          spec,
-          size,
-          x: rand(4, Math.max(5, stage.clientWidth - size - 4)),
-          y: rand(4, Math.max(5, stage.clientHeight - size - 4)),
-          // Moving targets drift across the range and bounce off the edges.
-          vx: spec.kind === "moving" ? rand(70, 130) * (Math.random() < 0.5 ? -1 : 1) * (1 + progress) : 0,
-          vy: spec.kind === "moving" ? rand(40, 90) * (Math.random() < 0.5 ? -1 : 1) * (1 + progress) : 0,
-          expires: performance.now() + life,
-          dead: false,
-        };
-        node.style.left = `${target.x}px`;
-        node.style.top = `${target.y}px`;
-
-        node.addEventListener("pointerdown", (event) => {
-          event.stopPropagation();
-          if (done || target.dead) return;
-          arrows += 1;
-          hit(target, event);
-        });
-
-        stage.appendChild(node);
-        targets.push(target);
-      }
-
-      function hit(target, event) {
-        target.dead = true;
-        target.node.classList.add("target-hit");
-        setTimeout(() => target.node.remove(), 220);
-        const idx = targets.indexOf(target);
-        if (idx !== -1) targets.splice(idx, 1);
-
-        points += target.spec.points;
-        hits += 1;
-        if (target.spec.kind === "small") smallHits += 1;
-        if (target.spec.kind === "moving") movingHits += 1;
-        setHud("score", points);
-        setHud("hits", hits);
-        const box = stage.getBoundingClientRect();
-        floatText(stage, event.clientX - box.left, event.clientY - box.top, `+${target.spec.points}`, "good");
-      }
-
-      // A missed arrow costs nothing - it just isn't a hit. That keeps the
-      // game friendly while accuracy still shows up on the results screen.
-      const missHandler = (event) => {
-        if (done || event.target !== stage) return;
-        arrows += 1;
-        const box = stage.getBoundingClientRect();
-        floatText(stage, event.clientX - box.left, event.clientY - box.top, T("game.bow.miss"), "bad");
+      /* ---- controls: drag to steer, or arrow keys / A-D ---- */
+      const keys = new Set();
+      const onKeyDown = (e) => {
+        const k = e.key.toLowerCase();
+        if (["arrowleft", "arrowright", "a", "d"].includes(k)) e.preventDefault();
+        keys.add(k);
       };
-      stage.addEventListener("pointerdown", missHandler);
+      const onKeyUp = (e) => keys.delete(e.key.toLowerCase());
+      window.addEventListener("keydown", onKeyDown);
+      window.addEventListener("keyup", onKeyUp);
 
-      const stop = loop((dt, now) => {
+      const steer = (event) => {
+        const box = stage.getBoundingClientRect();
+        player.targetX = clamp(event.clientX - box.left, player.r, W() - player.r);
+      };
+      const onDown = (event) => {
+        stage.setPointerCapture?.(event.pointerId);
+        steer(event);
+      };
+      const onMove = (event) => {
+        if (event.pressure > 0 || event.pointerType === "mouse") steer(event);
+      };
+      const onUp = () => {
+        player.targetX = null;
+      };
+      stage.addEventListener("pointerdown", onDown);
+      stage.addEventListener("pointermove", onMove);
+      stage.addEventListener("pointerup", onUp);
+      stage.addEventListener("pointercancel", onUp);
+
+      const stop = loop((dt) => {
         elapsed += dt;
-        setHud("time", Math.max(0, Math.ceil(ROUND_SECONDS - elapsed)));
+        const w = W();
+        const h = H();
 
-        spawnIn -= dt;
-        if (spawnIn <= 0) {
-          spawn();
-          const progress = elapsed / ROUND_SECONDS;
-          spawnIn = rand(0.42, 0.8) * (1 - progress * 0.4);
+        /* ---- horizontal steering ---- */
+        let dir = 0;
+        if (keys.has("arrowleft") || keys.has("a")) dir -= 1;
+        if (keys.has("arrowright") || keys.has("d")) dir += 1;
+        if (dir !== 0) {
+          player.targetX = null;
+          player.x += dir * MOVE_SPEED * dt;
+        } else if (player.targetX != null) {
+          player.x += (player.targetX - player.x) * Math.min(1, dt * 12);
+        }
+        // Walk out one side, come back in the other - a classic climber trick
+        // that stops narrow ledges near the wall from being unfair.
+        if (player.x < -player.r) player.x = w + player.r;
+        if (player.x > w + player.r) player.x = -player.r;
+
+        /* ---- gravity + auto-bounce ---- */
+        player.vy += GRAVITY * dt;
+        const prevY = player.y;
+        player.y -= player.vy * dt; // vy is screen-style: negative goes up
+
+        for (const p of platforms) {
+          if (p.gone) continue;
+          if (p.vx) {
+            p.x += p.vx * dt;
+            if (p.x < 0 || p.x + p.w > w) {
+              p.vx *= -1;
+              p.x = clamp(p.x, 0, Math.max(0, w - p.w));
+            }
+          } else if (p.x + p.w > w) {
+            // the panel was resized mid-run - pull the ledge back on screen
+            p.x = Math.max(0, w - p.w);
+          }
+          // Land only while falling, and only when crossing the top face.
+          const falling = player.vy > 0;
+          const crossed = prevY >= p.y && player.y <= p.y;
+          const overlaps = player.x + player.r > p.x && player.x - player.r < p.x + p.w;
+          if (falling && crossed && overlaps) {
+            player.y = p.y;
+            player.vy = JUMP_V;
+            if (p.kind === "crumble") p.fading = 0.35; // one bounce and it's gone
+
+            if (p.checkpoint && !p.claimed) {
+              p.claimed = true;
+              checkpoints += 1;
+              points += 25;
+              floatText(stage, player.x, h - (player.y - camera), "+25", "good");
+            }
+          }
         }
 
-        for (let i = targets.length - 1; i >= 0; i--) {
-          const target = targets[i];
-          if (target.spec.kind === "moving") {
-            target.x += target.vx * dt;
-            target.y += target.vy * dt;
-            const maxX = Math.max(0, stage.clientWidth - target.size);
-            const maxY = Math.max(0, stage.clientHeight - target.size);
-            if (target.x < 0 || target.x > maxX) {
-              target.vx *= -1;
-              target.x = clamp(target.x, 0, maxX);
-            }
-            if (target.y < 0 || target.y > maxY) {
-              target.vy *= -1;
-              target.y = clamp(target.y, 0, maxY);
-            }
-            target.node.style.left = `${target.x}px`;
-            target.node.style.top = `${target.y}px`;
-          }
-          if (now >= target.expires) {
-            target.dead = true;
-            target.node.classList.add("target-gone");
-            setTimeout(() => target.node.remove(), 220);
-            targets.splice(i, 1);
+        for (const p of platforms) {
+          if (p.fading > 0) {
+            p.fading -= dt;
+            if (p.fading <= 0) p.gone = true;
           }
         }
 
-        if (elapsed >= ROUND_SECONDS) finish();
+        best = Math.max(best, player.y);
+
+        /* ---- diamonds ---- */
+        for (const gem of diamonds) {
+          if (gem.taken) continue;
+          if (Math.abs(gem.x - player.x) < 20 && Math.abs(gem.y - player.y) < 24) {
+            gem.taken = true;
+            gems += 1;
+            points += 10;
+            floatText(stage, player.x, h - (gem.y - camera), "+10", "good");
+          }
+        }
+
+        /* ---- camera follows, lava chases ---- */
+        const wantCamera = Math.max(0, player.y - h * 0.42);
+        camera += (wantCamera - camera) * Math.min(1, dt * 6);
+        lavaY += lavaSpeed() * dt;
+        // The lava never falls far behind, so there is no hiding - but it does
+        // leave enough room to drop a couple of ledges and recover.
+        lavaY = Math.max(lavaY, camera - h * 0.35);
+
+        setHud("score", points);
+        setHud("gems", gems);
+        setHud("height", `${Math.round(best / GAP)}m`);
+
+        if (player.y >= TOP_Y + 26) return finish(true);
+        if (player.y <= lavaY) return finish(false);
+
+        draw();
       });
 
-      function finish() {
+      function draw() {
+        const w = W();
+        const h = H();
+        const toScreen = (worldY) => h - (worldY - camera);
+        ctx.clearRect(0, 0, w, h);
+
+        /* cave walls */
+        ctx.fillStyle = "rgba(0,0,0,0.22)";
+        ctx.fillRect(0, 0, 10, h);
+        ctx.fillRect(w - 10, 0, 10, h);
+
+        /* the finish line */
+        const finishScreenY = toScreen(TOP_Y + 26);
+        if (finishScreenY > -40 && finishScreenY < h + 40) {
+          for (let i = 0; i < Math.ceil(w / 16); i++) {
+            ctx.fillStyle = i % 2 ? "#fdfdfd" : "#2b2b2b";
+            ctx.fillRect(i * 16, finishScreenY - 12, 16, 12);
+          }
+          ctx.fillStyle = "#ffd873";
+          ctx.font = "bold 16px 'Baloo 2', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("🏆 FINISH", w / 2, finishScreenY - 20);
+        }
+
+        /* platforms */
+        for (const p of platforms) {
+          if (p.gone) continue;
+          const y = toScreen(p.y);
+          if (y < -30 || y > h + 30) continue;
+          const alpha = p.fading > 0 ? Math.max(0.2, p.fading / 0.35) : 1;
+          ctx.globalAlpha = alpha;
+          const top = p.checkpoint
+            ? "#f0c020"
+            : p.kind === "moving" ? "#4fa3d8"
+            : p.kind === "crumble" ? "#b0714a"
+            : p.kind === "floor" ? "#8d8d8d"
+            : "#6fbf4a";
+          const side = p.checkpoint
+            ? "#a8790c"
+            : p.kind === "moving" ? "#28618a"
+            : p.kind === "crumble" ? "#6d4127"
+            : p.kind === "floor" ? "#4c4c4c"
+            : "#3f7a2c";
+          const thickness = p.kind === "floor" ? 22 : 14;
+          ctx.fillStyle = side;
+          ctx.fillRect(p.x, y, p.w, thickness);
+          ctx.fillStyle = top;
+          ctx.fillRect(p.x, y, p.w, 6);
+          ctx.strokeStyle = "rgba(0,0,0,0.45)";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(p.x, y, p.w, thickness);
+          if (p.checkpoint) {
+            ctx.fillStyle = "#fff6d5";
+            ctx.font = "bold 12px 'Baloo 2', sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("🏃", p.x + p.w / 2, y - 4);
+          }
+          ctx.globalAlpha = 1;
+        }
+
+        /* diamonds */
+        for (const gem of diamonds) {
+          if (gem.taken) continue;
+          const y = toScreen(gem.y);
+          if (y < -20 || y > h + 20) continue;
+          ctx.save();
+          ctx.translate(gem.x, y);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillStyle = "#5fe0f0";
+          ctx.fillRect(-7, -7, 14, 14);
+          ctx.strokeStyle = "#1c7d92";
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(-7, -7, 14, 14);
+          ctx.restore();
+        }
+
+        /* the player */
+        const py = toScreen(player.y);
+        ctx.fillStyle = "#3b2a1c";
+        ctx.fillRect(player.x - 13, py - 26, 26, 26);
+        ctx.fillStyle = "#c99a6b";
+        ctx.fillRect(player.x - 10, py - 19, 20, 16);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(player.x - 8, py - 16, 6, 5);
+        ctx.fillRect(player.x + 2, py - 16, 6, 5);
+        ctx.fillStyle = "#2b6cc4";
+        ctx.fillRect(player.x - 6, py - 15, 3, 3);
+        ctx.fillRect(player.x + 4, py - 15, 3, 3);
+
+        /* the lava */
+        const lavaScreenY = toScreen(lavaY);
+        if (lavaScreenY < h + 20) {
+          const grad = ctx.createLinearGradient(0, lavaScreenY, 0, h);
+          grad.addColorStop(0, "#ffb43c");
+          grad.addColorStop(0.35, "#ff6a1f");
+          grad.addColorStop(1, "#c01c06");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, lavaScreenY, w, h - lavaScreenY + 4);
+          // bubbling crust
+          ctx.fillStyle = "#ffd873";
+          for (let x = 0; x < w; x += 18) {
+            const bob = Math.sin(elapsed * 4 + x * 0.08) * 4;
+            ctx.fillRect(x, lavaScreenY - 4 + bob, 14, 6);
+          }
+        }
+      }
+
+      function finish(reachedTop) {
         if (done) return;
         done = true;
         stop();
+        cleanup();
+
+        const climbed = Math.min(1, best / TOP_Y);
+        // Difficulty bonus: 2 points per platform climbed, so a full ascent of
+        // the tower is worth about as much as the finish itself.
+        const difficultyBonus = Math.round(climbed * PLATFORMS * 2);
+        points += difficultyBonus;
+
+        let speedBonus = 0;
+        if (reachedTop) {
+          points += 100;
+          // Par is 75s; every second under it is worth 2 points, up to 120.
+          speedBonus = Math.round(clamp((75 - elapsed) * 2, 0, 120));
+          points += speedBonus;
+        }
+
         onFinish({
           points,
           scoreLabelKey: "hud.points",
           detail: [
-            ["result.targetsHit", hits],
-            ["result.smallHits", smallHits],
-            ["result.movingHits", movingHits],
-            ["result.accuracy", `${arrows ? Math.round((hits / arrows) * 100) : 0}%`],
+            ["result.height", `${Math.round(best / GAP)}m / ${PLATFORMS}m`],
+            ["result.diamonds", gems],
+            ["result.checkpoints", checkpoints],
+            ["result.runTime", fmtTime(elapsed)],
+            ["result.outcome", T(reachedTop ? "result.finished" : "result.burned")],
           ],
         });
+      }
+
+      function cleanup() {
+        window.removeEventListener("keydown", onKeyDown);
+        window.removeEventListener("keyup", onKeyUp);
+        stage.removeEventListener("pointerdown", onDown);
+        stage.removeEventListener("pointermove", onMove);
+        stage.removeEventListener("pointerup", onUp);
+        stage.removeEventListener("pointercancel", onUp);
+        dispose();
       }
 
       return () => {
         done = true;
         stop();
-        stage.removeEventListener("pointerdown", missHandler);
+        cleanup();
       };
     },
   };
@@ -1115,7 +1338,7 @@ const Arcade = (() => {
   };
 
   /* ----------------------------- registry ----------------------------- */
-  const list = [bowShot, blockBreaker, windDodge, diamondRush, buildIt];
+  const list = [lavaRun, blockBreaker, windDodge, diamondRush, buildIt];
   const byId = (id) => list.find((game) => game.id === id) || null;
 
   return {

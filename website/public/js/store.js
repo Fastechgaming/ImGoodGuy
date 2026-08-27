@@ -49,8 +49,10 @@ function renderGrid() {
     <div class="item-card${soon ? " coming-soon" : ""}">
       <div class="item-image-wrap">
         <img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.name)}" onerror="this.style.opacity=0.2" />
-        ${soon ? "" : `<img class="sparkle sparkle-1" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />
-        <img class="sparkle sparkle-2" src="/images/site/sparkle.svg" alt="" aria-hidden="true" />`}
+        ${soon ? "" : `<span class="sparkle sparkle-1" aria-hidden="true"></span>
+        <span class="sparkle sparkle-2" aria-hidden="true"></span>
+        <span class="sparkle sparkle-3" aria-hidden="true"></span>
+        <span class="sparkle sparkle-4" aria-hidden="true"></span>`}
       </div>
       <div class="item-body">
         <h3>${escapeHtml(item.name)}</h3>
