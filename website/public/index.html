@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AngkorSMP</title>
+<meta name="description" content="AngkorSMP — a Khmer-inspired Minecraft Survival Multiplayer server." />
+<link rel="icon" href="/images/site/logo.svg" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a class="brand" href="/">
+        <img src="/images/site/logo.svg" alt="logo" onerror="this.style.display='none'" />
+        AngkorSMP
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/store.html">Store</a></li>
+        <li><a href="/map.html">Map</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <img id="hero-logo" class="hero-logo" src="/images/site/logo.svg" alt="AngkorSMP logo" />
+    <h1 id="hero-title">AngkorSMP</h1>
+    <p class="tagline" id="hero-tagline"></p>
+
+    <div class="hero-actions">
+      <a id="discord-btn" class="action-btn discord" href="#" target="_blank" rel="noopener">
+        <span>🗨️ Discord</span>
+        <small>Join our community</small>
+      </a>
+      <a id="ip-btn" class="action-btn server-ip" href="#">
+        <span class="ip-text">play.angkorsmp.com</span>
+        <small>Click to copy IP</small>
+      </a>
+    </div>
+
+    <div class="status-pill">
+      <span id="status-dot" class="status-dot"></span>
+      <span id="status-text">Checking server status…</span>
+    </div>
+
+    <img class="hero-silhouette" src="/images/site/temple-silhouette.svg" alt="" aria-hidden="true" />
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <h2>Welcome</h2>
+        <p class="welcome-box" id="welcome-message"></p>
+
+        <div class="info-grid">
+          <div class="info-card">
+            <div class="value" id="release-value">—</div>
+            <div class="label">Released</div>
+          </div>
+          <div class="info-card">
+            <div class="value" id="season-value">—</div>
+            <div class="label">Current season</div>
+          </div>
+          <div class="info-card">
+            <div class="value" id="uptime-value">—</div>
+            <div class="label">Server age</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; <span id="year"></span> AngkorSMP. Not affiliated with Mojang or Microsoft.</p>
+  </footer>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/home.js"></script>
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>

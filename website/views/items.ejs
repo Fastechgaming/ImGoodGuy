@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Store Items · Admin</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-body">
+  <header class="admin-header">
+    <h1>AngkorSMP Store Admin</h1>
+    <form method="POST" action="/admin/logout"><button class="btn-ghost">Log out</button></form>
+  </header>
+
+  <main class="admin-main">
+    <% categories.forEach(function(cat) { %>
+      <section class="admin-section">
+        <div class="admin-section-head">
+          <h2><%= cat.charAt(0).toUpperCase() + cat.slice(1) %></h2>
+          <a class="btn" href="/admin/items/new?category=<%= cat %>">+ Add item</a>
+        </div>
+        <% if (!items[cat].length) { %>
+          <p class="muted">No items yet.</p>
+        <% } else { %>
+          <div class="admin-grid">
+            <% items[cat].forEach(function(item) { %>
+              <div class="admin-card">
+                <img src="<%= item.image %>" alt="<%= item.name %>" onerror="this.style.opacity=0.2" />
+                <div class="admin-card-body">
+                  <strong><%= item.name %></strong>
+                  <span>$<%= item.price %> <%= item.currency %></span>
+                  <p><%= item.shortDesc %></p>
+                  <code><%= item.id %></code>
+                </div>
+                <div class="admin-card-actions">
+                  <a class="btn-ghost" href="/admin/items/<%= item.id %>/edit">Edit</a>
+                  <form method="POST" action="/admin/items/<%= item.id %>/delete" onsubmit="return confirm('Delete this item?')">
+                    <button class="btn-danger">Delete</button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    <% }) %>
+  </main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Store — AngkorSMP</title>
+<link rel="icon" href="/images/site/logo.svg" />
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="site-nav">
+    <div class="container">
+      <a class="brand" href="/">
+        <img src="/images/site/logo.svg" alt="logo" onerror="this.style.display='none'" />
+        AngkorSMP
+      </a>
+      <ul class="nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/store.html" class="active">Store</a></li>
+        <li><a href="/map.html">Map</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <h2>AngkorSMP Store</h2>
+        <div class="store-tabs" id="store-tabs"></div>
+        <div class="item-grid" id="item-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; <span id="year"></span> AngkorSMP. Payments processed via KHQR. Purchases are non-refundable.</p>
+  </footer>
+
+  <!-- Info ("!") modal -->
+  <div class="modal-overlay" id="info-modal">
+    <div class="modal-box wide">
+      <button class="modal-close" id="info-modal-close">&times;</button>
+      <div id="info-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Buy flow modal -->
+  <div class="modal-overlay" id="buy-modal">
+    <div class="modal-box">
+      <button class="modal-close" id="buy-modal-close">&times;</button>
+      <div id="buy-modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+  <script src="/js/store.js"></script>
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+</body>
+</html>

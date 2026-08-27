@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login · AngkorSMP</title>
+  <link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body class="admin-body login-body">
+  <form class="login-card" method="POST" action="/admin/login">
+    <h1>AngkorSMP Admin</h1>
+    <% if (error) { %>
+      <p class="error"><%= error %></p>
+    <% } %>
+    <label>Username
+      <input type="text" name="username" autocomplete="username" required />
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="current-password" required />
+    </label>
+    <button type="submit">Log in</button>
+  </form>
+</body>
+</html>
