@@ -80,30 +80,62 @@ publicly — they only go to your Telegram.
 ## 5. The Games page
 
 `/games.html` — players enter their Minecraft name (same Java/Bedrock rules as
-the store), then get a hub with **Playtime**, **Coins Earned**, a Withdraw
-button (still disabled) and three playable mini-games:
+the store), then get a hub with **Points** (this visit), **Coins Today** (from
+the server), a Withdraw button (still disabled) and five mini-games:
 
-| Game | Length | How it scores |
+| Game | Ends when | How it scores |
 |---|---|---|
-| 💥 **TNT Escape** | 60s | Dodge TNT blasts; reward scales with survival time. |
-| 💣 **Creeper Click** | 45s | Tap creepers before they blow. Normal +1, charged +3, combo bonus every 3 in a row, −1 for empty clicks. |
-| ⛏️ **Block Breaker** | 10 rounds | Each round names a block; tap every match before the timer. Wrong block = 1s penalty. |
+| 💣 **Creeper Clicker** | after 30s | Tap creepers before they blow. Normal +1, Charged +3, Golden +5; 5 hits in a row = x2, 10 = x3. Tapping bare ground breaks the combo. |
+| ⛏️ **Block Breaker** | after 45s | Break only the block named above the grid: 3 points plus up to 5 more for speed, −4 for a wrong block. The grid grows from 6 to 12 tiles as the round runs. |
+| 💨 **Wind Charge Dodge** | you get hit | +1 every half second alive, +2 for grazing a wind charge, +10 per emerald. Charges get faster and more frequent the longer you last. |
+| ⚔️ **Zombie Survival** | 3 hearts gone | Zombie +5, Armored +15 (2 hits), Burning +25, Mini Boss +100 (5 hits); 4 kills in a row = x2, 8 = x3. Mobs speed up over time and cost a heart if they reach the gate. |
+| 🧠 **Minecraft Memory** | 5 hearts gone | Match a pair for 10 points plus up to 10 more for speed, +25 × board number for clearing a board. A wrong pair costs 3 points and a heart. Each board is bigger than the last. |
 
-All three use the same payout ladder: **500 minimum, 5,000 for a perfect run**
-(500 / 1,000 / 2,000 / 3,000 / 4,000 / 5,000 by performance). Every session has
-a clear start and end with a results screen and a **Play Again** button. They
-work with mouse, keyboard (WASD/arrows in TNT Escape) and touch.
+All five are **unlimited** — play as many rounds as you like — and every round
+ends on a results screen with a **Play Again** button. They work with mouse,
+keyboard (arrows/WASD in Wind Charge Dodge) and touch.
 
-**Nothing is persisted to a database yet, deliberately.** The session — name and
-coins earned — lives in `sessionStorage` only, so a refresh doesn't bounce the
-player back to the form, but the totals disappear when the tab closes and the
-stat cards say "Not saved yet". To make it real: replace the `Session` object at
-the top of `public/js/games.js` with API calls, and wire the Withdraw button to
-an RCON `eco give` the same way store orders are delivered.
+### The daily coin limit
 
-Adding a fourth game means adding one object to `Arcade.list` in
-`public/js/arcade.js` with `{ id, icon, name, desc, howTo, start(mount, onFinish) }`
-— the hub, intro screen and results screen are shared.
+Games score **points**; the **server** decides the coins. Each game pays at most
+**500 coins per day**, **2,500 coins per day** across all five, and the day rolls
+over at **midnight Cambodia time (00:00 UTC+7)**. Players can keep playing past
+the limit — they just stop earning, and the card says *"Daily Reward Complete!
+500 / 500 Coins — You can keep playing for fun, but won't earn more Coins today."*
+
+That limit is enforced in `lib/gamestats.js` + `routes/games.js`, not in the page:
+
+1. `POST /api/games/round/start` opens a round server-side and returns a
+   one-use `roundId`.
+2. `POST /api/games/round/finish` accepts that `roundId` once, checks the score
+   against how long the round actually ran (each game has a
+   `maxPointsPerSecond` ceiling), converts points to coins, and clamps the
+   result to whatever is left of the player's daily budget.
+3. `GET /api/games/daily?player=…` is what draws the progress bars.
+
+Balance is tuned so a good round is worth roughly 100–150 coins — about four
+strong rounds to fill one game's daily budget. To retune, edit the `GAMES`
+table at the top of `lib/gamestats.js` (`coinsPerPoint`, `maxPointsPerSecond`,
+`maxCoinsPerRound`); nothing in the browser needs to change.
+
+**Honest caveat:** the games themselves run in the visitor's browser, so a
+determined person can always feed the API a made-up score. What the server
+genuinely guarantees is the *ceiling*: the daily caps, the one-payout-per-round
+rule and the points-per-second sanity check mean the worst case is someone
+reaching 2,500 coins/day without playing — never more. Treat the daily cap as
+the real security boundary.
+
+The ledger lives in `data/gamestats.json` (git-ignored, created on first
+payout), keyed by day → player → game, and prunes itself after a couple of days.
+The player's name and this visit's points still live in `sessionStorage` so a
+refresh doesn't bounce them back to the form. Withdrawing into the server is
+still the one unfinished piece — wire the Withdraw button to an RCON `eco give`
+the same way store orders are delivered.
+
+Adding a sixth game means adding one object to `Arcade.list` in
+`public/js/arcade.js` with `{ id, icon, nameKey, descKey, howToKey, start(mount, onFinish) }`,
+one entry in the `GAMES` table in `lib/gamestats.js`, and its strings in
+`public/js/i18n.js` — the hub, intro screen and results screen are shared.
 
 ## 6. The Map page (BlueMap)
 
@@ -124,22 +156,45 @@ BlueMap's web app doesn't send restrictive framing headers by default, so embedd
 
 ## 8. Theme & assets
 
-The site ships with a **dark theme by default** and a light theme; visitors switch with the ☀️/🌙 button in the nav and the choice is remembered in their browser. Both themes are defined as CSS custom properties at the top of `public/css/style.css` (`:root` = dark, `:root[data-theme="light"]` = light), so re-colouring either one is a matter of editing those two blocks.
+The site ships with a **dark theme by default** and a light theme; visitors switch with the ☀️/🌙 button in the nav (the KH/EN language button sits beside it) and the choice is remembered in their browser. Both themes are defined as CSS custom properties at the top of `public/css/style.css` (`:root` = dark, `:root[data-theme="light"]` = light), so re-colouring either one is a matter of editing those two blocks.
 
 The look is a bright, cute, hand-drawn-cartoon "Angkor Wat temple" UI (`public/css/style.css`). The nav is a stone-brick wall with vines hanging off the bottom edge (`public/images/site/vine-drape.svg`); nav links and the main hero buttons (Telegram/Server IP/Store) are wood-plank pills with a circular colored icon badge, a wood-grain texture, and a moss sprig growing off one corner. Store/feature cards are golden parchment/stone tablets with the same moss-sprig corner and a beveled edge (light highlight + soft dark shadow); item cards get a couple of little twinkling sparkles over their icon. Every button and card has a playful scale/wiggle animation on hover. A carved temple-frieze border strip (`public/images/site/khmer-pattern.svg`) runs between the nav/hero and above the footer on every page, section headings are flanked by small leaf glyphs, and a few little sway-animated flowers (`public/images/site/flower.svg`) dot the hero. The hero itself keeps a warm sunset gradient with a jungle canopy/palm silhouette (`public/images/site/forest-silhouette.svg`) along the bottom, hanging vine/frond decorations in the top corners (`public/images/site/leaf-corner.svg`), a soft glow behind the logo, and a few animated "firefly" particles for atmosphere. The real logo is dropped in at `public/images/site/logo-full.png` (full wordmark, used big on the Home hero) and `public/images/site/logo-icon.png` (temple-only crop, used in the nav badge and favicon) — both cropped from your banner with a transparent background. To swap in a new logo later, replace those two files (same filenames) or point `logo` / `logoIcon` in `config/site.config.json` at new paths. Item placeholder art (`public/images/items/placeholder-*.svg`) is still simple vector placeholder art — swap those any time too.
 
-The "Chill Community / No Raiding / PvP Your Way / Live Cambodia Map" badges on the Home page come from the `serverFeatures` array in `config/site.config.json` — edit, add, or remove entries there (each has `icon`, `title`, `desc`, and an optional `link`) to change what's shown, no code changes needed.
+The "Chill Community / No Raiding / Live Cambodia Map" badges on the Home page come from the `serverFeatures` array in `config/site.config.json` — edit, add, or remove entries there (each has `icon`, `title`, `desc`, and an optional `link`) to change what's shown, no code changes needed.
 
 The layout is responsive: a hamburger nav under ~760px, a stacked hero on mobile, and a grid that reflows from multi-column (desktop) down to single-column (phones) throughout the store.
 
-## 9. Running in production
+## 9. Languages (English / ខ្មែរ)
+
+Every page has a **KH / EN** button next to the ☀️/🌙 toggle. English is the
+default; the choice is remembered in the browser and applies to the whole site,
+including the games. Prices show the riel equivalent alongside the dollar amount
+when Khmer is selected (**1 USD = 4,000 ៛**) — the amount actually charged is
+still the dollar figure on the KHQR.
+
+All the text lives in one file, `public/js/i18n.js`, as two dictionaries (`en`
+and `km`) keyed by the same strings. To fix a translation, edit the `km` entry;
+to add new text, add the key to both. Markup opts in with `data-i18n="key"`
+(or `data-i18n-html`, `data-i18n-placeholder`, `data-i18n-title`,
+`data-i18n-aria`), and anything rendered from JavaScript calls `t("key", { vars })`
+and re-renders on the `i18n:change` event.
+
+Per the brief, Minecraft and technical vocabulary stays in English inside the
+Khmer text — Server, Rank, Coins, Java, Bedrock, Creeper, Zombie, Combo, KHQR,
+Telegram, BlueMap, block names and so on — because translating those reads
+strangely to a Khmer player who knows the game in English. Khmer glyphs come
+from Kantumruy Pro (loaded with the other Google Fonts), and the small-caps
+styling (uppercase + letter-spacing) is switched off under `html[lang="km"]`
+because letter-spacing pulls Khmer vowels away from their consonants.
+
+## 10. Running in production
 
 - Use a process manager: `pm2 start server.js --name angkorsmp-web` (or systemd).
 - Put it behind a reverse proxy (nginx/Caddy) with HTTPS.
 - Make sure `.env` is never committed (it's already in `.gitignore`).
 - Back up `website/data/items.json` and `website/data/orders.json` periodically — they're the entire "database".
 
-## 10. Project structure
+## 11. Project structure
 
 ```
 website/
@@ -148,13 +203,18 @@ website/
   data/items.json         Store items (ranks/coins/other) + their delivery commands
   data/orders.json        Orders and their status
   data/proofs/            Uploaded payment screenshots (git-ignored, never served publicly)
+  data/gamestats.json     Daily mini-game coin ledger (git-ignored, created on first payout)
   lib/store.js            Tiny JSON-file data layer
+  lib/gamestats.js        Daily coin ledger for the mini-games (UTC+7 day boundary)
   lib/minecraft.js        Java+Bedrock status ping
   lib/rcon.js             Runs an item's delivery command on Accept
   routes/api.js           Public JSON API (config, status, items, checkout, proof upload)
+  routes/games.js         Mini-game rounds + daily coin caps (the server side of the games)
   routes/admin.js         Password-protected admin panel (item CRUD + image upload)
   telegram/bot.js         Telegram bot: order review (Accept/Reject) + /additem etc.
   views/                  EJS templates for the admin panel
   public/                 index / games / store / checkout / success / map pages, css, js, images
     js/playername.js      Shared Java/Bedrock name rules (used by BOTH browser and server)
+    js/i18n.js            English + Khmer dictionaries and the language switch
+    js/arcade.js          The five mini-games
 ```

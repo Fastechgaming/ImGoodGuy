@@ -5,6 +5,7 @@ const cookieSession = require("cookie-session");
 
 const apiRoutes = require("./routes/api");
 const adminRoutes = require("./routes/admin");
+const gamesRoutes = require("./routes/games");
 const telegram = require("./telegram/bot");
 
 const app = express();
@@ -25,6 +26,7 @@ app.use(
 );
 
 app.use("/api", apiRoutes);
+app.use("/api/games", gamesRoutes);
 app.use("/admin", adminRoutes);
 
 app.use(express.static(path.join(__dirname, "public")));

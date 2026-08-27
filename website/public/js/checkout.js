@@ -5,9 +5,16 @@ const content = document.getElementById("checkout-content");
 
 let selectedFile = null;
 
+// The scan hint has the amount in bold in the middle of the sentence, so the
+// translated string is split around its {amount} slot rather than escaped whole.
+function scanHintHtml(amount) {
+  const bold = `<strong>${escapeHtml(formatPrice(amount))}</strong>`;
+  return t("checkout.scanHint").split("{amount}").map(escapeHtml).join(bold);
+}
+
 async function loadCheckout() {
   if (!orderId) {
-    content.innerHTML = `<p class="empty-note">No order specified. <a href="/store.html">Back to the store</a>.</p>`;
+    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.noOrder"))} <a href="/store.html">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
     return;
   }
 
@@ -16,7 +23,7 @@ async function loadCheckout() {
   try {
     [order, cfg] = await Promise.all([fetchJSON(`/api/order/${encodeURIComponent(orderId)}`), getSiteConfig()]);
   } catch (err) {
-    content.innerHTML = `<p class="empty-note">Couldn't load that order (${escapeHtml(err.message)}). <a href="/store.html">Back to the store</a>.</p>`;
+    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.loadFailed", { error: err.message }))} <a href="/store.html">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
     return;
   }
 
@@ -35,42 +42,42 @@ async function loadCheckout() {
         <h3>${escapeHtml(order.itemName)}</h3>
         <p>${escapeHtml(order.itemDesc || "")}</p>
         <div class="checkout-rows">
-          <div><span>In server name</span><strong>${escapeHtml(order.playerName)}</strong></div>
-          <div><span>Edition</span><strong>${order.edition === "bedrock" ? "Bedrock" : "Java"}</strong></div>
-          <div><span>Total</span><strong class="price">$${Number(order.amount).toFixed(2)} ${escapeHtml(order.currency)}</strong></div>
+          <div><span>${escapeHtml(t("checkout.inServerName"))}</span><strong>${escapeHtml(order.playerName)}</strong></div>
+          <div><span>${escapeHtml(t("checkout.edition"))}</span><strong>${escapeHtml(t(order.edition === "bedrock" ? "buy.bedrock" : "buy.java"))}</strong></div>
+          <div><span>${escapeHtml(t("checkout.total"))}</span><strong class="price">${escapeHtml(formatPrice(order.amount))}</strong></div>
         </div>
       </div>
     </div>
 
     <div class="checkout-step">
-      <h3>1. Scan to pay</h3>
-      <p class="checkout-hint">Scan this KHQR with any Cambodian banking app and pay exactly <strong>$${Number(order.amount).toFixed(2)}</strong>.</p>
+      <h3>${escapeHtml(t("checkout.step1"))}</h3>
+      <p class="checkout-hint">${scanHintHtml(order.amount)}</p>
       <img class="checkout-khqr" src="${escapeHtml(khqrSrc)}" alt="KHQR payment code"
-           onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty-note',textContent:'KHQR image not uploaded yet — add it at public/images/site/khqr.png'}))" />
+           onerror="this.replaceWith(Object.assign(document.createElement('p'),{className:'empty-note',textContent:t('checkout.khqrMissing')}))" />
       <div class="khqr-actions">
         <a class="save-khqr-btn" id="save-khqr" href="${escapeHtml(khqrSrc)}" download="AngkorSMP-KHQR.png">
-          💾 Save KHQR
+          ${escapeHtml(t("checkout.saveKhqr"))}
         </a>
-        <span class="checkout-hint khqr-save-hint">Save it, then scan from your banking app's photo library.</span>
+        <span class="checkout-hint khqr-save-hint">${escapeHtml(t("checkout.saveHint"))}</span>
       </div>
     </div>
 
     <div class="checkout-step">
-      <h3>2. Upload your payment screenshot</h3>
-      <p class="checkout-hint">After paying, attach a screenshot of the transaction receipt so we can verify it.</p>
+      <h3>${escapeHtml(t("checkout.step2"))}</h3>
+      <p class="checkout-hint">${escapeHtml(t("checkout.uploadHint"))}</p>
       <label class="file-drop" id="file-drop">
         <input type="file" id="proof-input" accept="image/*" hidden />
         <span class="file-drop-icon">🧾</span>
-        <span class="file-drop-text" id="file-drop-text">Tap to choose a screenshot, or drag one here</span>
+        <span class="file-drop-text" id="file-drop-text">${escapeHtml(t("checkout.dropText"))}</span>
         <img class="file-preview" id="file-preview" alt="" hidden />
       </label>
     </div>
 
-    <button class="continue-btn" id="submit-btn" disabled>SUBMIT</button>
-    <p class="checkout-hint centered" id="submit-note">Attach your receipt to enable Submit.</p>
+    <button class="continue-btn" id="submit-btn" disabled>${escapeHtml(t("checkout.submit"))}</button>
+    <p class="checkout-hint centered" id="submit-note">${escapeHtml(t("checkout.submitNote"))}</p>
     ${
       supportHandle
-        ? `<p class="checkout-hint centered">Having trouble? <a href="https://t.me/${encodeURIComponent(supportHandle)}" target="_blank" rel="noopener">Contact support on Telegram</a></p>`
+        ? `<p class="checkout-hint centered">${escapeHtml(t("checkout.trouble"))} <a href="https://t.me/${encodeURIComponent(supportHandle)}" target="_blank" rel="noopener">${escapeHtml(t("checkout.contactSupport"))}</a></p>`
         : ""
     }
   `;
@@ -90,11 +97,11 @@ function wireFileDrop() {
   function accept(file) {
     if (!file) return;
     if (!/^image\//.test(file.type)) {
-      showToast("Please choose an image file (a screenshot of your receipt).");
+      showToast(t("checkout.notImage"));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      showToast("That image is larger than 8 MB — please use a smaller screenshot.");
+      showToast(t("checkout.tooBig"));
       return;
     }
     selectedFile = file;
@@ -102,7 +109,7 @@ function wireFileDrop() {
     preview.src = URL.createObjectURL(file);
     preview.hidden = false;
     submitBtn.disabled = false;
-    note.textContent = "Ready to submit.";
+    note.textContent = t("checkout.ready");
   }
 
   input.addEventListener("change", () => accept(input.files[0]));
@@ -127,8 +134,8 @@ async function submitProof() {
   const submitBtn = document.getElementById("submit-btn");
   const note = document.getElementById("submit-note");
   submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting…";
-  note.textContent = "Sending your receipt…";
+  submitBtn.textContent = t("checkout.submitting");
+  note.textContent = t("checkout.sending");
 
   try {
     const body = new FormData();
@@ -140,9 +147,15 @@ async function submitProof() {
   } catch (err) {
     showToast(err.message);
     submitBtn.disabled = false;
-    submitBtn.textContent = "SUBMIT";
-    note.textContent = "Something went wrong — please try again.";
+    submitBtn.textContent = t("checkout.submit");
+    note.textContent = t("checkout.retry");
   }
 }
+
+// The whole panel is rendered from JS, so a language switch simply rebuilds it.
+document.addEventListener("i18n:change", () => {
+  selectedFile = null;
+  loadCheckout();
+});
 
 loadCheckout();

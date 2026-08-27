@@ -1,3 +1,5 @@
+let lastStatus = null;
+
 async function loadHome() {
   const cfg = await getSiteConfig();
 
@@ -9,14 +11,15 @@ async function loadHome() {
   document.getElementById("hero-tagline").textContent = cfg.tagline || "";
   document.getElementById("welcome-message").textContent = cfg.welcomeMessage || "";
 
-  const telegramBtn = document.getElementById("telegram-btn");
-  telegramBtn.href = cfg.telegramLink || "#";
+  document.getElementById("telegram-btn").href = cfg.telegramLink || "#";
 
   const ipBtn = document.getElementById("ip-btn");
   const javaAddress = `${cfg.javaIp}${cfg.javaPort && Number(cfg.javaPort) !== 25565 ? ":" + cfg.javaPort : ""}`;
   const mobile = isMobileDevice();
   ipBtn.querySelector(".ip-text").textContent = javaAddress;
-  ipBtn.querySelector("small").textContent = mobile ? "Tap to join (Bedrock)" : "Click to copy IP";
+  // The hint under the IP differs on phones, so it can't just be a data-i18n
+  // attribute - it is re-rendered by applyLabels() on a language switch.
+  ipBtn.querySelector("small").removeAttribute("data-i18n");
 
   ipBtn.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -25,10 +28,10 @@ async function loadHome() {
       const deepLink = `minecraft://?addExternalServer=${encodeURIComponent(cfg.serverName)}|${bedrockAddr}`;
       copyToClipboard(javaAddress);
       window.location.href = deepLink;
-      showToast("Opening Minecraft (Bedrock)… Java IP also copied just in case!");
+      showToast(t("home.opening"));
     } else {
       await copyToClipboard(javaAddress);
-      showToast(`Copied "${javaAddress}" — paste it into Minecraft > Multiplayer > Add Server`);
+      showToast(t("home.copied", { ip: javaAddress }));
     }
   });
 
@@ -43,9 +46,21 @@ async function loadHome() {
     : "—";
 
   renderFeatures(cfg.serverFeatures || []);
+  applyLabels(mobile);
 
   refreshStatus();
   setInterval(refreshStatus, 30000);
+
+  document.addEventListener("i18n:change", () => {
+    applyLabels(mobile);
+    renderStatus(lastStatus);
+    document.getElementById("release-value").textContent = formatConfigDate(cfg.releaseDate);
+  });
+}
+
+function applyLabels(mobile) {
+  const small = document.querySelector("#ip-btn small");
+  if (small) small.textContent = mobile ? t("home.tapJoin") : t("home.copyIp");
 }
 
 function renderFeatures(features) {
@@ -65,17 +80,28 @@ function renderFeatures(features) {
     .join("");
 }
 
-async function refreshStatus() {
+function renderStatus(status) {
   const dot = document.getElementById("status-dot");
   const text = document.getElementById("status-text");
-  try {
-    const s = await fetchJSON("/api/status");
-    dot.className = `status-dot ${s.online ? "online" : "offline"}`;
-    text.textContent = s.online ? `Online — ${s.players.online}/${s.players.max} players` : "Server offline";
-  } catch {
+  text.removeAttribute("data-i18n"); // it's driven by live data from here on
+  if (!status) {
     dot.className = "status-dot offline";
-    text.textContent = "Status unavailable";
+    text.textContent = t("home.statusUnavailable");
+    return;
   }
+  dot.className = `status-dot ${status.online ? "online" : "offline"}`;
+  text.textContent = status.online
+    ? t("home.online", { online: status.players.online, max: status.players.max })
+    : t("home.offline");
+}
+
+async function refreshStatus() {
+  try {
+    lastStatus = await fetchJSON("/api/status");
+  } catch {
+    lastStatus = null;
+  }
+  renderStatus(lastStatus);
 }
 
 loadHome();

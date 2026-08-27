@@ -19,14 +19,17 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
         AngkorSMP
       </a>
-      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+      <div class="nav-tools">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
+      </div>
       <ul class="nav-links">
-        <li><a href="/">🏠 Home</a></li>
-        <li><a href="/games.html" class="active">🎮 Games</a></li>
-        <li><a href="/store.html">💰 Store</a></li>
-        <li><a href="/map.html">🗺️ Map</a></li>
+        <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
+        <li><a href="/games.html" class="active" data-i18n="nav.games">🎮 Games</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/map.html" data-i18n="nav.map">🗺️ Map</a></li>
       </ul>
-      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
   </nav>
   <div class="khmer-strip" aria-hidden="true"></div>
@@ -35,34 +38,34 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
     <section class="section">
       <div class="container games-wrap">
         <h2 class="no-rule">🌿 AngkorSMP 🌿</h2>
-        <p class="section-subtitle">GAMES</p>
+        <p class="section-subtitle" data-i18n="games.subtitle">GAMES</p>
 
         <!-- Step 1: who's playing -->
         <div class="checkout-panel games-gate" id="games-gate">
           <div class="games-gate-icon">🎮</div>
-          <h3>Play &amp; earn coins</h3>
-          <p class="checkout-hint centered">
+          <h3 data-i18n="games.gateTitle">Play &amp; earn coins</h3>
+          <p class="checkout-hint centered" data-i18n="games.gateHint">
             Play mini-games right here on the website and earn Angkor Coins you
             can withdraw straight into the server. Enter your Minecraft name to
             open your play session.
           </p>
 
           <div class="field">
-            <label for="games-name">Minecraft username</label>
+            <label for="games-name" data-i18n="buy.username">Minecraft username</label>
             <input type="text" id="games-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
           </div>
           <div class="field">
-            <label>Edition</label>
+            <label data-i18n="buy.edition">Edition</label>
             <div class="edition-toggle">
-              <button type="button" data-edition="java" class="active">Java</button>
-              <button type="button" data-edition="bedrock">Bedrock</button>
+              <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>
+              <button type="button" data-edition="bedrock" data-i18n="buy.bedrock">Bedrock</button>
             </div>
             <span class="preview-name" id="games-name-preview"></span>
           </div>
 
-          <button class="continue-btn" id="games-start-btn">Start Playing</button>
-          <p class="checkout-hint centered games-disclaimer">
-            Coins earned here are shown for this visit only — nothing is saved yet.
+          <button class="continue-btn" id="games-start-btn" data-i18n="games.start">Start Playing</button>
+          <p class="checkout-hint centered games-disclaimer" data-i18n="games.disclaimer">
+            Coins are counted per day and saved on the server. Withdrawing them into the game opens soon.
           </p>
         </div>
 
@@ -72,43 +75,46 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
             <div class="player-id">
               <span class="player-avatar">🧑‍🌾</span>
               <div>
-                <div class="player-label">Playing as</div>
+                <div class="player-label" data-i18n="games.playingAs">Playing as</div>
                 <div class="player-name" id="hub-player-name">—</div>
               </div>
             </div>
-            <button class="back-link" id="games-switch-btn">Change name</button>
+            <button class="back-link" id="games-switch-btn" data-i18n="games.changeName">Change name</button>
           </div>
 
           <div class="info-grid games-stats">
             <div class="info-card stacked">
-              <div class="value" id="stat-playtime">0m 0s</div>
-              <div class="label">Playtime</div>
+              <div class="value" id="stat-points">0</div>
+              <div class="label" data-i18n="games.points">Points</div>
               <div class="stat-divider"></div>
-              <div class="sub-value">This session</div>
-              <div class="sub-label">Not saved yet</div>
+              <div class="sub-value" id="stat-rounds">0</div>
+              <div class="sub-label" data-i18n="games.pointsSub">Rounds this session</div>
             </div>
             <div class="info-card stacked">
               <div class="value" id="stat-coins">0</div>
-              <div class="label">Coins Earned</div>
+              <div class="label" data-i18n="games.coinsToday">Coins Today</div>
               <div class="stat-divider"></div>
-              <div class="sub-value">Withdraw soon</div>
-              <div class="sub-label">Not saved yet</div>
+              <div class="sub-value" id="stat-coins-cap">—</div>
+              <div class="sub-label" id="stat-reset">—</div>
             </div>
           </div>
 
           <div class="withdraw-row checkout-panel">
             <div>
-              <h3>Withdraw to in-game</h3>
-              <p class="checkout-hint">
+              <h3 data-i18n="games.withdrawTitle">Withdraw to in-game</h3>
+              <p class="checkout-hint" data-i18n="games.withdrawHint">
                 Withdrawing to your in-game balance opens soon — keep playing to
                 build up your coins.
               </p>
             </div>
-            <button class="continue-btn withdraw-btn" disabled>Withdraw — Coming Soon</button>
+            <button class="continue-btn withdraw-btn" disabled data-i18n="games.withdrawBtn">Withdraw — Coming Soon</button>
           </div>
 
-          <h3 class="games-list-heading">Mini-games</h3>
-          <p class="checkout-hint centered">Every game pays 500 – 5,000 coins depending on how well you play.</p>
+          <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
+          <p class="checkout-hint centered" data-i18n="games.listHint">
+            Every game is unlimited to play. Each one can pay up to 500 Coins per day —
+            2,500 Coins across all five. Resets at midnight (UTC+7).
+          </p>
           <div class="item-grid" id="games-grid"></div>
         </div>
       </div>
@@ -117,7 +123,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <div class="khmer-strip" aria-hidden="true"></div>
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> AngkorSMP &middot; Cambodia Minecraft Server 🇰🇭</p>
+    <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
 
   <!-- Fullscreen mini-game panel -->
@@ -132,9 +138,9 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
   </div>
 
   <script src="/js/playername.js"></script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/arcade.js"></script>
   <script src="/js/games.js"></script>
-  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>

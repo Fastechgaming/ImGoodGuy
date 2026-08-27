@@ -19,14 +19,17 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         <img id="nav-logo" src="/images/site/logo-icon.png" alt="logo" onerror="this.style.display='none'" />
         AngkorSMP
       </a>
-      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+      <div class="nav-tools">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
+        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
+      </div>
       <ul class="nav-links">
-        <li><a href="/">🏠 Home</a></li>
-        <li><a href="/games.html">🎮 Games</a></li>
-        <li><a href="/store.html">💰 Store</a></li>
-        <li><a href="/map.html">🗺️ Map</a></li>
+        <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
+        <li><a href="/games.html" data-i18n="nav.games">🎮 Games</a></li>
+        <li><a href="/store.html" data-i18n="nav.store">💰 Store</a></li>
+        <li><a href="/map.html" data-i18n="nav.map">🗺️ Map</a></li>
       </ul>
-      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu">&#9776;</button>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
   </nav>
   <div class="khmer-strip" aria-hidden="true"></div>
@@ -36,8 +39,8 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
       <div class="container checkout-wrap">
         <div class="checkout-panel success-panel">
           <div class="success-icon">✅</div>
-          <h2 class="success-title">Submit successful!</h2>
-          <p class="checkout-hint centered">
+          <h2 class="success-title" data-i18n="success.title">Submit successful!</h2>
+          <p class="checkout-hint centered" data-i18n="success.body">
             Thanks! Your payment receipt has been sent to the owner for review.
             Please wait for them to confirm your payment — your item is usually
             delivered in-game within a few minutes.
@@ -45,12 +48,12 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
           <div class="receipt" id="order-receipt"></div>
 
-          <p class="checkout-hint centered" id="support-line">
+          <p class="checkout-hint centered" id="support-line" data-i18n="success.supportLine">
             Haven't received your items after an hour? Please contact support.
           </p>
 
           <div class="success-actions">
-            <a class="continue-btn" href="/">Back to home</a>
+            <a class="continue-btn" href="/" data-i18n="success.back">Back to home</a>
           </div>
         </div>
       </div>
@@ -59,11 +62,11 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <div class="khmer-strip" aria-hidden="true"></div>
   <footer class="site-footer">
-    <p>&copy; <span id="year"></span> AngkorSMP &middot; Cambodia Minecraft Server 🇰🇭</p>
+    <p id="footer-copy" data-i18n="footer.copy"></p>
   </footer>
 
+  <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
   <script src="/js/success.js"></script>
-  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 </body>
 </html>

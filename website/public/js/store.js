@@ -2,7 +2,7 @@ let allItems = { ranks: [], coins: [], other: [] };
 let activeCategory = "ranks";
 let supportTelegram = "";
 
-const CATEGORY_LABELS = { ranks: "Ranks", coins: "Coins", other: "Other" };
+const CATEGORY_KEYS = { ranks: "store.tab.ranks", coins: "store.tab.coins", other: "store.tab.other" };
 
 async function initStore() {
   const cfg = await getSiteConfig();
@@ -16,9 +16,9 @@ async function initStore() {
 function renderTabs() {
   const wrap = document.getElementById("store-tabs");
   wrap.innerHTML = "";
-  Object.keys(CATEGORY_LABELS).forEach((cat) => {
+  Object.keys(CATEGORY_KEYS).forEach((cat) => {
     const btn = document.createElement("button");
-    btn.textContent = CATEGORY_LABELS[cat];
+    btn.textContent = t(CATEGORY_KEYS[cat]);
     btn.className = cat === activeCategory ? "active" : "";
     btn.addEventListener("click", () => {
       activeCategory = cat;
@@ -39,7 +39,7 @@ function renderGrid() {
   const grid = document.getElementById("item-grid");
   const items = allItems[activeCategory] || [];
   if (!items.length) {
-    grid.innerHTML = '<p class="empty-note">No items here yet — check back soon!</p>';
+    grid.innerHTML = `<p class="empty-note">${escapeHtml(t("store.empty"))}</p>`;
     return;
   }
   grid.innerHTML = items
@@ -55,14 +55,14 @@ function renderGrid() {
       <div class="item-body">
         <h3>${escapeHtml(item.name)}</h3>
         <p>${escapeHtml(item.shortDesc)}</p>
-        <div class="price">${soon ? "—" : `$${Number(item.price).toFixed(2)}`}</div>
+        <div class="price">${soon ? "—" : escapeHtml(formatPrice(item.price))}</div>
         <div class="item-actions">
           ${
             soon
-              ? `<button class="buy-btn" disabled>Coming Soon</button>`
-              : `<button class="buy-btn" data-buy="${item.id}">Buy Now</button>`
+              ? `<button class="buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
+              : `<button class="buy-btn" data-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
           }
-          <button class="info-btn" data-info="${item.id}" title="Item info & kit video">!</button>
+          <button class="info-btn" data-info="${item.id}" title="${escapeHtml(t("store.infoTitle"))}">!</button>
         </div>
       </div>
     </div>`;
@@ -102,11 +102,11 @@ function openInfoModal(item) {
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
     <div class="info-buy-row">
-      <span class="price">${item.comingSoon ? "—" : `$${Number(item.price).toFixed(2)}`}</span>
+      <span class="price">${item.comingSoon ? "—" : escapeHtml(formatPrice(item.price))}</span>
       ${
         item.comingSoon
-          ? `<button class="continue-btn info-buy-btn" disabled>Coming Soon</button>`
-          : `<button class="continue-btn info-buy-btn" data-info-buy="${item.id}">Buy Now</button>`
+          ? `<button class="continue-btn info-buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
+          : `<button class="continue-btn info-buy-btn" data-info-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
       }
     </div>
   `;
@@ -158,28 +158,28 @@ function openBuyModal(item) {
 function renderBuyForm() {
   const { item, edition, name } = buyState;
   buyModalBody.innerHTML = `
-    <h3>Buy: ${escapeHtml(item.name)}</h3>
-    <p class="price">$${Number(item.price).toFixed(2)}</p>
+    <h3>${escapeHtml(t("buy.title", { item: item.name }))}</h3>
+    <p class="price">${escapeHtml(formatPrice(item.price))}</p>
     <div class="field">
-      <label for="buy-name">Minecraft username</label>
+      <label for="buy-name">${escapeHtml(t("buy.username"))}</label>
       <input type="text" id="buy-name" placeholder="Steve123" maxlength="24" value="${escapeHtml(name)}" autocomplete="off" />
     </div>
     <div class="field">
-      <label>Edition</label>
+      <label>${escapeHtml(t("buy.edition"))}</label>
       <div class="edition-toggle">
-        <button type="button" data-edition="java" class="${edition === "java" ? "active" : ""}">Java</button>
-        <button type="button" data-edition="bedrock" class="${edition === "bedrock" ? "active" : ""}">Bedrock</button>
+        <button type="button" data-edition="java" class="${edition === "java" ? "active" : ""}">${escapeHtml(t("buy.java"))}</button>
+        <button type="button" data-edition="bedrock" class="${edition === "bedrock" ? "active" : ""}">${escapeHtml(t("buy.bedrock"))}</button>
       </div>
       <span class="preview-name" id="name-preview"></span>
     </div>
-    <button class="continue-btn" id="continue-btn">Continue</button>
+    <button class="continue-btn" id="continue-btn">${escapeHtml(t("buy.continue"))}</button>
   `;
 
   const nameInput = document.getElementById("buy-name");
   const preview = document.getElementById("name-preview");
   const updatePreview = () => {
     const shown = normalizeServerName(nameInput.value, buyState.edition);
-    preview.textContent = shown ? `In server name: ${shown}` : "";
+    preview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
   };
   nameInput.addEventListener("input", () => {
     buyState.name = nameInput.value;
@@ -201,16 +201,12 @@ function renderBuyForm() {
 async function startCheckout() {
   const name = buyState.name.trim();
   if (!isValidRawName(name, buyState.edition)) {
-    showToast(
-      buyState.edition === "bedrock"
-        ? "Enter a valid Bedrock gamertag (letters, numbers, spaces or underscores)."
-        : "Enter a valid Java username (letters, numbers, underscore)."
-    );
+    showToast(t(buyState.edition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
     return;
   }
   const continueBtn = document.getElementById("continue-btn");
   continueBtn.disabled = true;
-  continueBtn.textContent = "Please wait…";
+  continueBtn.textContent = t("buy.wait");
 
   try {
     const result = await fetchJSON("/api/checkout", {
@@ -222,8 +218,16 @@ async function startCheckout() {
   } catch (err) {
     showToast(err.message);
     continueBtn.disabled = false;
-    continueBtn.textContent = "Continue";
+    continueBtn.textContent = t("buy.continue");
   }
 }
+
+// Re-render everything when the language button is pressed.
+document.addEventListener("i18n:change", () => {
+  if (!allItems) return;
+  renderTabs();
+  renderGrid();
+  if (buyState) renderBuyForm();
+});
 
 initStore();

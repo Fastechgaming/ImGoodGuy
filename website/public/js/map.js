@@ -4,16 +4,22 @@ async function loadMap() {
   const fallback = document.getElementById("map-fallback");
   const openLinks = [document.getElementById("map-open-link"), document.getElementById("map-open-link-2")];
 
-  const mapAgeText = document.getElementById("map-age-text");
-  if (mapAgeText) {
-    mapAgeText.textContent = cfg.mapStartDate ? `Map Age: ${formatDaysHours(daysHoursSince(cfg.mapStartDate))}` : "";
-  }
+  const renderAge = () => {
+    const mapAgeText = document.getElementById("map-age-text");
+    if (!mapAgeText) return;
+    mapAgeText.textContent = cfg.mapStartDate
+      ? t("map.age", { age: formatDaysHours(daysHoursSince(cfg.mapStartDate)) })
+      : "";
+  };
+  renderAge();
+  document.addEventListener("i18n:change", renderAge);
 
   if (!cfg.bluemapUrl || cfg.bluemapUrl.includes("map.angkorsmp.com")) {
     // Still the placeholder from site.config.json - nothing real to embed yet.
     fallback.classList.add("show");
-    fallback.querySelector("p").textContent =
-      "The live map isn't configured yet. Set \"bluemapUrl\" in website/config/site.config.json to your BlueMap URL.";
+    const note = fallback.querySelector("p");
+    note.setAttribute("data-i18n", "map.notConfigured");
+    note.textContent = t("map.notConfigured");
     openLinks.forEach((el) => el.remove());
     return;
   }
