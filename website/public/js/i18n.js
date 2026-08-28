@@ -638,11 +638,14 @@ const I18n = (() => {
   }
 
   function syncButtons() {
-    // The nav carries a real <select>, so the current language is always the
-    // one shown — no guessing which way a toggle goes.
-    document.querySelectorAll(".lang-select").forEach((select) => {
-      select.value = lang;
-      select.setAttribute("aria-label", translate("nav.language"));
+    document.querySelectorAll(".lang-toggle").forEach((btn) => {
+      btn.setAttribute("aria-label", translate("nav.language"));
+    });
+    document.querySelectorAll(".lang-current").forEach((span) => {
+      span.textContent = lang === "km" ? "KH" : "EN";
+    });
+    document.querySelectorAll(".lang-option").forEach((opt) => {
+      opt.classList.toggle("active", opt.dataset.lang === lang);
     });
   }
 
@@ -655,6 +658,9 @@ const I18n = (() => {
     }
     apply();
     syncButtons();
+    // Picking a language from the dropdown should close it, same as a nav link.
+    document.querySelector(".lang-menu")?.classList.remove("open");
+    document.querySelector(".lang-toggle")?.setAttribute("aria-expanded", "false");
     document.dispatchEvent(new CustomEvent("i18n:change", { detail: { lang } }));
   }
 
