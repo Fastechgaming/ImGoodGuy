@@ -223,15 +223,16 @@ let modalCooldownTimer = null;
 function renderCooldownNote() {
   const note = document.getElementById("change-cooldown-note");
   const btn = document.getElementById("change-name-save");
+  const nameField = document.getElementById("change-name-field");
+  const editionField = document.getElementById("change-edition-field");
   const left = account ? account.canChangeAt - Date.now() : 0;
-  if (left > 0) {
-    note.hidden = false;
-    note.textContent = t("games.nameLockedToast", { time: humanDuration(left) });
-    btn.disabled = true;
-  } else {
-    note.hidden = true;
-    btn.disabled = false;
-  }
+  const locked = left > 0;
+  note.hidden = !locked;
+  if (locked) note.textContent = t("games.nameLockedToast", { time: humanDuration(left) });
+  btn.hidden = locked;
+  btn.disabled = locked;
+  nameField.hidden = locked;
+  editionField.hidden = locked;
 }
 
 document.getElementById("games-switch-btn").addEventListener("click", () => {
@@ -245,7 +246,7 @@ document.getElementById("games-switch-btn").addEventListener("click", () => {
   renderCooldownNote();
   clearInterval(modalCooldownTimer);
   modalCooldownTimer = setInterval(renderCooldownNote, 1000);
-  changeInput.focus();
+  if (!changeInput.closest(".field").hidden) changeInput.focus();
 });
 
 function closeNameModal() {
@@ -385,7 +386,7 @@ function showIntro(game) {
 async function runGame(game) {
   gameBody.innerHTML = `<p class="empty-note">${escapeHtml(t("buy.wait"))}</p>`;
 
-  // Opening the round server-side is what burns one of the day's five plays,
+  // Opening the round server-side is what burns one of the day's three plays,
   // so a player who closes the panel mid-game has still used one.
   activeRoundId = null;
   try {

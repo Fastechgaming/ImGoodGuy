@@ -38,8 +38,27 @@ function toggleTheme() {
 }
 
 function toggleNav() {
+  document.querySelector(".lang-menu")?.classList.remove("open");
   document.querySelector(".nav-links")?.classList.toggle("open");
 }
+
+function toggleLangMenu() {
+  document.querySelector(".nav-links")?.classList.remove("open");
+  const menu = document.querySelector(".lang-menu");
+  const open = menu?.classList.toggle("open");
+  document.querySelector(".lang-toggle")?.setAttribute("aria-expanded", open ? "true" : "false");
+}
+
+// Close either dropdown when clicking anywhere outside it.
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".lang-dropdown")) {
+    document.querySelector(".lang-menu")?.classList.remove("open");
+    document.querySelector(".lang-toggle")?.setAttribute("aria-expanded", "false");
+  }
+  if (!e.target.closest(".nav-toggle") && !e.target.closest(".nav-links")) {
+    document.querySelector(".nav-links")?.classList.remove("open");
+  }
+});
 
 function showToast(message) {
   let toast = document.querySelector(".toast");

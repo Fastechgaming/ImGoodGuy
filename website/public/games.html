@@ -20,13 +20,15 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         AngkorSMP
       </a>
       <div class="nav-tools">
-        <label class="lang-select-wrap">
-          <span class="sr-only" data-i18n="nav.language">Language</span>
-          <select class="lang-select" onchange="setLang(this.value)" aria-label="Language">
-            <option value="en">EN</option>
-            <option value="km">KH</option>
-          </select>
-        </label>
+        <div class="lang-dropdown">
+          <button type="button" class="lang-toggle" onclick="toggleLangMenu()" aria-haspopup="true" aria-expanded="false" aria-label="Language">
+            <span class="lang-current">EN</span>
+          </button>
+          <ul class="lang-menu" role="menu">
+            <li role="none"><button type="button" role="menuitem" class="lang-option" data-lang="en" onclick="setLang('en')">English</button></li>
+            <li role="none"><button type="button" role="menuitem" class="lang-option" data-lang="km" onclick="setLang('km')">ខ្មែរ</button></li>
+          </ul>
+        </div>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
       </div>
       <ul class="nav-links">
@@ -109,7 +111,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
           <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
           <p class="checkout-hint centered" data-i18n="games.listHint">
-            Five plays of each game a day, 1–30 Coins a play, up to 500 Coins a
+            Three plays of each game a day, 1–50 Coins a play, up to 500 Coins a
             day. Closing a game counts as a play. Resets at midnight (UTC+7).
           </p>
           <div class="item-grid" id="games-grid"></div>
@@ -132,11 +134,11 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         Your name is what your coins and points are saved under, so it can only
         be changed once a day.
       </p>
-      <div class="field">
+      <div class="field" id="change-name-field">
         <label for="change-name" data-i18n="buy.username">Minecraft username</label>
         <input type="text" id="change-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
       </div>
-      <div class="field">
+      <div class="field" id="change-edition-field">
         <label data-i18n="buy.edition">Edition</label>
         <div class="edition-toggle" id="change-edition">
           <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>

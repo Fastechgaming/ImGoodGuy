@@ -372,8 +372,8 @@ const Arcade = (() => {
           if (Math.abs(gem.x - player.x) < 20 && Math.abs(gem.y - player.y) < 24) {
             gem.taken = true;
             gems += 1;
-            points += 5;
-            floatText(stage, RAIL_W + gem.x, h - (gem.y - camera), "+5", "good");
+            points += 15;
+            floatText(stage, RAIL_W + gem.x, h - (gem.y - camera), "+15", "good");
           }
         }
 
@@ -607,7 +607,7 @@ const Arcade = (() => {
     descKey: "game.breaker.desc",
     howToKey: "game.breaker.howto",
     start(mount, onFinish) {
-      const ROUND_SECONDS = 70;
+      const ROUND_SECONDS = 50;
       const PER_LEVEL = 10; // blocks to break to clear a level
       const LEVELS = [
         { cols: 3, rows: 2, multiplier: 1 },
@@ -648,6 +648,7 @@ const Arcade = (() => {
       let penalty = 0;     // seconds lost to wrong taps
       let shownAt = 0;
       let target = null;
+      let targetLeft = 0; // how many copies of the target are still live on the grid
       let allDone = false;
       let done = false;
 
@@ -657,6 +658,7 @@ const Arcade = (() => {
         const pool = [...BLOCKS].sort(() => Math.random() - 0.5).slice(0, Math.min(count, BLOCKS.length));
         while (pool.length < count) pool.push(pick(BLOCKS)); // repeats raise the difficulty
         target = pick(pool);
+        targetLeft = pool.filter((b) => b.key === target.key).length;
 
         targetName.textContent = T(target.key);
         targetTex.src = `/images/blocks/${target.tex}.png`;
@@ -674,7 +676,12 @@ const Arcade = (() => {
             );
             cell.type = "button";
             cell.style.setProperty("--bb", block.colour);
-            cell.addEventListener("pointerdown", (event) => tap(event, cell, block));
+            let broken = false;
+            cell.addEventListener("pointerdown", (event) => {
+              if (broken) return; // this one's already been hit - only unbroken cells still respond
+              if (block.key === target.key) broken = true;
+              tap(event, cell, block);
+            });
             grid.appendChild(cell);
           });
         shownAt = performance.now();
@@ -696,11 +703,16 @@ const Arcade = (() => {
           const gained = Math.round((3 + speedBonus) * LEVELS[level].multiplier);
           points += gained;
           correct += 1;
-          cleared += 1;
           cell.classList.add("hit");
+          cell.disabled = true;
           setHud("score", points);
-          setHud("left", Math.max(0, PER_LEVEL - cleared));
           floatText(grid, px, py, `+${gained}`, "good");
+
+          targetLeft -= 1;
+          if (targetLeft > 0) return; // more copies of this block still standing
+
+          cleared += 1;
+          setHud("left", Math.max(0, PER_LEVEL - cleared));
 
           if (cleared >= PER_LEVEL) {
             if (level + 1 >= LEVELS.length) {
@@ -1380,11 +1392,14 @@ const Arcade = (() => {
       const CHECKPOINT_EVERY = 4;
       const PAR_SECONDS = 55;
       const DEATH_DEPTH = -3.2 * TILE;
+      const HEARTS_MAX = 3;
+      const heartsMarkup = (remaining) =>
+        "❤️".repeat(Math.max(0, remaining)) + "🤍".repeat(Math.max(0, HEARTS_MAX - remaining));
 
       const setHud = buildHud(mount, [
         { id: "score", labelKey: "hud.points" },
         { id: "gems", labelKey: "hud.diamonds" },
-        { id: "deaths", labelKey: "hud.deaths" },
+        { id: "hearts", labelKey: "hud.hearts", value: heartsMarkup(HEARTS_MAX) },
         { id: "time", labelKey: "hud.time", value: "0:00" },
       ]);
       const stage = buildStage(mount, "parkour-stage");
@@ -1423,15 +1438,15 @@ const Arcade = (() => {
         { w: 16, blocks: [[0, 0, 3, "normal"], [4, 0, 2, "slime"], [7, 3, 3, "normal"], [11, 0, 4, "normal"]] },
         // an ice run that speeds you up
         { w: 12, blocks: [[0, 0, 3, "normal"], [3, 0, 4, "ice"], [8, 0, 3, "normal"]] },
-        // wind charges hanging over the path
-        { w: 11, blocks: [[0, 0, 5, "normal"], [6, 0, 4, "normal"]], winds: [[5.5, 1.6], [8, 2.4]] },
+        // a single-tile hop
+        { w: 11, blocks: [[0, 0, 5, "normal"], [6, 0, 4, "normal"]] },
         // the widest gap on the course: two tiles, and worth committing to
         { w: 11, blocks: [[0, 0, 4, "normal"], [6, 0, 4, "normal"]] },
       ];
 
       const platforms = [];
       const diamonds = [];
-      const winds = [];
+      const hazards = [];
       const checkpoints = [];
       let courseEnd = 0;
 
@@ -1453,9 +1468,13 @@ const Arcade = (() => {
               gone: false,
               fading: 0,
             });
-          }
-          for (const [wx, wy] of spec.winds || []) {
-            winds.push({ x: (cursor + wx) * TILE, y: wy * TILE, phase: Math.random() * Math.PI * 2 });
+            // TNT sitting on the ground, never at the very edge of the
+            // platform - there's always a run-up and a landing spot on
+            // either side, so it's a hop to clear, not a wall to hit.
+            if (kind === "normal" && bw >= 4 && Math.random() < 0.16) {
+              const tile = 1 + Math.floor(Math.random() * (bw - 2));
+              hazards.push({ x: (cursor + bx + tile + 0.5) * TILE, y: by * TILE + 8, phase: Math.random() * Math.PI * 2 });
+            }
           }
           // A diamond over a random block in roughly half the sections.
           if (Math.random() < 0.45 && spec.blocks.length) {
@@ -1502,8 +1521,6 @@ const Arcade = (() => {
       window.addEventListener("keydown", onKeyDown);
 
       function respawn() {
-        deaths += 1;
-        setHud("deaths", deaths);
         player.x = spawnX;
         player.y = 2 * TILE;
         player.vy = 0;
@@ -1518,6 +1535,20 @@ const Arcade = (() => {
             p.fading = 0;
           }
         }
+      }
+
+      // Falling in the lava or touching TNT costs a heart. Out of hearts ends
+      // the round early instead of respawning again. Returns true when the
+      // round just ended, so the caller can stop the current physics tick.
+      function loseLife() {
+        deaths += 1;
+        setHud("hearts", heartsMarkup(HEARTS_MAX - deaths));
+        if (deaths >= HEARTS_MAX) {
+          finish(false);
+          return true;
+        }
+        respawn();
+        return false;
       }
 
       const stop = loop((dt) => {
@@ -1598,11 +1629,12 @@ const Arcade = (() => {
         }
         if (wasOnGround && !player.onGround && player.vy >= 0) coyote = 0.1;
 
-        /* wind charges shove you backwards */
-        for (const wind of winds) {
-          if (Math.abs(wind.x - player.x) < 20 && Math.abs(wind.y - player.y) < 22) {
-            player.x -= 46;
-            player.vy = -260;
+        /* TNT sitting on the ground - jump over it or it's a heart gone,
+           same as falling in the lava */
+        for (const hazard of hazards) {
+          if (Math.abs(hazard.x - player.x) < 20 && Math.abs(hazard.y - player.y) < 22) {
+            if (loseLife()) return;
+            break;
           }
         }
 
@@ -1629,7 +1661,7 @@ const Arcade = (() => {
           }
         }
 
-        if (player.y < DEATH_DEPTH) respawn();
+        if (player.y < DEATH_DEPTH) { if (loseLife()) return; }
 
         camera = Math.max(0, player.x - W() * 0.32);
         setHud("score", points);
@@ -1697,21 +1729,16 @@ const Arcade = (() => {
           ctx.fillRect(x, sy(0) - 54, 22, 14);
         }
 
-        /* wind charges */
-        for (const wind of winds) {
-          const x = sx(wind.x);
+        /* TNT hazards, sitting on the ground - a pulsing glow to read as dangerous */
+        for (const hazard of hazards) {
+          const x = sx(hazard.x);
           if (x < -40 || x > w + 40) continue;
-          const y = sy(wind.y) + Math.sin(elapsed * 3 + wind.phase) * 5;
+          const y = sy(hazard.y);
+          const glow = 0.5 + Math.sin(elapsed * 6 + hazard.phase) * 0.5;
           ctx.save();
-          ctx.translate(x, y);
-          ctx.rotate(elapsed * 4 + wind.phase);
-          ctx.strokeStyle = "rgba(210,245,255,0.95)";
-          ctx.lineWidth = 3;
-          for (let ring = 0; ring < 3; ring++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, 11 - ring * 3, ring * 1.6, ring * 1.6 + 4.4);
-            ctx.stroke();
-          }
+          ctx.shadowColor = `rgba(255,90,30,${0.5 + glow * 0.4})`;
+          ctx.shadowBlur = 14;
+          drawTex(ctx, "tnt", x - 12, y - 12, 24, 24, "#d23c2e");
           ctx.restore();
         }
 
@@ -1769,7 +1796,18 @@ const Arcade = (() => {
             ["result.diamonds", gems],
             ["result.deaths", deaths],
             ["result.runTime", fmtTime(elapsed)],
-            ["result.outcome", T(reachedEnd ? (deaths === 0 ? "result.perfectRun" : "result.finished") : "result.gaveUp")],
+            [
+              "result.outcome",
+              T(
+                reachedEnd
+                  ? deaths === 0
+                    ? "result.perfectRun"
+                    : "result.finished"
+                  : deaths >= HEARTS_MAX
+                  ? "result.outOfHearts"
+                  : "result.gaveUp"
+              ),
+            ],
           ],
         });
       }
