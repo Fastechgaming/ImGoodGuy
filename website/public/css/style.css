@@ -224,10 +224,12 @@ button { font-family: inherit; }
 .lang-dropdown { position: relative; display: inline-flex; flex-shrink: 0; }
 .lang-toggle {
   height: 42px;
+  width: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0 0.9rem;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0;
   border-radius: 10px;
   cursor: pointer;
   font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
@@ -293,7 +295,7 @@ button { font-family: inherit; }
 }
 @media (max-width: 760px) {
   .nav-tools { margin-left: auto; margin-right: 0.5rem; gap: 0.3rem; }
-  .lang-toggle { font-size: 0.85rem; padding: 0 0.7rem; }
+  .lang-toggle { font-size: 0.8rem; }
 }
 
 /* Vine tendrils hanging just below the nav wall. */
