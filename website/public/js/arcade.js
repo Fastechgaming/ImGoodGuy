@@ -628,11 +628,13 @@ const Arcade = (() => {
         "bb-target",
         `<span class="bb-target-label" data-i18n="game.breaker.target">${T("game.breaker.target")}</span>
          <img class="bb-target-tex" alt="" />
-         <span class="bb-target-block"></span>`
+         <span class="bb-target-block"></span>
+         <span class="bb-target-count"></span>`
       );
       mount.appendChild(targetBar);
       const targetName = targetBar.querySelector(".bb-target-block");
       const targetTex = targetBar.querySelector(".bb-target-tex");
+      const targetCount = targetBar.querySelector(".bb-target-count");
 
       const grid = el("div", "bb-grid");
       grid.style.position = "relative";
@@ -648,6 +650,7 @@ const Arcade = (() => {
       let penalty = 0;     // seconds lost to wrong taps
       let shownAt = 0;
       let target = null;
+      let targetLeft = 0; // how many copies of the target are still live on the grid
       let allDone = false;
       let done = false;
 
@@ -657,9 +660,13 @@ const Arcade = (() => {
         const pool = [...BLOCKS].sort(() => Math.random() - 0.5).slice(0, Math.min(count, BLOCKS.length));
         while (pool.length < count) pool.push(pick(BLOCKS)); // repeats raise the difficulty
         target = pick(pool);
+        targetLeft = pool.filter((b) => b.key === target.key).length;
 
         targetName.textContent = T(target.key);
         targetTex.src = `/images/blocks/${target.tex}.png`;
+        // When more than one copy is on the grid, every one of them has to
+        // be broken before it moves on - not just the first you find.
+        targetCount.textContent = targetLeft > 1 ? `×${targetLeft}` : "";
 
         grid.style.gridTemplateColumns = `repeat(${spec.cols}, 1fr)`;
         grid.innerHTML = "";
@@ -674,7 +681,12 @@ const Arcade = (() => {
             );
             cell.type = "button";
             cell.style.setProperty("--bb", block.colour);
-            cell.addEventListener("pointerdown", (event) => tap(event, cell, block));
+            let broken = false;
+            cell.addEventListener("pointerdown", (event) => {
+              if (broken) return; // this one's already been hit - only unbroken cells still respond
+              if (block.key === target.key) broken = true;
+              tap(event, cell, block);
+            });
             grid.appendChild(cell);
           });
         shownAt = performance.now();
@@ -696,11 +708,17 @@ const Arcade = (() => {
           const gained = Math.round((3 + speedBonus) * LEVELS[level].multiplier);
           points += gained;
           correct += 1;
-          cleared += 1;
           cell.classList.add("hit");
+          cell.disabled = true;
           setHud("score", points);
-          setHud("left", Math.max(0, PER_LEVEL - cleared));
           floatText(grid, px, py, `+${gained}`, "good");
+
+          targetLeft -= 1;
+          targetCount.textContent = targetLeft > 1 ? `×${targetLeft}` : "";
+          if (targetLeft > 0) return; // more copies of this block still standing
+
+          cleared += 1;
+          setHud("left", Math.max(0, PER_LEVEL - cleared));
 
           if (cleared >= PER_LEVEL) {
             if (level + 1 >= LEVELS.length) {
