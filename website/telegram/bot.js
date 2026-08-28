@@ -340,6 +340,7 @@ async function deliver(order, item) {
       transactionId: `order_${order.id}`,
       uuid: order.playerUuid || null,
       name: order.playerName,
+      edition: order.edition,
       itemId: order.itemId,
       itemName: order.itemName,
       commands: [command],

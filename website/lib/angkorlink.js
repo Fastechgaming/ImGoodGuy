@@ -85,11 +85,20 @@ function getRanks() {
 
 // Mini-game payout. `transactionId` must be stable for the round so a retry
 // cannot pay twice - the plugin de-duplicates on it.
-function grantCoins({ transactionId, uuid, name, amount, reason, meta }) {
+//
+// `edition` is always sent alongside `name`, even though `uuid` should
+// normally already be known by this point: the plugin only needs `name` (and
+// therefore `edition`, to normalise it correctly) when `uuid` is missing, but
+// leaving `edition` out entirely made it silently default to "java" on the
+// plugin side - which fails Bedrock names (they start with a literal ".",
+// which the Java name pattern rejects) and gets misreported as "player not
+// found" instead of the real problem.
+function grantCoins({ transactionId, uuid, name, edition, amount, reason, meta }) {
   return request("POST", "/api/v1/coins/grant", {
     transactionId,
     uuid,
     name,
+    edition,
     amount,
     reason,
     source: "minigame",
@@ -97,12 +106,14 @@ function grantCoins({ transactionId, uuid, name, amount, reason, meta }) {
   });
 }
 
-// Store delivery, after the owner presses Accept in Telegram.
-function deliverPurchase({ transactionId, uuid, name, itemId, itemName, commands, requiresOnline }) {
+// Store delivery, after the owner presses Accept in Telegram. See the note on
+// grantCoins above - edition matters here for the exact same reason.
+function deliverPurchase({ transactionId, uuid, name, edition, itemId, itemName, commands, requiresOnline }) {
   return request("POST", "/api/v1/purchase/deliver", {
     transactionId,
     uuid,
     name,
+    edition,
     itemId,
     itemName,
     commands,
