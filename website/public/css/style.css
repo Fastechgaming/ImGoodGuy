@@ -1807,3 +1807,22 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   .confirm-icon { width: 84px; height: 84px; }
   .board-list.mini .board-row { font-size: 0.76rem; grid-template-columns: 26px 1fr auto; }
 }
+
+/* Change-name modal: the live cooldown note that replaces a silent block */
+.cooldown-note {
+  padding: 0.55rem 0.8rem;
+  margin: -0.2rem 0 0.9rem;
+  border-radius: 10px;
+  border: 2px solid var(--gold-deep);
+  background: color-mix(in srgb, var(--gold) 16%, transparent);
+  color: var(--gold-deep);
+  font-weight: 700;
+  text-align: center;
+}
+#change-name-save:disabled {
+  background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
+  color: var(--ink-soft);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+#change-name-save:disabled:hover { transform: none; }

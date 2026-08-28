@@ -1,34 +1,37 @@
-// The website account, shared by the games page and the store.
+// The website account. Each page (games / store) has its OWN identity in the
+// same signed cookie, so a name change on one page never touches the other —
+// but the very first name anyone verifies, on either page, signs them into
+// both. Every call here takes a `scope` ("games" or "store") so the two never
+// get mixed up.
 //
-// The name lives in a signed cookie on the server, so verifying it on either
-// page signs you in on both. When the AngkorLink plugin is connected the reply
-// also carries the player's UUID, live coin balance and rank; without it those
-// come back null and the pages hide what they cannot show.
+// When the AngkorLink plugin is connected the reply also carries the player's
+// UUID, live coin balance and rank; without it those come back null and the
+// pages hide what they cannot show.
 const Account = (() => {
-  let cached = null;
+  const cached = {};
 
-  async function load() {
+  async function load(scope) {
     try {
-      const data = await fetchJSON("/api/account");
-      cached = data && data.player ? data : null;
+      const data = await fetchJSON(`/api/account?scope=${encodeURIComponent(scope)}`);
+      cached[scope] = data && data.player ? data : null;
     } catch {
-      cached = null;
+      cached[scope] = null;
     }
-    return cached;
+    return cached[scope];
   }
 
-  async function set(rawName, edition) {
-    cached = await fetchJSON("/api/account", {
+  async function set(rawName, edition, scope) {
+    cached[scope] = await fetchJSON("/api/account", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ player: rawName, edition }),
+      body: JSON.stringify({ player: rawName, edition, scope }),
     });
-    document.dispatchEvent(new CustomEvent("account:change", { detail: cached }));
-    return cached;
+    document.dispatchEvent(new CustomEvent("account:change", { detail: { scope, account: cached[scope] } }));
+    return cached[scope];
   }
 
-  function get() {
-    return cached;
+  function get(scope) {
+    return cached[scope] || null;
   }
 
   function ranks() {

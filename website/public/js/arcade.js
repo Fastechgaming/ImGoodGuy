@@ -985,9 +985,9 @@ const Arcade = (() => {
     { key: "ore.stone", tex: "stone", value: 0, weight: 30 },
     { key: "ore.coal", tex: "ore-coal", value: 1, weight: 22 },
     { key: "ore.iron", tex: "ore-iron", value: 2, weight: 17 },
-    { key: "ore.gold", tex: "ore-gold", value: 4, weight: 13 },
-    { key: "ore.diamond", tex: "ore-diamond", value: 8, weight: 8 },
-    { key: "ore.emerald", tex: "ore-emerald", value: 12, weight: 5 },
+    { key: "ore.gold", tex: "ore-gold", value: 3, weight: 13 },
+    { key: "ore.diamond", tex: "ore-diamond", value: 4, weight: 8 },
+    { key: "ore.emerald", tex: "ore-emerald", value: 6, weight: 5 },
     { key: "ore.tnt", tex: "tnt", value: -1, weight: 5 },
   ];
 
@@ -1553,20 +1553,27 @@ const Arcade = (() => {
 
         /* Ride a moving platform up as well as down. Without this the
            platform rises through you and quietly leaves you behind. */
+        let ridingNow = false;
         if (player.standingOn && !player.standingOn.gone && player.vy >= 0) {
           const p = player.standingOn;
           const riding = player.x + 11 > p.x && player.x - 11 < p.x + p.w && player.y <= p.y + 4;
           if (riding) {
             player.y = p.y;
             player.vy = 0;
+            ridingNow = true;
           } else {
             player.standingOn = null;
           }
         }
 
-        /* landing */
+        /* landing. `ridingNow` matters here: snapping vy to 0 above means the
+           crossing check below (which requires vy > 0) never fires again for
+           a player standing still on solid ground, which silently ate every
+           jump input after the first landing - this is what "ridingNow"
+           fixes, by keeping onGround true while actively standing on a
+           platform instead of only on the frame a fall is first caught. */
         const wasOnGround = player.onGround;
-        player.onGround = false;
+        player.onGround = ridingNow;
         for (const p of platforms) {
           if (p.gone) continue;
           const falling = player.vy > 0;

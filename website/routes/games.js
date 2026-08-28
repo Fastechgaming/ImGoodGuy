@@ -10,7 +10,7 @@ const express = require("express");
 const crypto = require("crypto");
 const gamestats = require("../lib/gamestats");
 const angkorlink = require("../lib/angkorlink");
-const { current } = require("./account");
+const { current, GAMES_SCOPE } = require("./account");
 
 const router = express.Router();
 
@@ -27,13 +27,13 @@ function sweep(now) {
 }
 
 router.get("/daily", (req, res) => {
-  const account = current(req);
+  const account = current(req, GAMES_SCOPE);
   if (!account) return res.status(401).json({ error: "Set your Minecraft name first." });
   res.json(gamestats.getDaily(account.player));
 });
 
 router.get("/leaderboard", (req, res) => {
-  const account = current(req);
+  const account = current(req, GAMES_SCOPE);
   const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
   res.json(gamestats.getLeaderboard(limit, account ? account.player : ""));
 });
@@ -42,7 +42,7 @@ router.post("/round/start", (req, res) => {
   const now = Date.now();
   sweep(now);
 
-  const account = current(req);
+  const account = current(req, GAMES_SCOPE);
   if (!account) return res.status(401).json({ error: "Set your Minecraft name first." });
 
   const gameId = String((req.body || {}).gameId || "");

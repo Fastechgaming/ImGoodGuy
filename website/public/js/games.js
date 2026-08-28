@@ -55,7 +55,7 @@ async function claimName() {
   }
   startBtn.disabled = true;
   try {
-    account = await Account.set(raw, edition);
+    account = await Account.set(raw, edition, "games");
     openHub();
   } catch (err) {
     showToast(err.message);
@@ -215,12 +215,26 @@ document.querySelectorAll("#change-edition [data-edition]").forEach((btn) =>
   })
 );
 
-document.getElementById("games-switch-btn").addEventListener("click", () => {
+// The modal always opens — no more silently refusing the click. While the
+// cooldown is still running it shows a live countdown and disables Save,
+// so the player can see exactly why (and how long) instead of guessing.
+let modalCooldownTimer = null;
+
+function renderCooldownNote() {
+  const note = document.getElementById("change-cooldown-note");
+  const btn = document.getElementById("change-name-save");
   const left = account ? account.canChangeAt - Date.now() : 0;
   if (left > 0) {
-    showToast(t("games.nameLockedToast", { time: `${Math.ceil(left / 1000)}s` }));
-    return;
+    note.hidden = false;
+    note.textContent = t("games.nameLockedToast", { time: humanDuration(left) });
+    btn.disabled = true;
+  } else {
+    note.hidden = true;
+    btn.disabled = false;
   }
+}
+
+document.getElementById("games-switch-btn").addEventListener("click", () => {
   changeEdition = account ? account.edition : "java";
   document
     .querySelectorAll("#change-edition [data-edition]")
@@ -228,11 +242,15 @@ document.getElementById("games-switch-btn").addEventListener("click", () => {
   changeInput.value = "";
   updateChangePreview();
   nameModal.classList.add("open");
+  renderCooldownNote();
+  clearInterval(modalCooldownTimer);
+  modalCooldownTimer = setInterval(renderCooldownNote, 1000);
   changeInput.focus();
 });
 
 function closeNameModal() {
   nameModal.classList.remove("open");
+  clearInterval(modalCooldownTimer);
 }
 document.getElementById("name-modal-close").addEventListener("click", closeNameModal);
 nameModal.addEventListener("click", (e) => {
@@ -244,6 +262,7 @@ changeInput.addEventListener("keydown", (e) => {
 document.getElementById("change-name-save").addEventListener("click", saveNewName);
 
 async function saveNewName() {
+  if (account && Date.now() < account.canChangeAt) return; // button should already be disabled
   const raw = changeInput.value.trim();
   if (!isValidRawName(raw, changeEdition)) {
     showToast(t(changeEdition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
@@ -252,7 +271,7 @@ async function saveNewName() {
   const btn = document.getElementById("change-name-save");
   btn.disabled = true;
   try {
-    account = await Account.set(raw, changeEdition);
+    account = await Account.set(raw, changeEdition, "games");
     closeNameModal();
     document.getElementById("hub-player-name").textContent = account.player;
     showToast(t("games.nameSaved", { name: account.player }));
@@ -260,8 +279,9 @@ async function saveNewName() {
     await Promise.all([refreshDaily(), refreshBoard()]);
   } catch (err) {
     showToast(err.message);
+    renderCooldownNote();
   } finally {
-    btn.disabled = false;
+    btn.disabled = account ? Date.now() < account.canChangeAt : false;
   }
 }
 
@@ -531,7 +551,7 @@ document.addEventListener("i18n:change", () => {
 
 /* ---------------- Boot ---------------- */
 (async function boot() {
-  account = await Account.load();
+  account = await Account.load("games");
   if (account && account.player) return openHub();
   updatePreview();
 })();

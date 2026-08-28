@@ -6,7 +6,7 @@ const store = require("../lib/store");
 const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
-const { current: currentAccount } = require("./account");
+const { current: currentAccount, STORE_SCOPE } = require("./account");
 
 const router = express.Router();
 
@@ -90,7 +90,7 @@ router.post("/checkout", (req, res) => {
   try {
     // The buyer is whoever is signed in — the store makes you verify a name
     // before it will show you a Buy button, so there is nothing to type here.
-    const account = currentAccount(req);
+    const account = currentAccount(req, STORE_SCOPE);
     if (!account) {
       return res.status(401).json({ error: "Verify your Minecraft name before buying.", code: "NOT_SIGNED_IN" });
     }

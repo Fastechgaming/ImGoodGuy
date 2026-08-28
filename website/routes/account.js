@@ -1,11 +1,22 @@
-// The player's website account: one name, shared by the games page and the
-// store. Logging in on either page logs you into both, because the name lives
-// in a signed cookie rather than in either page's state.
+// The player's website account. This used to be one identity shared by both
+// pages; it is now two independent identities in the same signed cookie:
 //
-// When the AngkorLink plugin is configured, the name is verified against the
-// Minecraft server and the reply carries the player's UUID, coin balance and
-// rank. Without the plugin the name is accepted on its own so the site still
-// works — the response says which of the two happened via `linked`.
+//   session.account = { games: {...} | null, store: {...} | null }
+//
+// The very FIRST name anyone ever types, on either page, seeds both — so a
+// brand new visitor is "logged in" everywhere the moment they verify once.
+// After that, each page's identity only moves when THAT page's Change Name
+// form is used; the other page is untouched. This is also why the two scopes
+// have different cooldowns: the games page (5 plays/day per game, a coin
+// allowance) is worth protecting from someone farming a fresh daily budget
+// under a new name every few minutes, so it's 24h. The store has nothing to
+// farm — it only exists to know who to deliver an order to — so its cooldown
+// is a token 60s, purely to stop someone hammering the verify endpoint.
+//
+// When the AngkorLink plugin is configured, verifying checks the name against
+// the Minecraft server and the reply carries the player's UUID, coin balance
+// and rank. Without the plugin the name is accepted on its own so the site
+// still works — the response says which of the two happened via `linked`.
 const express = require("express");
 const gamestats = require("../lib/gamestats");
 const angkorlink = require("../lib/angkorlink");
@@ -14,32 +25,53 @@ const { normalizeServerName, isValidRawName } = require("../public/js/playername
 
 const router = express.Router();
 
-// Short, purely anti-spam: nothing is spendable from the website, so this only
-// exists to stop someone hammering the verify endpoint.
-const NAME_CHANGE_COOLDOWN_MS = 60 * 1000;
+const GAMES_SCOPE = "games";
+const STORE_SCOPE = "store";
+const COOLDOWN_MS = {
+  [GAMES_SCOPE]: 24 * 60 * 60 * 1000,
+  [STORE_SCOPE]: 60 * 1000,
+};
 
-function current(req) {
-  const account = req.session && req.session.account;
-  return account && account.player ? account : null;
+function normalizeScope(raw) {
+  return raw === STORE_SCOPE ? STORE_SCOPE : GAMES_SCOPE; // unknown/missing -> games
 }
 
-function payload(account, now = Date.now()) {
-  if (!account) {
-    return { player: null, edition: "java", canChange: true, canChangeAt: now, linked: angkorlink.enabled() };
+// Reads both identities out of the cookie. Also migrates the old single-
+// identity shape (from before accounts were split per page) into both scopes,
+// so a visitor who was already signed in doesn't get logged out by this change.
+function pair(req) {
+  const raw = req.session && req.session.account;
+  if (!raw) return { games: null, store: null };
+  if (Object.prototype.hasOwnProperty.call(raw, "games") || Object.prototype.hasOwnProperty.call(raw, "store")) {
+    return { games: raw.games || null, store: raw.store || null };
   }
-  const canChangeAt = account.setAt + NAME_CHANGE_COOLDOWN_MS;
+  if (raw.player) return { games: raw, store: { ...raw } }; // old flat shape
+  return { games: null, store: null };
+}
+
+function current(req, scope) {
+  const identity = pair(req)[normalizeScope(scope)];
+  return identity && identity.player ? identity : null;
+}
+
+function payload(identity, scope, now = Date.now()) {
+  const cooldownMs = COOLDOWN_MS[normalizeScope(scope)];
+  if (!identity) {
+    return { player: null, edition: "java", canChange: true, canChangeAt: now, cooldownMs, linked: angkorlink.enabled() };
+  }
+  const canChangeAt = identity.setAt + cooldownMs;
   return {
-    player: account.player,
-    edition: account.edition,
-    uuid: account.uuid || null,
-    coins: account.coins ?? null,
-    rank: account.rank || null,
-    nextRank: account.nextRank || null,
-    linked: Boolean(account.linked),
-    setAt: account.setAt,
+    player: identity.player,
+    edition: identity.edition,
+    uuid: identity.uuid || null,
+    coins: identity.coins ?? null,
+    rank: identity.rank || null,
+    nextRank: identity.nextRank || null,
+    linked: Boolean(identity.linked),
+    setAt: identity.setAt,
     canChangeAt,
     canChange: now >= canChangeAt,
-    cooldownMs: NAME_CHANGE_COOLDOWN_MS,
+    cooldownMs,
   };
 }
 
@@ -70,24 +102,28 @@ async function verify(player, edition) {
 }
 
 router.get("/", async (req, res) => {
-  const account = current(req);
+  const scope = normalizeScope(req.query.scope);
+  const identity = current(req, scope);
   // Refresh coins/rank on every page load, so the store never shows a stale
   // balance — but only when we actually have a UUID to ask about.
-  if (account && account.uuid && angkorlink.enabled()) {
-    const profile = await angkorlink.getProfile(account.uuid);
+  if (identity && identity.uuid && angkorlink.enabled()) {
+    const profile = await angkorlink.getProfile(identity.uuid);
     if (profile.ok) {
-      account.coins = typeof profile.coins === "number" ? profile.coins : account.coins;
-      account.rank = profile.rank || null;
-      account.nextRank = profile.nextRank || null;
-      req.session.account = account;
+      identity.coins = typeof profile.coins === "number" ? profile.coins : identity.coins;
+      identity.rank = profile.rank || null;
+      identity.nextRank = profile.nextRank || null;
+      const both = pair(req);
+      both[scope] = identity;
+      req.session.account = both;
     }
   }
-  res.json(payload(account));
+  res.json(payload(identity, scope));
 });
 
 router.post("/", async (req, res) => {
   const now = Date.now();
   const body = req.body || {};
+  const scope = normalizeScope(body.scope);
   const edition = body.edition === "bedrock" ? "bedrock" : "java";
   const raw = String(body.player || body.playerName || "");
 
@@ -96,14 +132,17 @@ router.post("/", async (req, res) => {
   }
   const player = normalizeServerName(raw, edition);
 
-  const existing = current(req);
+  const both = pair(req);
+  const isFirstEver = !both.games && !both.store;
+  const existing = both[scope];
+
   if (existing) {
     const sameName = existing.player.toLowerCase() === player.toLowerCase() && existing.edition === edition;
     // Re-submitting the same name is a no-op and must not restart the cooldown.
-    if (!sameName && now < existing.setAt + NAME_CHANGE_COOLDOWN_MS) {
+    if (!sameName && now < existing.setAt + COOLDOWN_MS[scope]) {
       return res.status(429).json({
-        error: "Please wait a moment before changing your name again.",
-        ...payload(existing, now),
+        error: "Please wait before changing your name again.",
+        ...payload(existing, scope, now),
       });
     }
   }
@@ -116,7 +155,7 @@ router.post("/", async (req, res) => {
     });
   }
 
-  req.session.account = {
+  const identity = {
     player: checked.player || player,
     edition,
     uuid: checked.uuid,
@@ -126,16 +165,30 @@ router.post("/", async (req, res) => {
     linked: checked.linked,
     setAt: now,
   };
-  res.json({ ...payload(req.session.account, now), changed: true, degraded: Boolean(checked.degraded) });
+
+  if (isFirstEver) {
+    // The very first name anyone types, on either page, signs them into both
+    // — two independent copies from here on, not a shared reference.
+    both.games = identity;
+    both.store = { ...identity };
+  } else {
+    both[scope] = identity;
+  }
+  req.session.account = both;
+  res.json({ ...payload(identity, scope, now), changed: true, degraded: Boolean(checked.degraded) });
 });
 
 router.post("/logout", (req, res) => {
-  if (req.session) req.session.account = null;
+  const scope = normalizeScope((req.body || {}).scope);
+  const both = pair(req);
+  both[scope] = null;
+  req.session.account = both;
   res.json({ ok: true });
 });
 
 // The rank ladder the store prices upgrades against. Comes from the plugin when
 // it is running (it knows the real groups), otherwise from the store catalogue.
+// Not scoped — the ladder itself is the same regardless of who's asking.
 router.get("/ranks", async (req, res) => {
   if (angkorlink.enabled()) {
     const fromPlugin = await angkorlink.getRanks();
@@ -158,11 +211,12 @@ router.get("/ranks", async (req, res) => {
   res.json({ ranks, source: "catalogue" });
 });
 
-// Shared by the games page; kept here so both pages read one shape.
+// Shared by the games page; kept here so both pages read one shape. Always
+// the games-scoped identity — the daily coin ledger tracks games-page play.
 router.get("/daily", (req, res) => {
-  const account = current(req);
-  if (!account) return res.status(401).json({ error: "Set your Minecraft name first." });
-  res.json(gamestats.getDaily(account.player));
+  const identity = current(req, GAMES_SCOPE);
+  if (!identity) return res.status(401).json({ error: "Set your Minecraft name first." });
+  res.json(gamestats.getDaily(identity.player));
 });
 
-module.exports = { router, current, payload, NAME_CHANGE_COOLDOWN_MS };
+module.exports = { router, current, payload, GAMES_SCOPE, STORE_SCOPE, COOLDOWN_MS };
