@@ -1257,6 +1257,11 @@ body.game-open { overflow: hidden; }
   width: 100%;
   max-width: 720px;
   max-height: 94vh;
+  /* dvh tracks the browser's actually-visible viewport, not 100vh's
+     largest-possible one - on mobile that's the difference between fitting
+     and being cut off behind the address bar. Falls back to the vh value
+     above on browsers that don't support dvh. */
+  max-height: 94dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1374,7 +1379,7 @@ body.game-open { overflow: hidden; }
   color: var(--bb, var(--gold));
   text-shadow: 0 2px 0 rgba(0,0,0,0.4);
 }
-.bb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; }
+.bb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; justify-content: center; }
 .bb-cell {
   display: flex;
   flex-direction: column;
@@ -1403,7 +1408,6 @@ body.game-open { overflow: hidden; }
   .game-panel-body { padding: 0.7rem; }
   .game-stage { height: min(52vh, 340px); }
   .hud-value { font-size: 1rem; }
-  .bb-grid { grid-template-columns: repeat(3, 1fr); gap: 0.45rem; }
   .bb-name { font-size: 0.55rem; }
   .result-score-value { font-size: 1.8rem; }
 }
@@ -1451,6 +1455,7 @@ body.game-open { overflow: hidden; }
 .mine-grid {
   position: relative;
   display: grid;
+  justify-content: center;
   gap: 0.45rem;
   padding: 0.55rem;
   border: 3px solid var(--stone-darkest);
