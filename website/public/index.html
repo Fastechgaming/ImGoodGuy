@@ -21,8 +21,14 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         AngkorSMP
       </a>
       <div class="nav-tools">
+        <label class="lang-select-wrap">
+          <span class="sr-only" data-i18n="nav.language">Language</span>
+          <select class="lang-select" onchange="setLang(this.value)" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="km">KH</option>
+          </select>
+        </label>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
-        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
       </div>
       <ul class="nav-links">
         <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>

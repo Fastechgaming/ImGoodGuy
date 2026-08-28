@@ -20,8 +20,14 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         AngkorSMP
       </a>
       <div class="nav-tools">
+        <label class="lang-select-wrap">
+          <span class="sr-only" data-i18n="nav.language">Language</span>
+          <select class="lang-select" onchange="setLang(this.value)" aria-label="Language">
+            <option value="en">EN</option>
+            <option value="km">KH</option>
+          </select>
+        </label>
         <button class="theme-toggle" onclick="toggleTheme()" aria-label="Switch theme">☀️</button>
-        <button class="lang-toggle" onclick="toggleLang()" aria-label="Switch to Khmer">KH</button>
       </div>
       <ul class="nav-links">
         <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
@@ -36,7 +42,8 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <main class="map-wrap">
     <div class="container">
-      <h2 data-i18n="map.title">🌿 Cambodia Map — Live BlueMap 🌿</h2>
+      <h2 class="no-rule" data-i18n="map.title">🌿 Cambodia Map 🌿</h2>
+      <p class="section-subtitle" data-i18n="map.subtitle">LIVE MAP</p>
       <p class="map-age" id="map-age-text"></p>
       <p style="text-align:center; color: var(--ink-soft); margin-top:-0.5rem;">
         <span data-i18n="map.explain">Explore AngkorSMP in real time. Having trouble viewing it below?</span>

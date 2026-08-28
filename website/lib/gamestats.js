@@ -1,13 +1,13 @@
-// Server-side coin ledger for the website mini-games.
+// Server-side ledger for the website mini-games.
 //
-// Rules the ledger enforces (the browser is never trusted with these):
-//   * every game has its own 500 coins/day budget
-//   * all five games together cap at 2,500 coins/day
-//   * the day rolls over at 00:00 Cambodia time (UTC+7)
+// The rules the ledger enforces (the browser is never trusted with these):
+//   * each game can be played 5 times a day. A play is counted the moment a
+//     round STARTS, so closing the panel mid-game still uses one up.
+//   * a round pays 1-30 coins depending on how well it went.
+//   * all games together pay at most 500 coins a day.
+//   * the day rolls over at 00:00 Cambodia time (UTC+7).
 //
-// A round must be opened by the server (`startRound`) before it can be
-// cashed in (`finishRound`), which gives us a trustworthy clock to sanity
-// check the score against and stops the same round being claimed twice.
+// Points are tracked separately and forever, for the leaderboard.
 const fs = require("fs");
 const path = require("path");
 
@@ -15,20 +15,23 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const STATS_FILE = path.join(DATA_DIR, "gamestats.json");
 const BOARD_FILE = path.join(DATA_DIR, "leaderboard.json");
 
-const PER_GAME_DAILY_CAP = 500;
-const TOTAL_DAILY_CAP = 2500;
+const PLAYS_PER_GAME_PER_DAY = 5;
+const COINS_PER_DAY = 500;
+const MAX_COINS_PER_PLAY = 30;
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 
-// Per-game tuning. `coinsPerPoint` is set so a strong round is worth roughly
-// 100-150 coins, i.e. about four good rounds to fill that game's daily budget.
-// `maxPointsPerSecond` is the plausibility ceiling: no honest player can score
-// faster than this, so anything above it gets clamped rather than paid out.
+// Per-game tuning. `pointsForFullCoins` is the score that earns the full 30
+// coins; anything less scales down proportionally, with a floor of 1 coin for
+// a round that scored at all. `maxPointsPerSecond` is the plausibility
+// ceiling - no honest player scores faster than this, so anything above it is
+// clamped rather than paid out.
 const GAMES = {
-  "lava-run": { name: "Lava Run", coinsPerPoint: 0.25, maxPointsPerSecond: 25, maxCoinsPerRound: 200 },
-  "block-breaker": { name: "Block Breaker", coinsPerPoint: 0.45, maxPointsPerSecond: 24, maxCoinsPerRound: 200 },
-  "wind-charge-dodge": { name: "Wind Charge Dodge", coinsPerPoint: 0.5, maxPointsPerSecond: 12, maxCoinsPerRound: 200 },
-  "diamond-rush": { name: "Diamond Rush", coinsPerPoint: 0.35, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
-  "build-it": { name: "Build It!", coinsPerPoint: 0.3, maxPointsPerSecond: 40, maxCoinsPerRound: 200 },
+  "lava-run": { name: "Lava Run", pointsForFullCoins: 340, maxPointsPerSecond: 14 },
+  "block-breaker": { name: "Block Breaker", pointsForFullCoins: 420, maxPointsPerSecond: 20 },
+  "wind-charge-dodge": { name: "Wind Charge Dodge", pointsForFullCoins: 190, maxPointsPerSecond: 9 },
+  "diamond-rush": { name: "Diamond Rush", pointsForFullCoins: 260, maxPointsPerSecond: 22 },
+  "tnt-escape": { name: "TNT Escape", pointsForFullCoins: 240, maxPointsPerSecond: 10 },
+  "block-parkour": { name: "Block Parkour", pointsForFullCoins: 300, maxPointsPerSecond: 14 },
 };
 
 const GAME_IDS = Object.keys(GAMES);
@@ -49,17 +52,13 @@ function nextResetAt(now = Date.now()) {
 
 /* ------------------------------ persistence ------------------------------- */
 
-function readAll() {
+function readJson(file) {
   try {
-    const parsed = JSON.parse(fs.readFileSync(STATS_FILE, "utf8"));
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"));
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch (err) {
     return {};
   }
-}
-
-function writeAll(data) {
-  writeJson(STATS_FILE, data);
 }
 
 function writeJson(file, data) {
@@ -69,7 +68,7 @@ function writeJson(file, data) {
   fs.renameSync(tmp, file);
 }
 
-// Names are matched case-insensitively so ".Steve" and ".steve" share a budget.
+// Names are matched case-insensitively so ".Steve" and ".steve" are one player.
 function playerKey(playerName) {
   return String(playerName || "").trim().toLowerCase();
 }
@@ -77,101 +76,116 @@ function playerKey(playerName) {
 // Keep today plus the two previous days; older rows are dead weight.
 function prune(data, today) {
   for (const key of Object.keys(data)) {
-    if (key < today) {
-      const age = (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${key}T00:00:00Z`)) / 86400000;
-      if (!Number.isFinite(age) || age > 2) delete data[key];
-    }
+    if (key >= today) continue;
+    const age = (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${key}T00:00:00Z`)) / 86400000;
+    if (!Number.isFinite(age) || age > 2) delete data[key];
   }
+}
+
+function blankRow() {
+  const plays = {};
+  for (const id of GAME_IDS) plays[id] = 0;
+  return { plays, coins: 0 };
+}
+
+function readRow(data, today, key) {
+  const stored = (data[today] && data[today][key]) || {};
+  const row = blankRow();
+  for (const id of GAME_IDS) {
+    row.plays[id] = Math.max(0, Math.min(PLAYS_PER_GAME_PER_DAY, Number((stored.plays || {})[id]) || 0));
+  }
+  row.coins = Math.max(0, Math.min(COINS_PER_DAY, Number(stored.coins) || 0));
+  return row;
 }
 
 /* -------------------------------- reading --------------------------------- */
 
-function blankLedger() {
-  const games = {};
-  for (const id of GAME_IDS) games[id] = { earned: 0, cap: PER_GAME_DAILY_CAP };
-  return games;
-}
-
-// Everything the games page needs to draw its progress bars.
+// Everything the games page needs to draw its counters.
 function getDaily(playerName, now = Date.now()) {
   const today = dayKey(now);
-  const data = readAll();
-  const stored = (data[today] && data[today][playerKey(playerName)]) || {};
+  const row = readRow(readJson(STATS_FILE), today, playerKey(playerName));
 
-  const games = blankLedger();
-  let total = 0;
+  const games = {};
   for (const id of GAME_IDS) {
-    const earned = Math.max(0, Math.min(PER_GAME_DAILY_CAP, Number(stored[id]) || 0));
-    games[id].earned = earned;
-    total += earned;
+    games[id] = {
+      plays: row.plays[id],
+      playCap: PLAYS_PER_GAME_PER_DAY,
+      playsLeft: PLAYS_PER_GAME_PER_DAY - row.plays[id],
+    };
   }
 
   return {
     day: today,
     resetAt: nextResetAt(now),
-    perGameCap: PER_GAME_DAILY_CAP,
-    totalCap: TOTAL_DAILY_CAP,
-    total,
-    totalRemaining: Math.max(0, TOTAL_DAILY_CAP - total),
+    coinsEarned: row.coins,
+    coinCap: COINS_PER_DAY,
+    coinsLeft: Math.max(0, COINS_PER_DAY - row.coins),
+    coinCapReached: row.coins >= COINS_PER_DAY,
+    playCap: PLAYS_PER_GAME_PER_DAY,
+    maxCoinsPerPlay: MAX_COINS_PER_PLAY,
     games,
   };
 }
 
-// How many coins this player could still earn in this game right now.
-function remainingFor(playerName, gameId, now = Date.now()) {
+function canPlay(playerName, gameId, now = Date.now()) {
   const daily = getDaily(playerName, now);
   const game = daily.games[gameId];
-  if (!game) return 0;
-  return Math.max(0, Math.min(game.cap - game.earned, daily.totalRemaining));
+  return Boolean(game && game.playsLeft > 0);
 }
 
 /* -------------------------------- writing --------------------------------- */
 
-// Credits `coins` and returns what was actually granted after both caps.
-function award(playerName, gameId, coins, now = Date.now()) {
+function mutate(playerName, today, fn) {
+  const key = playerKey(playerName);
+  const data = readJson(STATS_FILE);
+  prune(data, today);
+  const row = readRow(data, today, key);
+  const result = fn(row);
+  if (!data[today]) data[today] = {};
+  data[today][key] = row;
+  writeJson(STATS_FILE, data);
+  return result;
+}
+
+// Burns one of the player's 5 daily plays for this game. Called when a round
+// is opened, so quitting mid-game still costs a play.
+function recordPlay(playerName, gameId, now = Date.now()) {
   if (!GAMES[gameId]) throw new Error(`Unknown game: ${gameId}`);
   const today = dayKey(now);
-  const key = playerKey(playerName);
-  const data = readAll();
-  prune(data, today);
+  const allowed = mutate(playerName, today, (row) => {
+    if (row.plays[gameId] >= PLAYS_PER_GAME_PER_DAY) return false;
+    row.plays[gameId] += 1;
+    return true;
+  });
+  return { allowed, daily: getDaily(playerName, now) };
+}
 
-  if (!data[today]) data[today] = {};
-  if (!data[today][key]) data[today][key] = {};
-  const row = data[today][key];
-
-  let usedToday = 0;
-  for (const id of GAME_IDS) {
-    row[id] = Math.max(0, Math.min(PER_GAME_DAILY_CAP, Number(row[id]) || 0));
-    usedToday += row[id];
-  }
-
-  const headroom = Math.max(
-    0,
-    Math.min(PER_GAME_DAILY_CAP - row[gameId], TOTAL_DAILY_CAP - usedToday)
-  );
-  const granted = Math.max(0, Math.min(headroom, Math.floor(Number(coins) || 0)));
-
-  row[gameId] += granted;
-  writeAll(data);
-
+// Credits coins, clamped to what is left of the 500/day allowance.
+function award(playerName, coins, now = Date.now()) {
+  const today = dayKey(now);
+  const granted = mutate(playerName, today, (row) => {
+    const headroom = Math.max(0, COINS_PER_DAY - row.coins);
+    const give = Math.max(0, Math.min(headroom, Math.floor(Number(coins) || 0)));
+    row.coins += give;
+    return give;
+  });
   return { granted, daily: getDaily(playerName, now) };
+}
+
+// Score -> coins. 30 for a great round, 1 for a round that barely scored.
+function coinsForRound(gameId, points) {
+  const cfg = GAMES[gameId];
+  if (!cfg || points <= 0) return 0;
+  const scaled = Math.round((points / cfg.pointsForFullCoins) * MAX_COINS_PER_PLAY);
+  return Math.max(1, Math.min(MAX_COINS_PER_PLAY, scaled));
 }
 
 /* ------------------------- points leaderboard ------------------------- */
 //
-// Lifetime points per player, kept separately from the daily coin ledger so it
+// Lifetime points per player, kept separately from the daily ledger so it
 // survives the nightly reset. Only the *counted* points from a finished round
 // are added, i.e. the figure that already passed the plausibility check.
 const MAX_BOARD_ROWS = 2000;
-
-function readBoard() {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(BOARD_FILE, "utf8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch (err) {
-    return {};
-  }
-}
 
 function addPoints(playerName, points, now = Date.now()) {
   const gained = Math.max(0, Math.floor(Number(points) || 0));
@@ -179,7 +193,7 @@ function addPoints(playerName, points, now = Date.now()) {
   const key = playerKey(playerName);
   if (!key) return;
 
-  const board = readBoard();
+  const board = readJson(BOARD_FILE);
   const row = board[key] || { name: playerName, points: 0, rounds: 0, updatedAt: now };
   row.name = playerName; // keep the latest capitalisation the player used
   row.points += gained;
@@ -205,10 +219,10 @@ function addPoints(playerName, points, now = Date.now()) {
 
 // Ranked list, plus where `playerName` sits even if they're off the end of it.
 function getLeaderboard(limit = 50, playerName = "") {
-  const board = readBoard();
+  const board = readJson(BOARD_FILE);
   const rows = Object.entries(board)
     .map(([key, row]) => ({ key, name: row.name || key, points: row.points || 0, rounds: row.rounds || 0 }))
-    // Ties break on who got there first, so a new player can't leapfrog on equal points.
+    // Ties break on name so the order is stable between requests.
     .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
 
   const wanted = playerKey(playerName);
@@ -222,20 +236,26 @@ function getLeaderboard(limit = 50, playerName = "") {
       points: row.points,
       rounds: row.rounds,
     })),
-    you: index === -1 ? null : { rank: index + 1, name: rows[index].name, points: rows[index].points, rounds: rows[index].rounds },
+    you:
+      index === -1
+        ? null
+        : { rank: index + 1, name: rows[index].name, points: rows[index].points, rounds: rows[index].rounds },
   };
 }
 
 module.exports = {
   GAMES,
   GAME_IDS,
-  PER_GAME_DAILY_CAP,
-  TOTAL_DAILY_CAP,
+  PLAYS_PER_GAME_PER_DAY,
+  COINS_PER_DAY,
+  MAX_COINS_PER_PLAY,
   dayKey,
   nextResetAt,
   getDaily,
-  remainingFor,
+  canPlay,
+  recordPlay,
   award,
+  coinsForRound,
   addPoints,
   getLeaderboard,
 };

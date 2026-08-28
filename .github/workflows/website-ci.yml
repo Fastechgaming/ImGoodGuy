@@ -1,0 +1,80 @@
+# Checks the website still starts and every script parses, on every push.
+# This does NOT deploy anything — GitHub can't host a Node server. See
+# website/DEPLOY.md for how the site actually goes live.
+name: Website CI
+
+on:
+  push:
+    paths: ["website/**", ".github/workflows/website-ci.yml"]
+  pull_request:
+    paths: ["website/**", ".github/workflows/website-ci.yml"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check every browser script parses
+        run: for f in public/js/*.js; do node --check "$f" || exit 1; done
+
+      - name: Check every server module loads
+        run: |
+          node -e "
+            require('./lib/store'); require('./lib/gamestats');
+            require('./lib/angkorlink'); require('./lib/minecraft'); require('./lib/rcon');
+            require('./routes/account'); require('./routes/api');
+            require('./routes/games'); require('./routes/admin');
+            console.log('all modules load');
+          "
+
+      - name: Check the translation dictionaries stay in step
+        run: |
+          node -e "
+            const fs = require('fs');
+            const raw = fs.readFileSync('public/js/i18n.js', 'utf8');
+            const keys = (block) => [...block.matchAll(/^      \"([A-Za-z0-9.]+)\":/gm)].map(m => m[1]);
+            const en = keys(raw.slice(raw.indexOf('    en: {'), raw.indexOf('    km: {')));
+            const km = keys(raw.slice(raw.indexOf('    km: {')));
+            const missingKm = en.filter(k => !km.includes(k));
+            const missingEn = km.filter(k => !en.includes(k));
+            if (missingKm.length || missingEn.length) {
+              console.error('Missing in km:', missingKm);
+              console.error('Missing in en:', missingEn);
+              process.exit(1);
+            }
+            console.log(\`en and km both define \${en.length} keys\`);
+          "
+
+      - name: Boot the server and hit it
+        run: |
+          cp .env.example .env
+          PORT=3000 node server.js & echo $! > /tmp/pid
+          for i in $(seq 1 20); do
+            sleep 1
+            curl -fsS http://127.0.0.1:3000/healthz > /dev/null && break
+          done
+          echo "--- healthz ---";      curl -fsS http://127.0.0.1:3000/healthz; echo
+          echo "--- home page ---";    curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/
+          echo "--- games page ---";   curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/games.html
+          echo "--- store page ---";   curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/store.html
+          echo "--- items api ---";    curl -fsS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/api/items
+          echo "--- signed-out checkout is refused ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:3000/api/checkout \
+                   -H 'Content-Type: application/json' -d '{"itemId":"rank-bee"}')
+          test "$code" = "401" || { echo "expected 401, got $code"; exit 1; }
+          kill "$(cat /tmp/pid)"

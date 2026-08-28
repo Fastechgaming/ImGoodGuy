@@ -1,35 +1,21 @@
 // Mini-game API. The browser runs the games, but the *coins* are decided here:
-// a round has to be opened server-side, is only ever cashed in once, is sanity
-// checked against the clock, and is finally clamped by the daily caps in
-// lib/gamestats.js. That is what keeps the 500/day (and 2,500/day) promise
-// honest even if someone pokes at the page's JavaScript.
+// a round has to be opened server-side (which burns one of the player's five
+// daily plays for that game), is only ever cashed in once, is sanity checked
+// against the clock, and is finally clamped by the 500 coins/day allowance in
+// lib/gamestats.js.
 //
-// The player's name is bound to a signed cookie, so the games page only ever
-// asks for it once and a name change is rate limited to once a day.
+// The player comes from the shared account cookie (routes/account.js), never
+// from the request body.
 const express = require("express");
 const crypto = require("crypto");
-const cookieSession = require("cookie-session");
 const gamestats = require("../lib/gamestats");
-const { normalizeServerName, isValidRawName } = require("../public/js/playername");
+const angkorlink = require("../lib/angkorlink");
+const { current, GAMES_SCOPE } = require("./account");
 
 const router = express.Router();
 
-const NAME_CHANGE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
-// Its own cookie, separate from the admin session: it lives far longer and
-// carries nothing privileged.
-router.use(
-  cookieSession({
-    name: "angkorsmp_player",
-    secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-    maxAge: 400 * 24 * 60 * 60 * 1000,
-    httpOnly: true,
-    sameSite: "lax",
-  })
-);
-
 // Open rounds live in memory only. A restart just voids whatever was in
-// flight, which costs a player one round at worst.
+// flight; the play is already counted, which is the safe way round.
 const openRounds = new Map();
 const ROUND_TTL_MS = 30 * 60 * 1000;
 const MAX_OPEN_ROUNDS = 5000;
@@ -40,84 +26,23 @@ function sweep(now) {
   }
 }
 
-/* ------------------------- the bound player ------------------------- */
-
-function boundPlayer(req) {
-  const account = req.session && req.session.account;
-  if (!account || !account.player) return null;
-  return account;
-}
-
-function accountPayload(account, now = Date.now()) {
-  if (!account) return { player: null, edition: "java", canChange: true, canChangeAt: now };
-  const canChangeAt = account.setAt + NAME_CHANGE_COOLDOWN_MS;
-  return {
-    player: account.player,
-    edition: account.edition,
-    setAt: account.setAt,
-    canChangeAt,
-    canChange: now >= canChangeAt,
-    cooldownMs: NAME_CHANGE_COOLDOWN_MS,
-  };
-}
-
-// Who am I? Called on every visit to the games page.
-router.get("/player", (req, res) => {
-  res.json(accountPayload(boundPlayer(req)));
-});
-
-// Claim a name, or change it once the 24h cooldown has passed.
-router.post("/player", (req, res) => {
-  const now = Date.now();
-  const body = req.body || {};
-  const edition = body.edition === "bedrock" ? "bedrock" : "java";
-  const raw = String(body.player || body.playerName || "");
-
-  if (!isValidRawName(raw, edition)) {
-    return res.status(400).json({ error: "Enter a valid Minecraft name first." });
-  }
-  const player = normalizeServerName(raw, edition);
-
-  const current = boundPlayer(req);
-  if (current) {
-    // Re-submitting the same name is a no-op, not a change - it must not
-    // restart the cooldown or lock someone out of their own account.
-    const sameName = current.player.toLowerCase() === player.toLowerCase() && current.edition === edition;
-    if (sameName) return res.json({ ...accountPayload(current, now), changed: false });
-
-    if (now < current.setAt + NAME_CHANGE_COOLDOWN_MS) {
-      return res.status(429).json({
-        error: "You can only change your name once a day.",
-        ...accountPayload(current, now),
-      });
-    }
-  }
-
-  req.session.account = { player, edition, setAt: now };
-  res.json({ ...accountPayload(req.session.account, now), changed: true });
-});
-
-/* ------------------------------ the games ------------------------------ */
-
 router.get("/daily", (req, res) => {
-  const account = boundPlayer(req);
-  const player = account ? account.player : String(req.query.player || "").trim();
-  if (!player) return res.status(400).json({ error: "Missing player." });
-  res.json(gamestats.getDaily(player));
+  const account = current(req, GAMES_SCOPE);
+  if (!account) return res.status(401).json({ error: "Set your Minecraft name first." });
+  res.json(gamestats.getDaily(account.player));
 });
 
 router.get("/leaderboard", (req, res) => {
-  const account = boundPlayer(req);
+  const account = current(req, GAMES_SCOPE);
   const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
-  res.json(gamestats.getLeaderboard(limit, account ? account.player : String(req.query.player || "")));
+  res.json(gamestats.getLeaderboard(limit, account ? account.player : ""));
 });
 
 router.post("/round/start", (req, res) => {
   const now = Date.now();
   sweep(now);
 
-  // Rounds always run as the bound player - the body can't name someone else.
-  const account = boundPlayer(req);
+  const account = current(req, GAMES_SCOPE);
   if (!account) return res.status(401).json({ error: "Set your Minecraft name first." });
 
   const gameId = String((req.body || {}).gameId || "");
@@ -127,17 +52,19 @@ router.post("/round/start", (req, res) => {
     return res.status(503).json({ error: "Too many games running right now, try again in a moment." });
   }
 
-  const roundId = crypto.randomBytes(12).toString("hex");
-  openRounds.set(roundId, { player: account.player, gameId, startedAt: now });
+  // Burn a play up front, so quitting the panel mid-game still costs one.
+  const { allowed, daily } = gamestats.recordPlay(account.player, gameId, now);
+  if (!allowed) {
+    return res.status(429).json({ error: "No plays left for this game today.", code: "NO_PLAYS_LEFT", daily });
+  }
 
-  res.json({
-    roundId,
-    daily: gamestats.getDaily(account.player, now),
-    remaining: gamestats.remainingFor(account.player, gameId, now),
-  });
+  const roundId = crypto.randomBytes(12).toString("hex");
+  openRounds.set(roundId, { player: account.player, uuid: account.uuid || null, gameId, startedAt: now });
+
+  res.json({ roundId, daily });
 });
 
-router.post("/round/finish", (req, res) => {
+router.post("/round/finish", async (req, res) => {
   const now = Date.now();
   sweep(now);
 
@@ -155,29 +82,36 @@ router.post("/round/finish", (req, res) => {
 
   // Plausibility: cap the paid points at what the clock says was reachable.
   // The +10 grace covers the first couple of quick hits in a very short round.
-  const plausiblePoints = Math.min(points, Math.floor(cfg.maxPointsPerSecond * elapsedSec) + 10);
+  const countedPoints = Math.min(points, Math.floor(cfg.maxPointsPerSecond * elapsedSec) + 10);
+  const roundCoins = gamestats.coinsForRound(round.gameId, countedPoints);
 
-  const rawCoins = Math.floor(plausiblePoints * cfg.coinsPerPoint);
-  const roundCoins = Math.min(rawCoins, cfg.maxCoinsPerRound);
+  const { granted, daily } = gamestats.award(round.player, roundCoins, now);
+  gamestats.addPoints(round.player, countedPoints, now);
 
-  const { granted, daily } = gamestats.award(round.player, round.gameId, roundCoins, now);
-  // The leaderboard counts the same vetted figure the coins were paid on.
-  gamestats.addPoints(round.player, plausiblePoints, now);
-  const gameRow = daily.games[round.gameId];
+  // Push the coins into the game itself when the plugin is up. The round id is
+  // the transaction id, so a retry can never pay twice.
+  let delivered = null;
+  if (granted > 0 && angkorlink.enabled()) {
+    const result = await angkorlink.grantCoins({
+      transactionId: `round_${roundId}`,
+      uuid: round.uuid,
+      name: round.player,
+      amount: granted,
+      reason: cfg.name,
+      meta: { gameId: round.gameId, roundId },
+    });
+    delivered = result.ok ? { ok: true, balance: result.balanceAfter ?? null } : { ok: false };
+  }
 
   res.json({
     points,
-    countedPoints: plausiblePoints,
+    countedPoints,
     coinsEarned: granted,
-    // true when the daily cap swallowed part (or all) of what the round was worth
+    maxCoinsPerPlay: gamestats.MAX_COINS_PER_PLAY,
+    // true when the daily allowance swallowed part (or all) of the round
     capped: granted < roundCoins,
-    dailyEarned: gameRow.earned,
-    dailyCap: gameRow.cap,
-    dailyComplete: gameRow.earned >= gameRow.cap,
-    total: daily.total,
-    totalCap: daily.totalCap,
-    resetAt: daily.resetAt,
     daily,
+    delivered,
     leaderboard: gamestats.getLeaderboard(5, round.player),
   });
 });

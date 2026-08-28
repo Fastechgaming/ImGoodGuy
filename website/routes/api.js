@@ -6,6 +6,7 @@ const store = require("../lib/store");
 const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
+const { current: currentAccount, STORE_SCOPE } = require("./account");
 
 const router = express.Router();
 
@@ -87,24 +88,25 @@ router.get("/order/:id", (req, res) => {
 // back its id; the customer is then sent to /checkout.html to pay + upload proof.
 router.post("/checkout", (req, res) => {
   try {
-    const { itemId, playerName, edition } = req.body || {};
-    if (!itemId || !playerName || !["java", "bedrock"].includes(edition)) {
-      return res.status(400).json({ error: "itemId, playerName and edition (java|bedrock) are required" });
+    // The buyer is whoever is signed in — the store makes you verify a name
+    // before it will show you a Buy button, so there is nothing to type here.
+    const account = currentAccount(req, STORE_SCOPE);
+    if (!account) {
+      return res.status(401).json({ error: "Verify your Minecraft name before buying.", code: "NOT_SIGNED_IN" });
     }
+
+    const { itemId } = req.body || {};
+    if (!itemId) return res.status(400).json({ error: "itemId is required" });
 
     const item = store.findItem(itemId);
     if (!item) return res.status(404).json({ error: "Item not found" });
     if (item.comingSoon) return res.status(400).json({ error: "This item isn't available for purchase yet." });
 
-    if (!isValidRawName(playerName, edition)) {
-      return res.status(400).json({
-        error:
-          edition === "bedrock"
-            ? "Please enter a valid Bedrock gamertag (letters, numbers, spaces or underscores)."
-            : "Please enter a valid Java username (letters, numbers, underscore).",
-      });
+    const edition = account.edition === "bedrock" ? "bedrock" : "java";
+    if (!isValidRawName(account.player, edition)) {
+      return res.status(400).json({ error: "Your saved name is no longer valid — please verify it again." });
     }
-    const finalName = normalizeServerName(playerName, edition);
+    const finalName = normalizeServerName(account.player, edition);
 
     const order = {
       id: nanoid(10),
@@ -115,6 +117,7 @@ router.post("/checkout", (req, res) => {
       amount: item.price,
       currency: item.currency || "USD",
       playerName: finalName,
+      playerUuid: account.uuid || null,
       edition,
       status: "awaiting_payment",
       createdAt: Date.now(),

@@ -1,18 +1,112 @@
+// Store page. You verify your Minecraft name once, then the catalogue knows
+// who it is selling to: it can show your rank and coins, price rank upgrades
+// against what you already own, and deliver to the right account.
 let allItems = { ranks: [], coins: [], other: [] };
+let ladder = [];        // the rank ladder, ascending
+let account = null;
 let activeCategory = "ranks";
-let supportTelegram = "";
+let pendingItem = null; // the item sitting in the confirmation dialog
 
 const CATEGORY_KEYS = { ranks: "store.tab.ranks", coins: "store.tab.coins", other: "store.tab.other" };
 
-async function initStore() {
-  const cfg = await getSiteConfig();
-  supportTelegram = cfg.supportTelegram || "";
+const gate = document.getElementById("store-gate");
+const body = document.getElementById("store-body");
+const nameInput = document.getElementById("store-name");
+const namePreview = document.getElementById("store-name-preview");
+const verifyBtn = document.getElementById("store-verify-btn");
+let edition = "java";
 
-  allItems = await fetchJSON("/api/items");
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+/* ---------------- Sign in ---------------- */
+function updatePreview() {
+  const shown = normalizeServerName(nameInput.value, edition);
+  namePreview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
+}
+nameInput.addEventListener("input", updatePreview);
+nameInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") verifyName();
+});
+document.querySelectorAll("#store-edition [data-edition]").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    edition = btn.dataset.edition;
+    document
+      .querySelectorAll("#store-edition [data-edition]")
+      .forEach((b) => b.classList.toggle("active", b === btn));
+    updatePreview();
+  })
+);
+verifyBtn.addEventListener("click", verifyName);
+
+async function verifyName() {
+  const raw = nameInput.value.trim();
+  if (!isValidRawName(raw, edition)) {
+    showToast(t(edition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
+    return;
+  }
+  verifyBtn.disabled = true;
+  try {
+    account = await Account.set(raw, edition, "store");
+    await showStore();
+  } catch (err) {
+    showToast(err.message);
+  } finally {
+    verifyBtn.disabled = false;
+  }
+}
+
+async function showStore() {
+  gate.hidden = true;
+  body.hidden = false;
+  renderProfile();
   renderTabs();
   renderGrid();
 }
 
+/* ---------------- Profile bar ---------------- */
+function rankItemFor(rankId) {
+  return (allItems.ranks || []).find((item) => item.id === `rank-${rankId}` || item.id === rankId) || null;
+}
+
+function renderProfile() {
+  document.getElementById("store-player-name").textContent = account.player;
+
+  const rankChip = document.getElementById("store-rank-chip");
+  const coinsChip = document.getElementById("store-coins-chip");
+  const icon = document.getElementById("store-rank-icon");
+
+  if (account.rank) {
+    rankChip.textContent = account.rank.displayName || account.rank.id;
+    rankChip.hidden = false;
+    const item = rankItemFor(account.rank.id);
+    if (item && item.image) {
+      icon.innerHTML = `<img src="${escapeHtml(item.image)}" alt="" />`;
+    } else {
+      icon.textContent = "🏅";
+    }
+  } else if (account.linked) {
+    // The plugin answered and says they hold no rank yet.
+    rankChip.textContent = t("store.noRank");
+    rankChip.hidden = false;
+    icon.textContent = "🧑‍🌾";
+  } else {
+    rankChip.hidden = true;
+    icon.textContent = "🧑‍🌾";
+  }
+
+  if (typeof account.coins === "number") {
+    coinsChip.textContent = `🪙 ${formatCompact(account.coins)}`;
+    coinsChip.hidden = false;
+  } else {
+    coinsChip.hidden = true;
+  }
+}
+
+/* ---------------- Catalogue ---------------- */
 function renderTabs() {
   const wrap = document.getElementById("store-tabs");
   wrap.innerHTML = "";
@@ -29,15 +123,43 @@ function renderTabs() {
   });
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str ?? "";
-  return div.innerHTML;
+// Where a store rank sits on the ladder, and where the player sits.
+function rankWeight(itemId) {
+  const entry = ladder.find((r) => r.itemId === itemId || `rank-${r.id}` === itemId);
+  return entry ? entry.weight : null;
+}
+function myWeight() {
+  if (!account || !account.rank) return null;
+  const entry = ladder.find((r) => r.id === account.rank.id);
+  return entry ? entry.weight : typeof account.rank.weight === "number" ? account.rank.weight : null;
+}
+
+// Buy button state for one item: a plain buy, an upgrade, the rank you already
+// hold, or one you are already past.
+function buttonFor(item) {
+  if (item.comingSoon) {
+    return { cls: "buy-btn", label: t("store.comingSoon"), disabled: true };
+  }
+  if (item.category !== "ranks") {
+    return { cls: "buy-btn", label: t("store.buyNow"), disabled: false };
+  }
+  const mine = myWeight();
+  const theirs = rankWeight(item.id);
+  if (mine == null || theirs == null) {
+    return { cls: "buy-btn", label: t("store.buyNow"), disabled: false };
+  }
+  if (theirs === mine) {
+    return { cls: "buy-btn rank-current", label: t("store.currentRank"), disabled: true };
+  }
+  if (theirs < mine) {
+    return { cls: "buy-btn rank-lower", label: t("store.lowerRank"), disabled: true };
+  }
+  return { cls: "buy-btn rank-upgrade", label: t("store.upgradeNow"), disabled: false };
 }
 
 function renderGrid() {
   const grid = document.getElementById("item-grid");
-  const items = allItems[activeCategory] || [];
+  const items = (allItems[activeCategory] || []).map((item) => ({ ...item, category: activeCategory }));
   if (!items.length) {
     grid.innerHTML = `<p class="empty-note">${escapeHtml(t("store.empty"))}</p>`;
     return;
@@ -45,6 +167,7 @@ function renderGrid() {
   grid.innerHTML = items
     .map((item) => {
       const soon = Boolean(item.comingSoon);
+      const btn = buttonFor(item);
       return `
     <div class="item-card${soon ? " coming-soon" : ""}">
       <div class="item-image-wrap">
@@ -59,11 +182,7 @@ function renderGrid() {
         <p>${escapeHtml(item.shortDesc)}</p>
         <div class="price">${soon ? "—" : escapeHtml(formatPrice(item.price))}</div>
         <div class="item-actions">
-          ${
-            soon
-              ? `<button class="buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
-              : `<button class="buy-btn" data-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
-          }
+          <button class="${btn.cls}"${btn.disabled ? " disabled" : ` data-buy="${item.id}"`}>${escapeHtml(btn.label)}</button>
           <button class="info-btn" data-info="${item.id}" title="${escapeHtml(t("store.infoTitle"))}">!</button>
         </div>
       </div>
@@ -72,7 +191,7 @@ function renderGrid() {
     .join("");
 
   grid.querySelectorAll("[data-buy]").forEach((btn) =>
-    btn.addEventListener("click", () => openBuyModal(findItem(btn.dataset.buy)))
+    btn.addEventListener("click", () => openConfirm(findItem(btn.dataset.buy)))
   );
   grid.querySelectorAll("[data-info]").forEach((btn) =>
     btn.addEventListener("click", () => openInfoModal(findItem(btn.dataset.info)))
@@ -81,8 +200,8 @@ function renderGrid() {
 
 function findItem(id) {
   for (const cat of Object.keys(allItems)) {
-    const found = allItems[cat].find((i) => i.id === id);
-    if (found) return found;
+    const found = (allItems[cat] || []).find((i) => i.id === id);
+    if (found) return { ...found, category: cat };
   }
   return null;
 }
@@ -95,29 +214,30 @@ function toEmbedUrl(url) {
   return url;
 }
 
+let infoItem = null;
+
 function openInfoModal(item) {
   if (!item) return;
+  infoItem = item;
   const overlay = document.getElementById("info-modal");
   const embed = toEmbedUrl(item.videoUrl);
+  const btn = buttonFor(item);
   document.getElementById("info-modal-body").innerHTML = `
     ${embed ? `<iframe class="video-embed" src="${escapeHtml(embed)}" allowfullscreen></iframe>` : ""}
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
     <div class="info-buy-row">
       <span class="price">${item.comingSoon ? "—" : escapeHtml(formatPrice(item.price))}</span>
-      ${
-        item.comingSoon
-          ? `<button class="continue-btn info-buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`
-          : `<button class="continue-btn info-buy-btn" data-info-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`
-      }
+      <button class="continue-btn info-buy-btn ${btn.cls.replace("buy-btn", "").trim()}"${
+        btn.disabled ? " disabled" : ' id="info-buy"'
+      }>${escapeHtml(btn.label)}</button>
     </div>
   `;
-  // Buying straight from the info popup: swap this modal for the buy modal.
-  const infoBuy = overlay.querySelector("[data-info-buy]");
+  const infoBuy = overlay.querySelector("#info-buy");
   if (infoBuy) {
     infoBuy.addEventListener("click", () => {
       closeInfoModal();
-      openBuyModal(item);
+      openConfirm(item);
     });
   }
   overlay.classList.add("open");
@@ -126,110 +246,191 @@ function openInfoModal(item) {
 function closeInfoModal() {
   document.getElementById("info-modal").classList.remove("open");
   document.getElementById("info-modal-body").innerHTML = "";
+  infoItem = null;
 }
 document.getElementById("info-modal-close").addEventListener("click", closeInfoModal);
-// Clicking the dimmed backdrop (not the box itself) also closes it.
 document.getElementById("info-modal").addEventListener("click", (e) => {
   if (e.target.id === "info-modal") closeInfoModal();
 });
 
-
-/* ---------------- Buy flow modal (step 1: who is this for?) ----------------
-   Payment itself happens on /checkout.html - the customer scans our KHQR,
-   uploads their receipt, and we approve it from Telegram. */
+/* ---------------- Purchase confirmation ----------------
+   Payment happens on /checkout.html - the customer scans our KHQR, uploads
+   their receipt, and we approve it from Telegram. This dialog is the last
+   "is this right?" before an order is created. */
 const buyModal = document.getElementById("buy-modal");
 const buyModalBody = document.getElementById("buy-modal-body");
-let buyState = null;
 
 function closeBuyModal() {
   buyModal.classList.remove("open");
-  buyState = null;
+  pendingItem = null;
 }
 document.getElementById("buy-modal-close").addEventListener("click", closeBuyModal);
 buyModal.addEventListener("click", (e) => {
   if (e.target.id === "buy-modal") closeBuyModal();
 });
 
-function openBuyModal(item) {
-  if (!item) return;
-  buyState = { item, edition: "java", name: "" };
-  renderBuyForm();
+function openConfirm(item) {
+  if (!item || !account) return;
+  pendingItem = item;
+  const isUpgrade = item.category === "ranks" && myWeight() != null;
+  buyModalBody.innerHTML = `
+    <div class="confirm-head">
+      <img class="confirm-icon" src="${escapeHtml(item.image)}" alt="" onerror="this.style.display='none'" />
+      <h3>${escapeHtml(item.name)}</h3>
+      ${isUpgrade ? `<span class="confirm-tag">${escapeHtml(t("store.upgradeNow"))}</span>` : ""}
+    </div>
+    <div class="receipt confirm-rows">
+      <div><span>${escapeHtml(t("checkout.inServerName"))}</span><strong>${escapeHtml(account.player)}</strong></div>
+      <div><span>${escapeHtml(t("checkout.edition"))}</span><strong>${escapeHtml(
+        t(account.edition === "bedrock" ? "buy.bedrock" : "buy.java")
+      )}</strong></div>
+      <div><span>${escapeHtml(t("checkout.total"))}</span><strong class="price">${escapeHtml(
+        formatPrice(item.price)
+      )}</strong></div>
+    </div>
+    <div class="confirm-actions">
+      <button class="continue-btn" id="confirm-buy">${escapeHtml(t("store.confirm"))}</button>
+      <button class="back-link" id="cancel-buy">${escapeHtml(t("store.cancel"))}</button>
+    </div>
+  `;
+  document.getElementById("confirm-buy").addEventListener("click", startCheckout);
+  document.getElementById("cancel-buy").addEventListener("click", closeBuyModal);
   buyModal.classList.add("open");
 }
 
-function renderBuyForm() {
-  const { item, edition, name } = buyState;
-  buyModalBody.innerHTML = `
-    <h3>${escapeHtml(t("buy.title", { item: item.name }))}</h3>
-    <p class="price">${escapeHtml(formatPrice(item.price))}</p>
-    <div class="field">
-      <label for="buy-name">${escapeHtml(t("buy.username"))}</label>
-      <input type="text" id="buy-name" placeholder="Steve123" maxlength="24" value="${escapeHtml(name)}" autocomplete="off" />
-    </div>
-    <div class="field">
-      <label>${escapeHtml(t("buy.edition"))}</label>
-      <div class="edition-toggle">
-        <button type="button" data-edition="java" class="${edition === "java" ? "active" : ""}">${escapeHtml(t("buy.java"))}</button>
-        <button type="button" data-edition="bedrock" class="${edition === "bedrock" ? "active" : ""}">${escapeHtml(t("buy.bedrock"))}</button>
-      </div>
-      <span class="preview-name" id="name-preview"></span>
-    </div>
-    <button class="continue-btn" id="continue-btn">${escapeHtml(t("buy.continue"))}</button>
-  `;
-
-  const nameInput = document.getElementById("buy-name");
-  const preview = document.getElementById("name-preview");
-  const updatePreview = () => {
-    const shown = normalizeServerName(nameInput.value, buyState.edition);
-    preview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
-  };
-  nameInput.addEventListener("input", () => {
-    buyState.name = nameInput.value;
-    updatePreview();
-  });
-
-  buyModalBody.querySelectorAll("[data-edition]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      buyState.edition = btn.dataset.edition;
-      buyModalBody.querySelectorAll("[data-edition]").forEach((b) => b.classList.toggle("active", b === btn));
-      updatePreview();
-    })
-  );
-  updatePreview();
-
-  document.getElementById("continue-btn").addEventListener("click", startCheckout);
-}
-
 async function startCheckout() {
-  const name = buyState.name.trim();
-  if (!isValidRawName(name, buyState.edition)) {
-    showToast(t(buyState.edition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
-    return;
-  }
-  const continueBtn = document.getElementById("continue-btn");
-  continueBtn.disabled = true;
-  continueBtn.textContent = t("buy.wait");
-
+  if (!pendingItem) return;
+  const btn = document.getElementById("confirm-buy");
+  btn.disabled = true;
+  btn.textContent = t("buy.wait");
   try {
     const result = await fetchJSON("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId: buyState.item.id, playerName: name, edition: buyState.edition }),
+      body: JSON.stringify({ itemId: pendingItem.id }),
     });
     window.location.href = `/checkout.html?order=${encodeURIComponent(result.orderId)}`;
   } catch (err) {
     showToast(err.message);
-    continueBtn.disabled = false;
-    continueBtn.textContent = t("buy.continue");
+    btn.disabled = false;
+    btn.textContent = t("store.confirm");
   }
 }
 
-// Re-render everything when the language button is pressed.
-document.addEventListener("i18n:change", () => {
-  if (!allItems) return;
-  renderTabs();
-  renderGrid();
-  if (buyState) renderBuyForm();
+/* ---------------- Change name ---------------- */
+const nameModal = document.getElementById("name-modal");
+const changeInput = document.getElementById("change-name");
+const changePreview = document.getElementById("change-name-preview");
+let changeEdition = "java";
+
+function updateChangePreview() {
+  const shown = normalizeServerName(changeInput.value, changeEdition);
+  changePreview.textContent = shown ? t("buy.inServerName", { name: shown }) : "";
+}
+changeInput.addEventListener("input", updateChangePreview);
+document.querySelectorAll("#change-edition [data-edition]").forEach((btn) =>
+  btn.addEventListener("click", () => {
+    changeEdition = btn.dataset.edition;
+    document
+      .querySelectorAll("#change-edition [data-edition]")
+      .forEach((b) => b.classList.toggle("active", b === btn));
+    updateChangePreview();
+  })
+);
+
+// The modal always opens — no more silently refusing the click. While the
+// cooldown is still running it shows a live countdown and disables Save, so
+// the player can see exactly why (and how long) instead of guessing.
+let modalCooldownTimer = null;
+
+function renderCooldownNote() {
+  const note = document.getElementById("change-cooldown-note");
+  const btn = document.getElementById("change-name-save");
+  const left = account ? account.canChangeAt - Date.now() : 0;
+  if (left > 0) {
+    note.hidden = false;
+    note.textContent = t("games.nameLockedToast", { time: humanDuration(left) });
+    btn.disabled = true;
+  } else {
+    note.hidden = true;
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("store-change-btn").addEventListener("click", () => {
+  changeEdition = account ? account.edition : "java";
+  document
+    .querySelectorAll("#change-edition [data-edition]")
+    .forEach((b) => b.classList.toggle("active", b.dataset.edition === changeEdition));
+  changeInput.value = "";
+  updateChangePreview();
+  nameModal.classList.add("open");
+  renderCooldownNote();
+  clearInterval(modalCooldownTimer);
+  modalCooldownTimer = setInterval(renderCooldownNote, 1000);
+  changeInput.focus();
 });
 
-initStore();
+function closeNameModal() {
+  nameModal.classList.remove("open");
+  clearInterval(modalCooldownTimer);
+}
+document.getElementById("name-modal-close").addEventListener("click", closeNameModal);
+nameModal.addEventListener("click", (e) => {
+  if (e.target === nameModal) closeNameModal();
+});
+changeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") saveNewName();
+});
+document.getElementById("change-name-save").addEventListener("click", saveNewName);
+
+async function saveNewName() {
+  if (account && Date.now() < account.canChangeAt) return; // button should already be disabled
+  const raw = changeInput.value.trim();
+  if (!isValidRawName(raw, changeEdition)) {
+    showToast(t(changeEdition === "bedrock" ? "buy.invalidBedrock" : "buy.invalidJava"));
+    return;
+  }
+  const btn = document.getElementById("change-name-save");
+  btn.disabled = true;
+  try {
+    account = await Account.set(raw, changeEdition, "store");
+    closeNameModal();
+    showToast(t("games.nameSaved", { name: account.player }));
+    renderProfile();
+    renderGrid(); // rank buttons depend on who is signed in
+  } catch (err) {
+    showToast(err.message);
+    renderCooldownNote();
+  } finally {
+    btn.disabled = account ? Date.now() < account.canChangeAt : false;
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (buyModal.classList.contains("open")) closeBuyModal();
+  else if (nameModal.classList.contains("open")) closeNameModal();
+  else if (document.getElementById("info-modal").classList.contains("open")) closeInfoModal();
+});
+
+document.addEventListener("i18n:change", () => {
+  if (!account) return;
+  renderProfile();
+  renderTabs();
+  renderGrid();
+  if (pendingItem) openConfirm(pendingItem);
+  if (infoItem) openInfoModal(infoItem);
+});
+
+/* ---------------- Boot ---------------- */
+(async function initStore() {
+  [allItems, account] = await Promise.all([fetchJSON("/api/items"), Account.load("store")]);
+  try {
+    ladder = (await Account.ranks()).ranks || [];
+  } catch {
+    ladder = [];
+  }
+  if (account && account.player) return showStore();
+  updatePreview();
+})();
