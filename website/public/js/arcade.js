@@ -1455,7 +1455,7 @@ const Arcade = (() => {
             });
           }
           for (const [wx, wy] of spec.winds || []) {
-            winds.push({ x: (cursor + wx) * TILE, y: wy * TILE, phase: Math.random() * Math.PI * 2 });
+            winds.push({ x: (cursor + wx) * TILE, y: wy * TILE, phase: Math.random() * Math.PI * 2, cooldown: 0 });
           }
           // A diamond over a random block in roughly half the sections.
           if (Math.random() < 0.45 && spec.blocks.length) {
@@ -1598,11 +1598,14 @@ const Arcade = (() => {
         }
         if (wasOnGround && !player.onGround && player.vy >= 0) coyote = 0.1;
 
-        /* wind charges shove you backwards */
+        /* wind charges shove you backwards - once per pass, not every frame
+           you're still inside it, otherwise it stunlocks you in place */
         for (const wind of winds) {
-          if (Math.abs(wind.x - player.x) < 20 && Math.abs(wind.y - player.y) < 22) {
+          if (wind.cooldown > 0) wind.cooldown -= dt;
+          if (wind.cooldown <= 0 && Math.abs(wind.x - player.x) < 20 && Math.abs(wind.y - player.y) < 22) {
             player.x -= 46;
             player.vy = -260;
+            wind.cooldown = 0.6;
           }
         }
 
