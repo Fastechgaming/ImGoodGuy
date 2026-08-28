@@ -1374,16 +1374,6 @@ body.game-open { overflow: hidden; }
   color: var(--bb, var(--gold));
   text-shadow: 0 2px 0 rgba(0,0,0,0.4);
 }
-.bb-target-count {
-  font-family: "Baloo 2", sans-serif;
-  font-weight: 800;
-  font-size: 0.95rem;
-  color: var(--brown-darkest);
-  background: var(--gold);
-  padding: 0.1rem 0.5rem;
-  border-radius: 999px;
-  border: 2px solid var(--stone-darkest);
-}
 .bb-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.55rem; }
 .bb-cell {
   display: flex;

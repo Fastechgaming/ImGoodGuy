@@ -607,7 +607,7 @@ const Arcade = (() => {
     descKey: "game.breaker.desc",
     howToKey: "game.breaker.howto",
     start(mount, onFinish) {
-      const ROUND_SECONDS = 70;
+      const ROUND_SECONDS = 50;
       const PER_LEVEL = 10; // blocks to break to clear a level
       const LEVELS = [
         { cols: 3, rows: 2, multiplier: 1 },
@@ -628,13 +628,11 @@ const Arcade = (() => {
         "bb-target",
         `<span class="bb-target-label" data-i18n="game.breaker.target">${T("game.breaker.target")}</span>
          <img class="bb-target-tex" alt="" />
-         <span class="bb-target-block"></span>
-         <span class="bb-target-count"></span>`
+         <span class="bb-target-block"></span>`
       );
       mount.appendChild(targetBar);
       const targetName = targetBar.querySelector(".bb-target-block");
       const targetTex = targetBar.querySelector(".bb-target-tex");
-      const targetCount = targetBar.querySelector(".bb-target-count");
 
       const grid = el("div", "bb-grid");
       grid.style.position = "relative";
@@ -664,9 +662,6 @@ const Arcade = (() => {
 
         targetName.textContent = T(target.key);
         targetTex.src = `/images/blocks/${target.tex}.png`;
-        // When more than one copy is on the grid, every one of them has to
-        // be broken before it moves on - not just the first you find.
-        targetCount.textContent = targetLeft > 1 ? `×${targetLeft}` : "";
 
         grid.style.gridTemplateColumns = `repeat(${spec.cols}, 1fr)`;
         grid.innerHTML = "";
@@ -714,7 +709,6 @@ const Arcade = (() => {
           floatText(grid, px, py, `+${gained}`, "good");
 
           targetLeft -= 1;
-          targetCount.textContent = targetLeft > 1 ? `×${targetLeft}` : "";
           if (targetLeft > 0) return; // more copies of this block still standing
 
           cleared += 1;
