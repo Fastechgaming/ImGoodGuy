@@ -849,6 +849,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 
 /* Buy flow */
 .field { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 1rem; }
+.field[hidden] { display: none; }
 .field label { font-weight: 800; font-size: 0.9rem; color: var(--brown-dark); }
 .field input[type="text"] {
   padding: 0.7rem 0.8rem;

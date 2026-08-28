@@ -132,11 +132,11 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         Your name is what your coins and points are saved under, so it can only
         be changed once a day.
       </p>
-      <div class="field">
+      <div class="field" id="change-name-field">
         <label for="change-name" data-i18n="buy.username">Minecraft username</label>
         <input type="text" id="change-name" placeholder="Steve123" maxlength="24" autocomplete="off" />
       </div>
-      <div class="field">
+      <div class="field" id="change-edition-field">
         <label data-i18n="buy.edition">Edition</label>
         <div class="edition-toggle" id="change-edition">
           <button type="button" data-edition="java" class="active" data-i18n="buy.java">Java</button>
