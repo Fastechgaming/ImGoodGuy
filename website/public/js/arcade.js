@@ -1426,8 +1426,8 @@ const Arcade = (() => {
         { w: 16, blocks: [[0, 0, 3, "normal"], [4, 0, 2, "slime"], [7, 3, 3, "normal"], [11, 0, 4, "normal"]] },
         // an ice run that speeds you up
         { w: 12, blocks: [[0, 0, 3, "normal"], [3, 0, 4, "ice"], [8, 0, 3, "normal"]] },
-        // TNT hanging over the path - touch it and you're done for
-        { w: 11, blocks: [[0, 0, 5, "normal"], [6, 0, 4, "normal"]], hazards: [[5.5, 1.6], [8, 2.4]] },
+        // a single-tile hop
+        { w: 11, blocks: [[0, 0, 5, "normal"], [6, 0, 4, "normal"]] },
         // the widest gap on the course: two tiles, and worth committing to
         { w: 11, blocks: [[0, 0, 4, "normal"], [6, 0, 4, "normal"]] },
       ];
@@ -1456,9 +1456,13 @@ const Arcade = (() => {
               gone: false,
               fading: 0,
             });
-          }
-          for (const [hx, hy] of spec.hazards || []) {
-            hazards.push({ x: (cursor + hx) * TILE, y: hy * TILE, phase: Math.random() * Math.PI * 2 });
+            // TNT sitting on the ground, never at the very edge of the
+            // platform - there's always a run-up and a landing spot on
+            // either side, so it's a hop to clear, not a wall to hit.
+            if (kind === "normal" && bw >= 4 && Math.random() < 0.16) {
+              const tile = 1 + Math.floor(Math.random() * (bw - 2));
+              hazards.push({ x: (cursor + bx + tile + 0.5) * TILE, y: by * TILE + 8, phase: Math.random() * Math.PI * 2 });
+            }
           }
           // A diamond over a random block in roughly half the sections.
           if (Math.random() < 0.45 && spec.blocks.length) {
@@ -1613,8 +1617,8 @@ const Arcade = (() => {
         }
         if (wasOnGround && !player.onGround && player.vy >= 0) coyote = 0.1;
 
-        /* TNT hanging over the path - touch it and it's a heart gone, same
-           as falling in the lava */
+        /* TNT sitting on the ground - jump over it or it's a heart gone,
+           same as falling in the lava */
         for (const hazard of hazards) {
           if (Math.abs(hazard.x - player.x) < 20 && Math.abs(hazard.y - player.y) < 22) {
             if (loseLife()) return;
@@ -1713,11 +1717,11 @@ const Arcade = (() => {
           ctx.fillRect(x, sy(0) - 54, 22, 14);
         }
 
-        /* TNT hazards - a gentle bob and a pulsing glow to read as dangerous */
+        /* TNT hazards, sitting on the ground - a pulsing glow to read as dangerous */
         for (const hazard of hazards) {
           const x = sx(hazard.x);
           if (x < -40 || x > w + 40) continue;
-          const y = sy(hazard.y) + Math.sin(elapsed * 3 + hazard.phase) * 5;
+          const y = sy(hazard.y);
           const glow = 0.5 + Math.sin(elapsed * 6 + hazard.phase) * 0.5;
           ctx.save();
           ctx.shadowColor = `rgba(255,90,30,${0.5 + glow * 0.4})`;
