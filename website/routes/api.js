@@ -69,7 +69,7 @@ router.get("/items", (req, res) => {
   res.json(store.getItems());
 });
 
-// Public view of an order - used by checkout.html and success.html.
+// Public view of an order - used by /checkout and /success.
 // Deliberately omits the delivery command and the stored proof filename.
 router.get("/order/:id", (req, res) => {
   const order = store.findOrder(req.params.id);
@@ -90,7 +90,7 @@ router.get("/order/:id", (req, res) => {
 });
 
 // Step 1 of checkout: player name + edition. Creates a pending order and hands
-// back its id; the customer is then sent to /checkout.html to pay + upload proof.
+// back its id; the customer is then sent to /checkout to pay + upload proof.
 router.post("/checkout", (req, res) => {
   try {
     if (!angkorlink.enabled()) {

@@ -14,7 +14,7 @@ function scanHintHtml(amount) {
 
 async function loadCheckout() {
   if (!orderId) {
-    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.noOrder"))} <a href="/store.html">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
+    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.noOrder"))} <a href="/store">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
     return;
   }
 
@@ -23,13 +23,13 @@ async function loadCheckout() {
   try {
     [order, cfg] = await Promise.all([fetchJSON(`/api/order/${encodeURIComponent(orderId)}`), getSiteConfig()]);
   } catch (err) {
-    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.loadFailed", { error: err.message }))} <a href="/store.html">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
+    content.innerHTML = `<p class="empty-note">${escapeHtml(t("checkout.loadFailed", { error: err.message }))} <a href="/store">${escapeHtml(t("checkout.backToStore"))}</a>.</p>`;
     return;
   }
 
   // Already submitted? Send them to the confirmation instead of letting them pay twice.
   if (order.status !== "awaiting_payment") {
-    window.location.replace(`/success.html?order=${encodeURIComponent(order.id)}`);
+    window.location.replace(`/success?order=${encodeURIComponent(order.id)}`);
     return;
   }
 
@@ -143,7 +143,7 @@ async function submitProof() {
     const res = await fetch(`/api/order/${encodeURIComponent(orderId)}/proof`, { method: "POST", body });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
-    window.location.href = `/success.html?order=${encodeURIComponent(orderId)}`;
+    window.location.href = `/success?order=${encodeURIComponent(orderId)}`;
   } catch (err) {
     showToast(err.message);
     submitBtn.disabled = false;

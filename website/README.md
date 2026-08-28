@@ -71,7 +71,7 @@ from Telegram with one tap.
 
 1. Customer clicks **Buy Now** (on the card, or inside the "!" info popup) → enters their Minecraft username → picks **Java** or **Bedrock**.
    - Bedrock names are normalised the way Geyser/Floodgate does it: a single leading `.` is added and spaces become `_`. So `Play er`, `.Play er` and `Play_er` all become `.Play_er` — never `..Play er`. The form shows the exact result live as **"In server name: …"**.
-2. **Continue** → they land on **Complete your Purchase** (`/checkout.html`): a summary of what they're buying, your KHQR to scan, and a drop zone for their payment screenshot.
+2. **Continue** → they land on **Complete your Purchase** (`/checkout`): a summary of what they're buying, your KHQR to scan, and a drop zone for their payment screenshot.
 3. **SUBMIT** → they get a **Submit successful** page telling them to wait for the owner to confirm, with a support link and a **Back to home** button.
 4. You receive a Telegram message with the receipt photo, the item, the price, and the in-server name, plus **✅ Accept** and **❌ Reject** buttons.
    - **Reject** → the order is marked rejected. Nothing else happens.
@@ -88,7 +88,7 @@ publicly — they only go to your Telegram.
 
 ## 5. The Games page
 
-`/games.html` — a player enters their Minecraft name **once** (same Java/Bedrock
+`/games` — a player enters their Minecraft name **once** (same Java/Bedrock
 rules as the store) and then gets a hub with **Points** (this visit), **Coins
 Today** (from the server), the **Points Leaderboard** and five mini-games:
 
