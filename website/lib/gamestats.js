@@ -1,9 +1,9 @@
 // Server-side ledger for the website mini-games.
 //
 // The rules the ledger enforces (the browser is never trusted with these):
-//   * each game can be played 5 times a day. A play is counted the moment a
+//   * each game can be played 3 times a day. A play is counted the moment a
 //     round STARTS, so closing the panel mid-game still uses one up.
-//   * a round pays 1-30 coins depending on how well it went.
+//   * a round pays 1-50 coins depending on how well it went.
 //   * all games together pay at most 500 coins a day.
 //   * the day rolls over at 00:00 Cambodia time (UTC+7).
 //
@@ -15,9 +15,9 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const STATS_FILE = path.join(DATA_DIR, "gamestats.json");
 const BOARD_FILE = path.join(DATA_DIR, "leaderboard.json");
 
-const PLAYS_PER_GAME_PER_DAY = 5;
+const PLAYS_PER_GAME_PER_DAY = 3;
 const COINS_PER_DAY = 500;
-const MAX_COINS_PER_PLAY = 30;
+const MAX_COINS_PER_PLAY = 50;
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 
 // Per-game tuning. `pointsForFullCoins` is the score that earns the full 30

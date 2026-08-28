@@ -139,7 +139,7 @@ const I18n = (() => {
       "games.earnedToday": "earned {earned}/{cap} today",
       "games.playsLeft": "{left} of {cap} plays left today",
       "games.noPlaysLeft": "No plays left today",
-      "games.noPlaysLeftToast": "You've used all 5 plays of this game today. Come back after the reset.",
+      "games.noPlaysLeftToast": "You've used all 3 plays of this game today. Come back after the reset.",
       "games.cannotStart": "Can't start this round",
       "games.go": "GO!",
 
@@ -178,7 +178,7 @@ const I18n = (() => {
       "games.leaderboardUnranked": "Play a round to join the leaderboard.",
       "games.listHeading": "Mini-games",
       "games.listHint":
-        "Every game is unlimited to play. Each one can pay up to 500 Coins per day — 2,500 Coins across all five. Resets at midnight (UTC+7).",
+        "3 plays of each game a day, 1–50 Coins a play, up to 500 Coins a day total. Resets at midnight (UTC+7).",
       "games.play": "Play",
       "games.todaysReward": "Today's Reward: {earned} / {cap} Coins",
       "games.dailyComplete": "Daily Reward Complete!",
@@ -199,6 +199,7 @@ const I18n = (() => {
       "hud.ores": "Ores",
       "hud.toGo": "To go",
       "hud.deaths": "Falls",
+      "hud.hearts": "Hearts",
       "hud.level": "Level",
 
       /* ---- games: the five games ---- */
@@ -206,7 +207,7 @@ const I18n = (() => {
       "game.lava.desc": "Climb 100m before the rising lava catches you. Grab diamonds on the way up.",
       "game.lava.howto":
         "Drag left and right to steer — you bounce automatically. Diamond +5 · Checkpoint +15 · Finish +100, plus a point per metre climbed and a bonus for a fast time. The rail on the left shows the finish, you, and the lava.",
-      "game.lava.hint": "Drag to steer · 💎 +5 · 🏃 +15 · 🏆 +100",
+      "game.lava.hint": "Drag to steer · 💎 +15 · 🏃 +15 · 🏆 +100",
 
       "game.breaker.name": "Block Breaker",
       "game.breaker.desc": "Break only the block shown at the top. Four levels, ten blocks each, and the grid keeps growing.",
@@ -238,8 +239,8 @@ const I18n = (() => {
       "game.parkour.name": "Block Parkour",
       "game.parkour.desc": "Auto-run a randomly built course. Tap to jump, land the gaps, reach the finish.",
       "game.parkour.howto":
-        "Tap anywhere (or press Space) to jump — you run forward on your own. Diamond +10 · Checkpoint +25 · Finish +100, with bonuses for a fast time and for finishing without falling. Fall in the lava and you restart at the last checkpoint.",
-      "game.parkour.hint": "Tap to jump · 💎 +10 · 🏁 +25 · 🏆 +100",
+        "Tap anywhere (or press Space) to jump — you run forward on your own. Diamond +10 · Checkpoint +25 · Finish +100, with bonuses for a fast time and for finishing without falling. You have 3 hearts — falling in the lava or touching TNT costs one and sends you back to the last checkpoint. Lose all 3 and the run ends.",
+      "game.parkour.hint": "Tap to jump · 💎 +10 · 🏁 +25 · 🏆 +100 · ❤️×3",
 
       /* ---- games: result screen ---- */
       "result.headline": "Nice run!",
@@ -257,6 +258,7 @@ const I18n = (() => {
       "result.perfectRun": "✨ Perfect run — no falls!",
       "result.burned": "🌋 Caught by the lava",
       "result.gaveUp": "⏱️ Ran out of time",
+      "result.outOfHearts": "💔 Out of hearts",
       "result.blownUp": "💥 Blown up",
       "result.survivedAll": "🏆 Survived to the end!",
       "result.timeUp": "⏱️ Time's up",
@@ -414,7 +416,7 @@ const I18n = (() => {
       "games.earnedToday": "រកបាន {earned}/{cap} ថ្ងៃនេះ",
       "games.playsLeft": "នៅសល់ {left} ក្នុងចំណោម {cap} ដងថ្ងៃនេះ",
       "games.noPlaysLeft": "អស់ចំនួនលេងថ្ងៃនេះ",
-      "games.noPlaysLeftToast": "អ្នកបានលេងហ្គេមនេះគ្រប់ ៥ ដងហើយថ្ងៃនេះ។ សូមត្រឡប់មកវិញក្រោយពេលកំណត់ឡើងវិញ។",
+      "games.noPlaysLeftToast": "អ្នកបានលេងហ្គេមនេះគ្រប់ ៣ ដងហើយថ្ងៃនេះ។ សូមត្រឡប់មកវិញក្រោយពេលកំណត់ឡើងវិញ។",
       "games.cannotStart": "មិនអាចចាប់ផ្តើមជុំនេះបានទេ",
       "games.go": "ចាប់ផ្តើម!",
 
@@ -453,7 +455,7 @@ const I18n = (() => {
       "games.leaderboardUnranked": "លេងមួយជុំដើម្បីចូលក្នុងតារាងពិន្ទុ។",
       "games.listHeading": "ហ្គេមតូចៗ",
       "games.listHint":
-        "គ្រប់ហ្គេមអាចលេងបានគ្មានកំណត់។ ហ្គេមនីមួយៗអាចរកបានរហូតដល់ ៥០០ Coins ក្នុងមួយថ្ងៃ — សរុប ២,៥០០ Coins។ កំណត់ឡើងវិញនៅពាក់កណ្តាលអធ្រាត្រ (UTC+7)។",
+        "លេងបាន ៣ ដងក្នុងមួយហ្គេមក្នុងមួយថ្ងៃ, ១–៥០ Coins ក្នុងមួយដង, រហូតដល់ ៥០០ Coins ក្នុងមួយថ្ងៃ។ កំណត់ឡើងវិញនៅពាក់កណ្តាលអធ្រាត្រ (UTC+7)។",
       "games.play": "លេង",
       "games.todaysReward": "រង្វាន់ថ្ងៃនេះ៖ {earned} / {cap} Coins",
       "games.dailyComplete": "រង្វាន់ប្រចាំថ្ងៃពេញហើយ!",
@@ -474,6 +476,7 @@ const I18n = (() => {
       "hud.ores": "រ៉ែ",
       "hud.toGo": "នៅសល់",
       "hud.deaths": "ធ្លាក់",
+      "hud.hearts": "ជីវិត",
       "hud.level": "កម្រិត",
 
       /* ---- games: the five games ---- */
@@ -481,7 +484,7 @@ const I18n = (() => {
       "game.lava.desc": "ឡើងឲ្យបាន ១០០ម មុនពេល Lava ឡើងមកដល់។ ប្រមូល Diamond តាមផ្លូវ។",
       "game.lava.howto":
         "អូសទៅឆ្វេង-ស្តាំដើម្បីបញ្ជា — តួអង្គលោតដោយស្វ័យប្រវត្តិ។ Diamond +5 · Checkpoint +15 · ដល់គោល +100 បូកមួយពិន្ទុរាល់មួយម៉ែត្រ និងរង្វាន់បន្ថែមបើលឿន។ របារខាងឆ្វេងបង្ហាញគោល ទីតាំងអ្នក និង Lava។",
-      "game.lava.hint": "អូសដើម្បីបញ្ជា · 💎 +5 · 🏃 +15 · 🏆 +100",
+      "game.lava.hint": "អូសដើម្បីបញ្ជា · 💎 +15 · 🏃 +15 · 🏆 +100",
 
       "game.breaker.name": "Block Breaker",
       "game.breaker.desc": "ទម្លាយតែ Block ដែលបង្ហាញនៅខាងលើ។ ៤ កម្រិត កម្រិតនីមួយៗ ១០ Block។",
@@ -513,8 +516,8 @@ const I18n = (() => {
       "game.parkour.name": "Block Parkour",
       "game.parkour.desc": "រត់ស្វ័យប្រវត្តិលើផ្លូវដែលបង្កើតចៃដន្យ។ ចុចដើម្បីលោត រួចទៅដល់គោល។",
       "game.parkour.howto":
-        "ចុចកន្លែងណាក៏បាន (ឬចុច Space) ដើម្បីលោត — តួអង្គរត់ទៅមុខដោយខ្លួនឯង។ Diamond +10 · Checkpoint +25 · ដល់គោល +100 បូករង្វាន់បើលឿន និងបើមិនធ្លាក់សោះ។ ធ្លាក់ក្នុង Lava នឹងចាប់ផ្តើមពី Checkpoint ចុងក្រោយ។",
-      "game.parkour.hint": "ចុចដើម្បីលោត · 💎 +10 · 🏁 +25 · 🏆 +100",
+        "ចុចកន្លែងណាក៏បាន (ឬចុច Space) ដើម្បីលោត — តួអង្គរត់ទៅមុខដោយខ្លួនឯង។ Diamond +10 · Checkpoint +25 · ដល់គោល +100 បូករង្វាន់បើលឿន និងបើមិនធ្លាក់សោះ។ អ្នកមានជីវិត ៣ — ធ្លាក់ក្នុង Lava ឬប៉ះ TNT បាត់ជីវិតម្តង ហើយចាប់ផ្តើមពី Checkpoint ចុងក្រោយ។ អស់ជីវិតទាំង ៣ ហ្គេមចប់។",
+      "game.parkour.hint": "ចុចដើម្បីលោត · 💎 +10 · 🏁 +25 · 🏆 +100 · ❤️×3",
 
       /* ---- games: result screen ---- */
       "result.headline": "លេងបានល្អ!",
@@ -532,6 +535,7 @@ const I18n = (() => {
       "result.perfectRun": "✨ ល្អឥតខ្ចោះ — មិនធ្លាក់សោះ!",
       "result.burned": "🌋 ត្រូវ Lava ចាប់បាន",
       "result.gaveUp": "⏱️ អស់ពេល",
+      "result.outOfHearts": "💔 អស់ជីវិត",
       "result.blownUp": "💥 ត្រូវផ្ទុះ",
       "result.survivedAll": "🏆 រស់រហូតដល់ចប់!",
       "result.timeUp": "⏱️ អស់ពេលហើយ",

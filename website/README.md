@@ -108,9 +108,9 @@ into `public/images/blocks/` — re-run it to change them.
 
 Games score **points**; the **server** decides the coins.
 
-* Each game can be played **5 times a day**. A play is counted the moment a
+* Each game can be played **3 times a day**. A play is counted the moment a
   round *starts*, so closing the panel mid-game still uses one up.
-* A round pays **1–30 coins**, scaled by how well it went.
+* A round pays **1–50 coins**, scaled by how well it went.
 * All games together pay at most **500 coins a day**.
 * Everything resets at **midnight Cambodia time (00:00 UTC+7)**.
 

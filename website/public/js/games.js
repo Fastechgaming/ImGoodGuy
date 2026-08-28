@@ -386,7 +386,7 @@ function showIntro(game) {
 async function runGame(game) {
   gameBody.innerHTML = `<p class="empty-note">${escapeHtml(t("buy.wait"))}</p>`;
 
-  // Opening the round server-side is what burns one of the day's five plays,
+  // Opening the round server-side is what burns one of the day's three plays,
   // so a player who closes the panel mid-game has still used one.
   activeRoundId = null;
   try {
