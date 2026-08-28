@@ -6,6 +6,7 @@ const store = require("../lib/store");
 const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
+const angkorlink = require("../lib/angkorlink");
 const { current: currentAccount, STORE_SCOPE } = require("./account");
 
 const router = express.Router();
@@ -51,6 +52,10 @@ router.get("/config", (req, res) => {
     serverFeatures: cfg.serverFeatures || [],
     socials: cfg.socials,
     supportTelegram: process.env.TELEGRAM_SUPPORT_USERNAME || "",
+    // Games and the store both need a live AngkorLink connection to verify a
+    // player against the real server - without it they show "Unavailable"
+    // rather than quietly running on an unverified local ledger.
+    angkorlinkEnabled: angkorlink.enabled(),
   });
 });
 
@@ -88,6 +93,9 @@ router.get("/order/:id", (req, res) => {
 // back its id; the customer is then sent to /checkout.html to pay + upload proof.
 router.post("/checkout", (req, res) => {
   try {
+    if (!angkorlink.enabled()) {
+      return res.status(503).json({ error: "The store is unavailable right now.", code: "SERVICE_UNAVAILABLE" });
+    }
     // The buyer is whoever is signed in — the store makes you verify a name
     // before it will show you a Buy button, so there is nothing to type here.
     const account = currentAccount(req, STORE_SCOPE);

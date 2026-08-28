@@ -552,6 +552,26 @@ document.addEventListener("i18n:change", () => {
 
 /* ---------------- Boot ---------------- */
 (async function boot() {
+  let cfg = null;
+  try {
+    cfg = await getSiteConfig();
+  } catch {
+    /* if the config call itself fails, fall through and let the gate try */
+  }
+  if (cfg && cfg.angkorlinkEnabled === false) {
+    gate.hidden = true;
+    const box = document.getElementById("games-unavailable");
+    box.hidden = false;
+    if (cfg.supportTelegram) {
+      const line = document.getElementById("games-unavailable-support");
+      line.hidden = false;
+      line.innerHTML = `<a href="https://t.me/${encodeURIComponent(cfg.supportTelegram)}" target="_blank" rel="noopener">${escapeHtml(
+        t("checkout.contactSupport")
+      )}</a>`;
+    }
+    return;
+  }
+
   account = await Account.load("games");
   if (account && account.player) return openHub();
   updatePreview();

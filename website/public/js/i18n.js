@@ -53,6 +53,9 @@ const I18n = (() => {
       "store.gateTitle": "Who is this for?",
       "store.gateHint":
         "Enter your Minecraft name once so we know where to deliver your purchase — and so we can show your current rank and coins.",
+      "store.unavailableTitle": "Unavailable",
+      "store.unavailableBody":
+        "The store is probably under maintenance or offline for now. Please check back later, or contact support if this keeps happening.",
       "store.loggedInAs": "Logged in as",
       "store.noRank": "No rank yet",
       "store.upgradeNow": "Upgrade Now",
@@ -146,6 +149,9 @@ const I18n = (() => {
       "games.gateTitle": "Play & earn coins",
       "games.gateHint":
         "Play mini-games right here on the website and earn Angkor Coins for your in-game balance. Enter your Minecraft name once — we'll remember it next time.",
+      "games.unavailableTitle": "Unavailable",
+      "games.unavailableBody":
+        "Games are probably under maintenance or offline for now. Please check back later, or contact support if this keeps happening.",
       "games.start": "Start Playing",
       "games.disclaimer":
         "Your name is saved on this device, so you only enter it once. Coins and points are stored on the server.",
@@ -331,6 +337,9 @@ const I18n = (() => {
       "store.gateTitle": "ទិញសម្រាប់អ្នកណា?",
       "store.gateHint":
         "បញ្ចូលឈ្មោះ Minecraft តែម្តងគត់ ដើម្បីយើងដឹងថាត្រូវផ្ញើទំនិញទៅណា — ហើយអាចបង្ហាញ Rank និង Coins បច្ចុប្បន្នរបស់អ្នក។",
+      "store.unavailableTitle": "មិនអាចប្រើបានទេ",
+      "store.unavailableBody":
+        "ហាងប្រហែលជានៅក្នុងការជួសជុល ឬបិទជាបណ្តោះអាសន្ន។ សូមមកមើលម្តងទៀតពេលក្រោយ ឬទាក់ទង Support បើនៅតែមានបញ្ហា។",
       "store.loggedInAs": "ចូលជា",
       "store.noRank": "មិនទាន់មាន Rank",
       "store.upgradeNow": "ដំឡើងឥឡូវ",
@@ -424,6 +433,9 @@ const I18n = (() => {
       "games.gateTitle": "លេង ហើយរក Coins",
       "games.gateHint":
         "លេងហ្គេមតូចៗនៅលើ Website នេះ ហើយរក Angkor Coins សម្រាប់ Balance ក្នុងហ្គេម។ បញ្ចូលឈ្មោះ Minecraft តែម្តងគត់ — យើងនឹងចាំវាទុក។",
+      "games.unavailableTitle": "មិនអាចប្រើបានទេ",
+      "games.unavailableBody":
+        "ហ្គេមប្រហែលជានៅក្នុងការជួសជុល ឬបិទជាបណ្តោះអាសន្ន។ សូមមកមើលម្តងទៀតពេលក្រោយ ឬទាក់ទង Support បើនៅតែមានបញ្ហា។",
       "games.start": "ចាប់ផ្តើមលេង",
       "games.disclaimer":
         "ឈ្មោះរបស់អ្នកត្រូវបានរក្សាទុកលើឧបករណ៍នេះ ដូច្នេះបញ្ចូលតែម្តងគត់។ Coins និងពិន្ទុរក្សាទុកនៅលើ Server។",

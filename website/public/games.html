@@ -78,6 +78,17 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
           </p>
         </div>
 
+        <!-- Shown instead of the gate above when the game server bridge isn't running -->
+        <div class="checkout-panel games-gate" id="games-unavailable" hidden>
+          <div class="games-gate-icon">🚧</div>
+          <h3 data-i18n="games.unavailableTitle">Unavailable</h3>
+          <p class="checkout-hint centered" data-i18n="games.unavailableBody">
+            Games are probably under maintenance or offline for now. Please
+            check back later, or contact support if this keeps happening.
+          </p>
+          <p class="checkout-hint centered" id="games-unavailable-support" hidden></p>
+        </div>
+
         <!-- Step 2: the hub -->
         <div id="games-hub" hidden>
           <div class="player-bar checkout-panel">

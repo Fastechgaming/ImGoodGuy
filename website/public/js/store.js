@@ -426,6 +426,26 @@ document.addEventListener("i18n:change", () => {
 
 /* ---------------- Boot ---------------- */
 (async function initStore() {
+  let cfg = null;
+  try {
+    cfg = await getSiteConfig();
+  } catch {
+    /* if the config call itself fails, fall through and let the gate try */
+  }
+  if (cfg && cfg.angkorlinkEnabled === false) {
+    gate.hidden = true;
+    const box = document.getElementById("store-unavailable");
+    box.hidden = false;
+    if (cfg.supportTelegram) {
+      const line = document.getElementById("store-unavailable-support");
+      line.hidden = false;
+      line.innerHTML = `<a href="https://t.me/${encodeURIComponent(cfg.supportTelegram)}" target="_blank" rel="noopener">${escapeHtml(
+        t("checkout.contactSupport")
+      )}</a>`;
+    }
+    return;
+  }
+
   [allItems, account] = await Promise.all([fetchJSON("/api/items"), Account.load("store")]);
   try {
     ladder = (await Account.ranks()).ranks || [];

@@ -39,6 +39,9 @@ router.get("/leaderboard", (req, res) => {
 });
 
 router.post("/round/start", (req, res) => {
+  if (!angkorlink.enabled()) {
+    return res.status(503).json({ error: "Games are unavailable right now.", code: "SERVICE_UNAVAILABLE" });
+  }
   const now = Date.now();
   sweep(now);
 
