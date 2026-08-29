@@ -90,6 +90,16 @@ const Arcade = (() => {
     setTimeout(() => node.remove(), 700);
   }
 
+  // Shared by every game's loop() below: true while the hub's countdown is
+  // still running. The game has already been mounted and painted one frame
+  // (see each game's early draw() call) so it's visible, just not ticking -
+  // that's what lets the countdown overlay a real, still frame instead of a
+  // blank screen.
+  let frozen = false;
+  function setFrozen(value) {
+    frozen = value;
+  }
+
   // requestAnimationFrame loop with a delta in seconds; returns a stopper.
   function loop(step) {
     let raf = 0;
@@ -97,6 +107,11 @@ const Arcade = (() => {
     let running = true;
     const frame = (now) => {
       if (!running) return;
+      if (frozen) {
+        last = now; // keep dt from jumping once play resumes
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const dt = Math.min(0.05, (now - last) / 1000); // clamp after a tab switch
       last = now;
       step(dt, now);
@@ -299,6 +314,7 @@ const Arcade = (() => {
       stage.addEventListener("pointerup", onUp);
       stage.addEventListener("pointercancel", onUp);
 
+      draw(); // paint the starting frame immediately - the countdown overlays on top of it, frozen, not a blank canvas
       const stop = loop((dt) => {
         elapsed += dt;
         const w = playW();
@@ -860,6 +876,7 @@ const Arcade = (() => {
         emeralds.push({ x: rand(28, W() - 28), y: rand(28, H() - 28), life: 6 });
       }
 
+      draw(); // paint the starting frame immediately - the countdown overlays on top of it, frozen, not a blank canvas
       const stop = loop((dt) => {
         elapsed += dt;
 
@@ -1246,6 +1263,7 @@ const Arcade = (() => {
         });
       }
 
+      draw(); // paint the starting frame immediately - the countdown overlays on top of it, frozen, not a blank canvas
       const stop = loop((dt) => {
         elapsed += dt;
 
@@ -1557,6 +1575,7 @@ const Arcade = (() => {
         return false;
       }
 
+      draw(); // paint the starting frame immediately - the countdown overlays on top of it, frozen, not a blank canvas
       const stop = loop((dt) => {
         elapsed += dt;
         jumpBuffer = Math.max(0, jumpBuffer - dt);
@@ -1843,5 +1862,6 @@ const Arcade = (() => {
     name: (game) => T(game.nameKey),
     desc: (game) => T(game.descKey),
     howTo: (game) => T(game.howToKey),
+    setFrozen,
   };
 })();

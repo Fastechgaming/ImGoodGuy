@@ -1278,7 +1278,7 @@ body.game-open { overflow: hidden; }
 }
 .game-panel-head h3 { margin: 0; font-size: 1.15rem; }
 .game-panel-head .modal-close { position: static; }
-.game-panel-body { padding: 1rem; overflow-y: auto; }
+.game-panel-body { padding: 1rem; overflow-y: auto; position: relative; }
 
 /* intro + result screens */
 .game-screen { text-align: center; padding: 0.5rem 0 0.25rem; }
@@ -1728,7 +1728,19 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .game-card.spent { opacity: 0.72; }
 .game-card .buy-btn:disabled { cursor: not-allowed; opacity: 0.7; }
 
-/* 3… 2… 1… GO! */
+/* 3… 2… 1… GO! - overlaid on the already-mounted, frozen game (see
+   Arcade.setFrozen) rather than replacing it with a blank screen. */
+.game-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
 .countdown-screen { padding: 2rem 0 1rem; }
 .countdown-number {
   font-family: "Baloo 2", "Kantumruy Pro", sans-serif;

@@ -349,6 +349,7 @@ const gameBody = document.getElementById("game-body");
 
 function closeGame() {
   clearInterval(countdownTimer);
+  Arcade.setFrozen(false); // never leave the next game session frozen because this one closed mid-countdown
   if (stopCurrentGame) {
     stopCurrentGame();
     stopCurrentGame = null;
@@ -420,28 +421,31 @@ async function runGame(game) {
     return;
   }
 
-  countdown(game, () => {
-    gameBody.innerHTML = "";
-    const mount = document.createElement("div");
-    mount.className = "game-mount";
-    gameBody.appendChild(mount);
-    // Give the layout a frame to settle so canvas sizing measures correctly.
-    requestAnimationFrame(() => {
-      stopCurrentGame = game.start(mount, (result) => showResult(game, result));
-    });
+  // Mount the real game straight away, frozen on one painted frame, instead
+  // of a blank countdown screen - the countdown overlays on top of it and
+  // unfreezes the game's own loop on GO, so players see exactly the stage
+  // they're about to play while they wait, not a generic "get ready" card.
+  gameBody.innerHTML = "";
+  const mount = document.createElement("div");
+  mount.className = "game-mount";
+  gameBody.appendChild(mount);
+  const countdownEl = document.createElement("div");
+  countdownEl.className = "game-countdown-overlay";
+  gameBody.appendChild(countdownEl);
+
+  // Give the layout a frame to settle so canvas sizing measures correctly.
+  requestAnimationFrame(() => {
+    Arcade.setFrozen(true);
+    stopCurrentGame = game.start(mount, (result) => showResult(game, result));
+    countdown(countdownEl, () => Arcade.setFrozen(false));
   });
 }
 
-// 3… 2… 1… GO! before every round, so nobody is caught mid-blink.
-function countdown(game, onDone) {
+// 3… 2… 1… GO!, overlaid on the already-mounted (frozen) game.
+function countdown(overlayEl, onDone) {
   clearInterval(countdownTimer);
   let n = 3;
-  gameBody.innerHTML = `
-    <div class="game-screen countdown-screen">
-      <div class="game-screen-icon">${game.icon}</div>
-      <div class="countdown-number" id="countdown-number">3</div>
-      <p class="checkout-hint centered">${escapeHtml(Arcade.howTo(game))}</p>
-    </div>`;
+  overlayEl.innerHTML = `<div class="countdown-number" id="countdown-number">3</div>`;
   const node = document.getElementById("countdown-number");
   const tick = () => {
     n -= 1;
@@ -455,7 +459,10 @@ function countdown(game, onDone) {
       clearInterval(countdownTimer);
       node.textContent = t("games.go");
       node.classList.add("go");
-      setTimeout(onDone, 380);
+      setTimeout(() => {
+        overlayEl.remove();
+        onDone();
+      }, 380);
     }
   };
   node.classList.add("pop");
