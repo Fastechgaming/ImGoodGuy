@@ -1,0 +1,57 @@
+# AngkorStore — connects this server to the AngkorSMP website.
+#
+# The website only needs two things from this file to talk to the plugin:
+# the port below, and the secret. Put them in the website's .env as
+#   ANGKORSTORE_URL=http://this-box-ip:8123
+#   ANGKORSTORE_SECRET=<the same string as api.secret below>
+# That's it — no separate "key" and no request-signing to keep in sync.
+# The secret travels on every request, so if this server is reachable over
+# the open internet (not just localhost or a private network), put it
+# behind a tunnel/VPN so that traffic is encrypted.
+
+player:
+  # Floodgate prefixes Bedrock players' names with this character (its own
+  # "username-prefix" setting). Read here rather than out of Floodgate's own
+  # config so this still works if Floodgate isn't installed - keep it in
+  # sync by hand if you ever change Floodgate's setting.
+  bedrock-prefix: "."
+
+api:
+  enabled: true
+  port: 8123
+  bind: "0.0.0.0"        # use 127.0.0.1 if the website runs on this same machine
+  secret: "CHANGE-ME"    # must match ANGKORSTORE_SECRET in the website's .env
+  allowed-ips: []         # e.g. ["203.0.113.10"] — empty means any address may connect
+
+coins:
+  # Console command run to credit a player. {player} and {amount} are
+  # substituted. Match whatever your economy plugin actually expects —
+  # this default is written for a Vault-backed multi-currency economy
+  # plugin where "coin" is the currency id; for a plain single-currency
+  # economy (e.g. EssentialsX) this is usually just "eco give {player} {amount}".
+  give-command: "eco give coin {player} {amount}"
+  max-grant-per-transaction: 5000
+  notify-online-players: true
+  message: "&e+{amount} Coins &7from &a{reason}&7 on the website"
+
+ranks:
+  # Ascending order — lowest rank first. `group` is the LuckPerms group
+  # AngkorStore adds/removes on a purchase or upgrade; `id` is what the
+  # website's store items use (rank-bee, rank-zombie, ...). Any group a
+  # player holds that ISN'T in this list (default, staff, merchant,
+  # monarch, ...) is completely ignored — never reported, never touched.
+  ladder:
+    - { id: bee,    group: bee,    displayName: "Bee",    weight: 10, priceUsd: 3 }
+    - { id: zombie, group: zombie, displayName: "Zombie", weight: 20, priceUsd: 6 }
+    - { id: warden, group: warden, displayName: "Warden", weight: 30, priceUsd: 10 }
+    - { id: wither, group: wither, displayName: "Wither", weight: 40, priceUsd: 15 }
+    - { id: dragon, group: dragon, displayName: "Dragon", weight: 50, priceUsd: 20 }
+    - { id: titan,  group: titan,  displayName: "Titan",  weight: 60, priceUsd: 30 }
+    - { id: angkor, group: angkor, displayName: "Angkor", weight: 70, priceUsd: 50 }
+  # Used only when the LuckPerms API isn't available (LuckPerms absent).
+  fallback-set-command: "lp user {player} parent add {group}"
+  fallback-remove-command: "lp user {player} parent remove {group}"
+
+logging:
+  transactions: true     # plugins/AngkorStore/transactions.log
+  debug: false
