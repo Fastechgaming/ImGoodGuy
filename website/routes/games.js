@@ -39,9 +39,8 @@ router.get("/leaderboard", (req, res) => {
 });
 
 router.post("/round/start", (req, res) => {
-  if (!angkorstore.enabled()) {
-    return res.status(503).json({ error: "Games are unavailable right now.", code: "SERVICE_UNAVAILABLE" });
-  }
+  // Games always run, plugin or not - only the real-coin delivery on finish
+  // depends on it (see round/finish below and lib/angkorstore.js).
   const now = Date.now();
   sweep(now);
 
@@ -93,33 +92,52 @@ router.post("/round/finish", async (req, res) => {
   // The +10 grace covers the first couple of quick hits in a very short round.
   const countedPoints = Math.min(points, Math.floor(cfg.maxPointsPerSecond * elapsedSec) + 10);
   const roundCoins = gamestats.coinsForRound(round.gameId, countedPoints);
+  gamestats.addPoints(round.player, countedPoints, now); // points always count - they're a website stat, not real coins
 
-  const { granted, daily } = gamestats.award(round.player, roundCoins, now);
-  gamestats.addPoints(round.player, countedPoints, now);
+  // What the day's 500-coin allowance would still allow, without committing
+  // it to the local ledger yet: a round that never reaches the game (plugin
+  // down, or not configured at all) must not eat into that allowance for
+  // nothing, and must not report coins the player never actually got.
+  let daily = gamestats.getDaily(round.player, now);
+  const headroom = Math.max(0, daily.coinCap - daily.coinsEarned);
+  const wouldGrant = Math.max(0, Math.min(headroom, roundCoins));
 
-  // Push the coins into the game itself when the plugin is up. The round id is
-  // the transaction id, so a retry can never pay twice.
+  let granted = 0;
   let delivered = null;
-  if (granted > 0 && angkorstore.enabled()) {
+  if (wouldGrant > 0 && angkorstore.enabled()) {
+    // Transaction id is the round id, so a retry can never pay twice.
     const result = await angkorstore.grantCoins({
       transactionId: `round_${roundId}`,
       uuid: round.uuid,
       name: round.player,
       edition: round.edition,
-      amount: granted,
+      amount: wouldGrant,
       reason: cfg.name,
       meta: { gameId: round.gameId, roundId },
     });
-    delivered = result.ok ? { ok: true, balance: result.balanceAfter ?? null } : { ok: false };
+    if (result.ok) {
+      // Only now, once the plugin has actually confirmed it landed, commit
+      // the same amount to the local day-cap ledger.
+      const awarded = gamestats.award(round.player, wouldGrant, now);
+      granted = awarded.granted;
+      daily = awarded.daily;
+      delivered = { ok: true, balance: result.balanceAfter ?? null };
+    } else {
+      delivered = { ok: false };
+    }
   }
 
   res.json({
     points,
     countedPoints,
     coinsEarned: granted,
+    // True only when this round's coins actually reached the game. The
+    // client must not show a "+N Coins" result unless this is true - a
+    // local-only number that never lands in-game is worse than none at all.
+    coinsLive: Boolean(delivered && delivered.ok),
     maxCoinsPerPlay: gamestats.MAX_COINS_PER_PLAY,
-    // true when the daily allowance swallowed part (or all) of the round
-    capped: granted < roundCoins,
+    // true when the daily allowance would have swallowed part (or all) of the round
+    capped: wouldGrant < roundCoins,
     daily,
     delivered,
     leaderboard: gamestats.getLeaderboard(5, round.player),

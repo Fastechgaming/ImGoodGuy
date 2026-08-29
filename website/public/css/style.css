@@ -1771,6 +1771,19 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .profile-chip.coins { color: var(--gold-deep); }
 .profile-chip[hidden] { display: none; }
 
+.coin-unavailable-banner {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 2px solid var(--terracotta);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--terracotta);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+.coin-unavailable-banner[hidden] { display: none; }
+
 /* rank buttons: upgrade / the one you hold / one you're past */
 .buy-btn.rank-upgrade {
   background: linear-gradient(180deg, var(--moss-light), var(--moss));

@@ -60,15 +60,18 @@ function payload(identity, scope, now = Date.now()) {
     return { player: null, edition: "java", canChange: true, canChangeAt: now, cooldownMs, linked: angkorstore.enabled() };
   }
   const canChangeAt = identity.setAt + cooldownMs;
+  const linked = Boolean(identity.linked);
   return {
     player: identity.player,
     edition: identity.edition,
     uuid: identity.uuid || null,
-    coins: identity.coins ?? null,
+    // Never hand back a coin figure the plugin didn't just confirm — a
+    // cached number from before an outage is worse than no number at all.
+    coins: linked ? identity.coins ?? null : null,
     rank: identity.rank || null,
     nextRank: identity.nextRank || null,
     ranks: identity.ranks || [],
-    linked: Boolean(identity.linked),
+    linked,
     setAt: identity.setAt,
     canChangeAt,
     canChange: now >= canChangeAt,
@@ -106,27 +109,35 @@ async function verify(player, edition) {
 router.get("/", async (req, res) => {
   const scope = normalizeScope(req.query.scope);
   const identity = current(req, scope);
-  // Refresh coins/rank on every page load, so the store never shows a stale
-  // balance — but only when we actually have a UUID to ask about.
+  // Refresh coins/rank on every page load (and on the client's 10s poll), so
+  // the coin figure is never stale — but only when we actually have a UUID
+  // to ask about. `linked` is re-derived from THIS call, not carried over
+  // from whenever the player last verified: a plugin that goes down mid-
+  // session must flip the site to "Unavailable" on the very next check,
+  // not keep showing whatever balance happened to be cached.
   if (identity && identity.uuid && angkorstore.enabled()) {
     const profile = await angkorstore.getProfile(identity.uuid);
+    identity.linked = Boolean(profile.ok);
     if (profile.ok) {
       identity.coins = typeof profile.coins === "number" ? profile.coins : identity.coins;
       identity.rank = profile.rank || null;
       identity.nextRank = profile.nextRank || null;
       identity.ranks = Array.isArray(profile.ranks) ? profile.ranks : identity.ranks || [];
-      const both = pair(req);
-      both[scope] = identity;
-      req.session.account = both;
     }
+    const both = pair(req);
+    both[scope] = identity;
+    req.session.account = both;
+  } else if (identity && !angkorstore.enabled()) {
+    identity.linked = false;
   }
   res.json(payload(identity, scope));
 });
 
 router.post("/", async (req, res) => {
-  if (!angkorstore.enabled()) {
-    return res.status(503).json({ error: "This service is unavailable right now.", code: "SERVICE_UNAVAILABLE" });
-  }
+  // No hard gate here: verify() below already falls back to "accept the name,
+  // we just can't confirm it" when the plugin isn't configured or reachable
+  // (see its own comment) - games and the store both stay usable, just
+  // without live coins/rank until the plugin answers again.
   const now = Date.now();
   const body = req.body || {};
   const scope = normalizeScope(body.scope);
