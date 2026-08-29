@@ -71,6 +71,7 @@ async function openHub() {
   document.getElementById("hub-player-name").textContent = account.player;
   renderChangeButton();
   renderGamesGrid();
+  startCoinPoll();
   await Promise.all([refreshDaily(), refreshBoard()]);
 }
 
@@ -99,36 +100,35 @@ async function refreshBoard() {
   renderBoard();
 }
 
+// True only when the plugin JUST confirmed a real balance (server nulls
+// `coins` out itself whenever it isn't linked) — never trust a stale cache.
+function coinsAvailable() {
+  return Boolean(account && account.linked && typeof account.coins === "number");
+}
+
 function renderDaily() {
   const coins = document.getElementById("stat-coins");
   const earned = document.getElementById("stat-earned");
   const reset = document.getElementById("stat-reset");
-
-  // The headline number is the player's real in-game balance when the plugin
-  // is connected; otherwise it's what the website has paid them today.
-  const balance = account && typeof account.coins === "number" ? account.coins : daily ? daily.coinsEarned : 0;
-  coins.textContent = formatCompact(balance);
-
-  // Same real balance, shown as a small chip under the player name (mirrors
-  // the store's profile bar) — only when the plugin actually reports one.
   const hubCoinsChip = document.getElementById("hub-coins-chip");
-  if (account && typeof account.coins === "number") {
-    hubCoinsChip.textContent = `🪙 ${formatCompact(account.coins)}`;
-    hubCoinsChip.hidden = false;
-  } else {
-    hubCoinsChip.hidden = true;
-  }
+  const banner = document.getElementById("games-coin-banner");
+
+  const available = coinsAvailable();
+  banner.hidden = available;
+
+  coins.textContent = available ? formatCompact(account.coins) : t("games.coinsUnavailable");
+  hubCoinsChip.textContent = available ? `🪙 ${formatCompact(account.coins)}` : t("games.coinsUnavailable");
+  hubCoinsChip.hidden = false;
 
   if (!daily) {
     earned.textContent = "—";
     reset.textContent = "";
     return;
   }
-  earned.textContent = t("games.earnedToday", {
-    earned: daily.coinsEarned.toLocaleString(),
-    cap: daily.coinCap.toLocaleString(),
-  });
-  earned.classList.toggle("cap-reached", daily.coinCapReached);
+  earned.textContent = available
+    ? t("games.earnedToday", { earned: daily.coinsEarned.toLocaleString(), cap: daily.coinCap.toLocaleString() })
+    : t("games.coinsUnavailable");
+  earned.classList.toggle("cap-reached", available && daily.coinCapReached);
   startResetCountdown(reset);
 }
 
@@ -349,6 +349,7 @@ const gameBody = document.getElementById("game-body");
 
 function closeGame() {
   clearInterval(countdownTimer);
+  Arcade.setFrozen(false); // never leave the next game session frozen because this one closed mid-countdown
   if (stopCurrentGame) {
     stopCurrentGame();
     stopCurrentGame = null;
@@ -420,28 +421,31 @@ async function runGame(game) {
     return;
   }
 
-  countdown(game, () => {
-    gameBody.innerHTML = "";
-    const mount = document.createElement("div");
-    mount.className = "game-mount";
-    gameBody.appendChild(mount);
-    // Give the layout a frame to settle so canvas sizing measures correctly.
-    requestAnimationFrame(() => {
-      stopCurrentGame = game.start(mount, (result) => showResult(game, result));
-    });
+  // Mount the real game straight away, frozen on one painted frame, instead
+  // of a blank countdown screen - the countdown overlays on top of it and
+  // unfreezes the game's own loop on GO, so players see exactly the stage
+  // they're about to play while they wait, not a generic "get ready" card.
+  gameBody.innerHTML = "";
+  const mount = document.createElement("div");
+  mount.className = "game-mount";
+  gameBody.appendChild(mount);
+  const countdownEl = document.createElement("div");
+  countdownEl.className = "game-countdown-overlay";
+  gameBody.appendChild(countdownEl);
+
+  // Give the layout a frame to settle so canvas sizing measures correctly.
+  requestAnimationFrame(() => {
+    Arcade.setFrozen(true);
+    stopCurrentGame = game.start(mount, (result) => showResult(game, result));
+    countdown(countdownEl, () => Arcade.setFrozen(false));
   });
 }
 
-// 3… 2… 1… GO! before every round, so nobody is caught mid-blink.
-function countdown(game, onDone) {
+// 3… 2… 1… GO!, overlaid on the already-mounted (frozen) game.
+function countdown(overlayEl, onDone) {
   clearInterval(countdownTimer);
   let n = 3;
-  gameBody.innerHTML = `
-    <div class="game-screen countdown-screen">
-      <div class="game-screen-icon">${game.icon}</div>
-      <div class="countdown-number" id="countdown-number">3</div>
-      <p class="checkout-hint centered">${escapeHtml(Arcade.howTo(game))}</p>
-    </div>`;
+  overlayEl.innerHTML = `<div class="countdown-number" id="countdown-number">3</div>`;
   const node = document.getElementById("countdown-number");
   const tick = () => {
     n -= 1;
@@ -455,7 +459,10 @@ function countdown(game, onDone) {
       clearInterval(countdownTimer);
       node.textContent = t("games.go");
       node.classList.add("go");
-      setTimeout(onDone, 380);
+      setTimeout(() => {
+        overlayEl.remove();
+        onDone();
+      }, 380);
     }
   };
   node.classList.add("pop");
@@ -475,11 +482,16 @@ async function showResult(game, result) {
         body: JSON.stringify({ roundId: activeRoundId, points }),
       });
       daily = payout.daily;
-      // Coins that reached the game itself bump the headline balance too.
-      if (account && payout.delivered && payout.delivered.ok && typeof payout.delivered.balance === "number") {
-        account.coins = payout.delivered.balance;
-      } else if (account && typeof account.coins === "number") {
-        account.coins += payout.coinsEarned;
+      // Coins that reached the game itself bump the headline balance too,
+      // and prove the plugin is answering right now - no need to wait for
+      // the next 10s poll to clear the "Unavailable" banner.
+      if (account) {
+        if (payout.coinsLive && typeof payout.delivered.balance === "number") {
+          account.coins = payout.delivered.balance;
+          account.linked = true;
+        } else if (payout.delivered && payout.delivered.ok === false) {
+          account.linked = false;
+        }
       }
       renderDaily();
       renderGamesGrid();
@@ -490,8 +502,9 @@ async function showResult(game, result) {
   }
   activeRoundId = null;
 
-  const coins = payout ? payout.coinsEarned : 0;
-  const capped = payout ? payout.daily.coinCapReached : false;
+  const coinsLive = Boolean(payout && payout.coinsLive);
+  const coins = coinsLive ? payout.coinsEarned : 0;
+  const capped = coinsLive ? payout.daily.coinCapReached : false;
 
   const rows = (result.detail || [])
     .map(
@@ -510,8 +523,11 @@ async function showResult(game, result) {
       </div>
       <div class="coins-won">+${coins} <span>${escapeHtml(t("result.coinsEarned"))}</span></div>
       ${
-        payout
-          ? `<p class="checkout-hint centered">${escapeHtml(
+        !payout
+          ? `<p class="checkout-hint centered">${escapeHtml(t("result.saveFailed"))}</p>`
+          : !coinsLive
+          ? `<p class="checkout-hint centered">${escapeHtml(t("games.coinBannerText"))}</p>`
+          : `<p class="checkout-hint centered">${escapeHtml(
               capped
                 ? t("games.dailyCompleteNote")
                 : t("games.earnedToday", {
@@ -519,7 +535,6 @@ async function showResult(game, result) {
                     cap: payout.daily.coinCap.toLocaleString(),
                   })
             )}</p>`
-          : `<p class="checkout-hint centered">${escapeHtml(t("result.saveFailed"))}</p>`
       }
       <div class="receipt result-detail">${rows}</div>
       <div class="result-actions">
@@ -560,28 +575,27 @@ document.addEventListener("i18n:change", () => {
   }
 });
 
+// Coin balance/rank are the only things that need the plugin - refresh them
+// every 10s while the hub is open so an outage (or recovery) shows up live,
+// without ever blocking play itself.
+let coinPollTimer = null;
+function startCoinPoll() {
+  if (coinPollTimer) return;
+  coinPollTimer = setInterval(async () => {
+    try {
+      const fresh = await Account.load("games");
+      if (fresh && fresh.player) {
+        account = fresh;
+        renderDaily();
+      }
+    } catch {
+      /* transient - the next tick tries again */
+    }
+  }, 10000);
+}
+
 /* ---------------- Boot ---------------- */
 (async function boot() {
-  let cfg = null;
-  try {
-    cfg = await getSiteConfig();
-  } catch {
-    /* if the config call itself fails, fall through and let the gate try */
-  }
-  if (cfg && cfg.angkorlinkEnabled === false) {
-    gate.hidden = true;
-    const box = document.getElementById("games-unavailable");
-    box.hidden = false;
-    if (cfg.supportTelegram) {
-      const line = document.getElementById("games-unavailable-support");
-      line.hidden = false;
-      line.innerHTML = `<a href="https://t.me/${encodeURIComponent(cfg.supportTelegram)}" target="_blank" rel="noopener">${escapeHtml(
-        t("checkout.contactSupport")
-      )}</a>`;
-    }
-    return;
-  }
-
   account = await Account.load("games");
   if (account && account.player) return openHub();
   updatePreview();

@@ -23,11 +23,11 @@ without opening a single port.
 
 ```
    players ──HTTPS──▶ Cloudflare ──tunnel──▶ your box ──▶ node server.js :3000
-                                                     └──▶ Minecraft + AngkorLink (localhost)
+                                                     └──▶ Minecraft + AngkorStore (localhost)
 ```
 
 Running it on the same box as Minecraft is worth doing on purpose: the
-AngkorLink plugin API and RCON both stay on `127.0.0.1`, so you never expose
+AngkorStore plugin API and RCON both stay on `127.0.0.1`, so you never expose
 them to the internet at all.
 
 ---
@@ -83,10 +83,9 @@ RCON_HOST=127.0.0.1
 RCON_PORT=25575
 RCON_PASSWORD=...
 
-# Once the AngkorLink plugin is running (see PLUGIN_PROMPT.md)
-ANGKORLINK_URL=http://127.0.0.1:8123
-ANGKORLINK_KEY=...
-ANGKORLINK_SECRET=...
+# Once the AngkorStore plugin is running (see ../AngkorStore/README.md)
+ANGKORSTORE_URL=http://127.0.0.1:8123
+ANGKORSTORE_SECRET=...
 ```
 
 Check it starts:

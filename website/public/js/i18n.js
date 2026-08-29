@@ -61,6 +61,10 @@ const I18n = (() => {
       "store.upgradeNow": "Upgrade Now",
       "store.currentRank": "Your current Rank",
       "store.lowerRank": "This is a lower rank",
+      "store.alreadyOwned": "You already have this",
+      "store.upRank": "Up Rank",
+      "store.upRankChoose": "Choose a rank to upgrade from",
+      "store.upgradeSummary": "Upgrade {from} → {to}",
       "store.confirm": "Confirm",
       "store.cancel": "Cancel",
       "store.changeHint":
@@ -152,6 +156,8 @@ const I18n = (() => {
       "games.unavailableTitle": "Unavailable",
       "games.unavailableBody":
         "Games are probably under maintenance or offline for now. Please check back later, or contact support if this keeps happening.",
+      "games.coinsUnavailable": "Unavailable",
+      "games.coinBannerText": "⚠️ Coins won't be received right now — the coin system is unavailable. Contact support for more info.",
       "games.start": "Start Playing",
       "games.disclaimer":
         "Your name is saved on this device, so you only enter it once. Coins and points are stored on the server.",
@@ -345,6 +351,10 @@ const I18n = (() => {
       "store.upgradeNow": "ដំឡើងឥឡូវ",
       "store.currentRank": "Rank បច្ចុប្បន្នរបស់អ្នក",
       "store.lowerRank": "នេះជា Rank ទាបជាង",
+      "store.alreadyOwned": "អ្នកមានរួចហើយ",
+      "store.upRank": "ដំឡើង Rank",
+      "store.upRankChoose": "ជ្រើសរើស Rank ដើម្បីដំឡើងពី",
+      "store.upgradeSummary": "ដំឡើងពី {from} → {to}",
       "store.confirm": "បញ្ជាក់",
       "store.cancel": "បោះបង់",
       "store.changeHint":
@@ -436,6 +446,8 @@ const I18n = (() => {
       "games.unavailableTitle": "មិនអាចប្រើបានទេ",
       "games.unavailableBody":
         "ហ្គេមប្រហែលជានៅក្នុងការជួសជុល ឬបិទជាបណ្តោះអាសន្ន។ សូមមកមើលម្តងទៀតពេលក្រោយ ឬទាក់ទង Support បើនៅតែមានបញ្ហា។",
+      "games.coinsUnavailable": "មិនអាចប្រើបានទេ",
+      "games.coinBannerText": "⚠️ Coins នឹងមិនចូលទេពេលនេះ — ប្រព័ន្ធ Coins កំពុងមិនដំណើរការ។ សូមទាក់ទង Support សម្រាប់ព័ត៌មានបន្ថែម។",
       "games.start": "ចាប់ផ្តើមលេង",
       "games.disclaimer":
         "ឈ្មោះរបស់អ្នកត្រូវបានរក្សាទុកលើឧបករណ៍នេះ ដូច្នេះបញ្ចូលតែម្តងគត់។ Coins និងពិន្ទុរក្សាទុកនៅលើ Server។",

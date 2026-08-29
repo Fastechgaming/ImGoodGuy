@@ -1278,7 +1278,7 @@ body.game-open { overflow: hidden; }
 }
 .game-panel-head h3 { margin: 0; font-size: 1.15rem; }
 .game-panel-head .modal-close { position: static; }
-.game-panel-body { padding: 1rem; overflow-y: auto; }
+.game-panel-body { padding: 1rem; overflow-y: auto; position: relative; }
 
 /* intro + result screens */
 .game-screen { text-align: center; padding: 0.5rem 0 0.25rem; }
@@ -1728,7 +1728,19 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .game-card.spent { opacity: 0.72; }
 .game-card .buy-btn:disabled { cursor: not-allowed; opacity: 0.7; }
 
-/* 3… 2… 1… GO! */
+/* 3… 2… 1… GO! - overlaid on the already-mounted, frozen game (see
+   Arcade.setFrozen) rather than replacing it with a blank screen. */
+.game-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  pointer-events: none;
+}
 .countdown-screen { padding: 2rem 0 1rem; }
 .countdown-number {
   font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
@@ -1771,6 +1783,19 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .profile-chip.coins { color: var(--gold-deep); }
 .profile-chip[hidden] { display: none; }
 
+.coin-unavailable-banner {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 2px solid var(--terracotta);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--terracotta);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+}
+.coin-unavailable-banner[hidden] { display: none; }
+
 /* rank buttons: upgrade / the one you hold / one you're past */
 .buy-btn.rank-upgrade {
   background: linear-gradient(180deg, var(--moss-light), var(--moss));
@@ -1790,6 +1815,53 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 }
 .buy-btn.rank-current:hover, .buy-btn.rank-lower:hover { transform: none; }
 .info-buy-btn.rank-current, .info-buy-btn.rank-lower { opacity: 0.95; }
+
+/* Confirm (80%) + Up Rank (20%) split, for a rank the player could trade a
+   lower one in for. */
+.rank-split { flex: 1; display: flex; gap: 0.35rem; align-items: stretch; }
+.rank-split .confirm-part { flex: 4; }
+.up-rank-wrap { position: relative; flex: 1; min-width: 44px; }
+.up-rank-btn {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
+  color: var(--ink-soft);
+  border: 3px solid var(--stone-darkest);
+  border-radius: 10px;
+  padding: 0.2rem 0.15rem;
+  cursor: pointer;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest);
+}
+.up-rank-icon { font-size: 0.95rem; line-height: 1; }
+.up-rank-label {
+  font-size: 0.56rem;
+  font-weight: 800;
+  font-family: "Baloo 2", sans-serif;
+  line-height: 1.1;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.up-rank-btn.armed {
+  background: linear-gradient(180deg, var(--moss-light), var(--moss));
+  color: #1d3a12;
+  border-color: #1d3a12;
+}
+.up-rank-select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
 
 .confirm-head { text-align: center; margin-bottom: 0.9rem; }
 .confirm-icon {

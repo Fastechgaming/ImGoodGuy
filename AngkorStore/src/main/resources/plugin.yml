@@ -1,0 +1,19 @@
+name: AngkorStore
+main: com.angkorsmp.angkorstore.AngkorStorePlugin
+version: ${version}
+api-version: "1.21"
+author: AngkorSMP
+description: Bridges the AngkorSMP website to this server - live coin balance, rank ladder, and store delivery, over a small authenticated HTTP API.
+
+softdepend: [Vault, LuckPerms, floodgate]
+
+commands:
+  angkorstore:
+    description: Manage the AngkorStore plugin
+    permission: angkorstore.admin
+    usage: /<command> <reload|status|test>
+
+permissions:
+  angkorstore.admin:
+    description: Manage AngkorStore (reload config, check status, self-test)
+    default: op

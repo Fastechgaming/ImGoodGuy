@@ -6,8 +6,8 @@ const store = require("../lib/store");
 const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
-const angkorlink = require("../lib/angkorlink");
-const { current: currentAccount, STORE_SCOPE } = require("./account");
+const angkorstore = require("../lib/angkorstore");
+const { current: currentAccount, STORE_SCOPE, getRankLadder } = require("./account");
 
 const router = express.Router();
 
@@ -52,10 +52,10 @@ router.get("/config", (req, res) => {
     serverFeatures: cfg.serverFeatures || [],
     socials: cfg.socials,
     supportTelegram: process.env.TELEGRAM_SUPPORT_USERNAME || "",
-    // Games and the store both need a live AngkorLink connection to verify a
+    // Games and the store both need a live AngkorStore connection to verify a
     // player against the real server - without it they show "Unavailable"
     // rather than quietly running on an unverified local ledger.
-    angkorlinkEnabled: angkorlink.enabled(),
+    angkorstoreEnabled: angkorstore.enabled(),
   });
 });
 
@@ -91,9 +91,9 @@ router.get("/order/:id", (req, res) => {
 
 // Step 1 of checkout: player name + edition. Creates a pending order and hands
 // back its id; the customer is then sent to /checkout to pay + upload proof.
-router.post("/checkout", (req, res) => {
+router.post("/checkout", async (req, res) => {
   try {
-    if (!angkorlink.enabled()) {
+    if (!angkorstore.enabled()) {
       return res.status(503).json({ error: "The store is unavailable right now.", code: "SERVICE_UNAVAILABLE" });
     }
     // The buyer is whoever is signed in — the store makes you verify a name
@@ -103,7 +103,7 @@ router.post("/checkout", (req, res) => {
       return res.status(401).json({ error: "Verify your Minecraft name before buying.", code: "NOT_SIGNED_IN" });
     }
 
-    const { itemId } = req.body || {};
+    const { itemId, upgradeFromRankId } = req.body || {};
     if (!itemId) return res.status(400).json({ error: "itemId is required" });
 
     const item = store.findItem(itemId);
@@ -116,17 +116,43 @@ router.post("/checkout", (req, res) => {
     }
     const finalName = normalizeServerName(account.player, edition);
 
+    // An upgrade trades one held rank in for a pricier one, charged only the
+    // difference. Never trust the browser's price (or its claim of what the
+    // player holds) - recompute both from the server's own ladder, the same
+    // one the plugin itself re-checks at delivery time via expectedFromRankId.
+    let amount = item.price;
+    let upgrade = null;
+    const isRankItem = store.getItems().ranks.some((i) => i.id === item.id);
+    if (upgradeFromRankId && isRankItem) {
+      const { ranks } = await getRankLadder();
+      const toRank = ranks.find((r) => r.itemId === item.id || `rank-${r.id}` === item.id);
+      const fromRank = ranks.find((r) => r.id === upgradeFromRankId);
+      if (toRank && fromRank && fromRank.weight < toRank.weight) {
+        amount = Math.max(0, Math.round((toRank.priceUsd - fromRank.priceUsd) * 100) / 100);
+        upgrade = {
+          fromRankId: fromRank.id,
+          fromGroup: fromRank.group || fromRank.id,
+          toRankId: toRank.id,
+          toGroup: toRank.group || toRank.id,
+        };
+      }
+      // An invalid/stale from-rank falls through to a plain full-price
+      // purchase rather than failing outright - the player still gets what
+      // they asked to buy, just without the discount they no longer qualify for.
+    }
+
     const order = {
       id: nanoid(10),
       itemId: item.id,
       itemName: item.name,
       itemImage: item.image,
       itemDesc: item.shortDesc || "",
-      amount: item.price,
+      amount,
       currency: item.currency || "USD",
       playerName: finalName,
       playerUuid: account.uuid || null,
       edition,
+      upgrade, // null for a plain purchase; {fromRankId, fromGroup, toRankId, toGroup} for an upgrade
       status: "awaiting_payment",
       createdAt: Date.now(),
     };

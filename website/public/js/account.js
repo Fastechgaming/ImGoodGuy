@@ -4,7 +4,7 @@
 // both. Every call here takes a `scope` ("games" or "store") so the two never
 // get mixed up.
 //
-// When the AngkorLink plugin is connected the reply also carries the player's
+// When the AngkorStore plugin is connected the reply also carries the player's
 // UUID, live coin balance and rank; without it those come back null and the
 // pages hide what they cannot show.
 const Account = (() => {

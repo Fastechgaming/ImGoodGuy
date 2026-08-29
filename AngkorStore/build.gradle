@@ -1,0 +1,52 @@
+plugins {
+    id "java"
+}
+
+group = "com.angkorsmp"
+version = "1.0.0"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://repo.papermc.io/repository/maven-public/" }
+    maven { url "https://jitpack.io" }                         // VaultAPI
+    maven { url "https://repo.lucko.me/" }                     // LuckPerms
+}
+
+dependencies {
+    // Everything below is provided at runtime by the server itself, or by
+    // the soft-depended plugin it belongs to — never shaded into the jar.
+    // (No Floodgate API dependency: Bedrock support only needs the
+    // "username-prefix" character, which is read from this plugin's own
+    // config.yml instead of Floodgate's internals - see player.bedrock-prefix.)
+    compileOnly "io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT"
+    compileOnly "net.luckperms:api:5.4"
+    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    // Paper ships Gson on the runtime classpath already (it uses it
+    // internally, and it's visible to plugins unshaded) - compileOnly here
+    // just gives us the types to code against. If your server setup somehow
+    // doesn't expose it, add the Shadow plugin and shade+relocate this one
+    // dependency; nothing else here needs it.
+    compileOnly "com.google.code.gson:gson:2.11.0"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = 21
+}
+
+tasks.named("processResources") {
+    filesMatching("plugin.yml") {
+        expand(version: project.version)
+    }
+}
+
+tasks.named("jar") {
+    archiveBaseName = "AngkorStore"
+    archiveVersion = project.version
+}

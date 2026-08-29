@@ -79,10 +79,10 @@ app.use((err, req, res, next) => {
 app.listen(PORT, HOST, () => {
   console.log(`AngkorSMP website running on ${HOST}:${PORT}`);
   if (BEHIND_HTTPS) console.log(`[https] trusting proxy headers, session cookies marked Secure (SITE_URL=${process.env.SITE_URL})`);
-  if (require("./lib/angkorlink").enabled()) {
-    console.log("[angkorlink] plugin bridge configured — verifying names against the Minecraft server");
+  if (require("./lib/angkorstore").enabled()) {
+    console.log("[angkorstore] plugin bridge configured — verifying names against the Minecraft server");
   } else {
-    console.log("[angkorlink] no plugin configured — names are accepted without server verification");
+    console.log("[angkorstore] no plugin configured — names are accepted without server verification");
   }
   telegram.initBot();
 });
