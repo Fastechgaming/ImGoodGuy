@@ -109,6 +109,16 @@ function renderDaily() {
   const balance = account && typeof account.coins === "number" ? account.coins : daily ? daily.coinsEarned : 0;
   coins.textContent = formatCompact(balance);
 
+  // Same real balance, shown as a small chip under the player name (mirrors
+  // the store's profile bar) — only when the plugin actually reports one.
+  const hubCoinsChip = document.getElementById("hub-coins-chip");
+  if (account && typeof account.coins === "number") {
+    hubCoinsChip.textContent = `🪙 ${formatCompact(account.coins)}`;
+    hubCoinsChip.hidden = false;
+  } else {
+    hubCoinsChip.hidden = true;
+  }
+
   if (!daily) {
     earned.textContent = "—";
     reset.textContent = "";
