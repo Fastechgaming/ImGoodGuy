@@ -100,7 +100,7 @@ function renderProfile() {
   }
 
   if (typeof account.coins === "number") {
-    coinsChip.textContent = `🪙 ${formatCompact(account.coins)}`;
+    coinsChip.innerHTML = `<img class="coin-icon" src="/images/site/coin-icon.png" alt="" /> ${formatCompact(account.coins)}`;
     coinsChip.hidden = false;
   } else {
     coinsChip.hidden = true;

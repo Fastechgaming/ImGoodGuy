@@ -117,7 +117,9 @@ function renderDaily() {
   banner.hidden = available;
 
   coins.textContent = available ? formatCompact(account.coins) : t("games.coinsUnavailable");
-  hubCoinsChip.textContent = available ? `🪙 ${formatCompact(account.coins)}` : t("games.coinsUnavailable");
+  hubCoinsChip.innerHTML = available
+    ? `<img class="coin-icon" src="/images/site/coin-icon.png" alt="" /> ${formatCompact(account.coins)}`
+    : escapeHtml(t("games.coinsUnavailable"));
   hubCoinsChip.hidden = false;
 
   if (!daily) {

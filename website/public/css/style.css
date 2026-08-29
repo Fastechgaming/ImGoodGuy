@@ -1782,6 +1782,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 }
 .profile-chip.coins { color: var(--gold-deep); }
 .profile-chip[hidden] { display: none; }
+.coin-icon { width: 1.05em; height: 1.05em; vertical-align: -0.18em; object-fit: contain; }
 
 .coin-unavailable-banner {
   margin: 0 0 1rem;
