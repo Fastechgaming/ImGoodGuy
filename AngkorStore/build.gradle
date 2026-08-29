@@ -26,7 +26,13 @@ dependencies {
     // config.yml instead of Floodgate's internals - see player.bedrock-prefix.)
     compileOnly "io.papermc.paper:paper-api:1.21.4-R0.1-SNAPSHOT"
     compileOnly "net.luckperms:api:5.4"
-    compileOnly "com.github.MilkBowl:VaultAPI:1.7"
+    // VaultAPI's own POM drags in an ancient org.bukkit:bukkit stub, which
+    // Gradle's capability resolution then refuses to pick between and
+    // paper-api (both claim to provide "org.bukkit:bukkit"). We only want
+    // VaultAPI's economy interfaces, not its transitive Bukkit, so drop it.
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7") {
+        exclude group: "org.bukkit", module: "bukkit"
+    }
     // Paper ships Gson on the runtime classpath already (it uses it
     // internally, and it's visible to plugins unshaded) - compileOnly here
     // just gives us the types to code against. If your server setup somehow
