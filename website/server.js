@@ -58,7 +58,17 @@ app.use("/api/games", gamesRoutes);
 app.use("/api", apiRoutes);
 app.use("/admin", adminSession, adminRoutes);
 
-app.use(express.static(path.join(__dirname, "public")));
+// Clean URLs: /store instead of /store.html. Old .html links (bookmarks,
+// anything already indexed) redirect permanently to the clean one instead of
+// just quietly still working, so there is one canonical URL per page.
+const CLEAN_PAGES = ["games", "store", "map", "checkout", "success"];
+app.get(CLEAN_PAGES.map((p) => `/${p}.html`), (req, res) => {
+  const page = req.path.replace(/\.html$/, "");
+  const qs = req.url.slice(req.path.length); // preserve ?order=... etc.
+  res.redirect(301, page + qs);
+});
+
+app.use(express.static(path.join(__dirname, "public"), { extensions: ["html"] }));
 
 // Fallback error handler for admin form errors (bad category, bad upload, etc.)
 app.use((err, req, res, next) => {

@@ -663,7 +663,11 @@ const Arcade = (() => {
         targetName.textContent = T(target.key);
         targetTex.src = `/images/blocks/${target.tex}.png`;
 
-        grid.style.gridTemplateColumns = `repeat(${spec.cols}, 1fr)`;
+        // Fixed, capped tile size instead of 1fr - a 4x4 grid at full panel
+        // width got tall enough to push the Save/target bar off-screen and
+        // force scrolling mid-round. This keeps tiles compact on every
+        // screen size and lets the grid center itself instead of stretching.
+        grid.style.gridTemplateColumns = `repeat(${spec.cols}, min(72px, 17vw))`;
         grid.innerHTML = "";
         pool
           .sort(() => Math.random() - 0.5)
@@ -1022,7 +1026,9 @@ const Arcade = (() => {
       ]);
 
       const grid = el("div", "mine-grid");
-      grid.style.gridTemplateColumns = `repeat(${COLS}, 1fr)`;
+      // Fixed, capped tile size instead of 1fr - see the same fix in Block
+      // Breaker for why: 1fr made the grid tall enough to require scrolling.
+      grid.style.gridTemplateColumns = `repeat(${COLS}, min(58px, 15vw))`;
       mount.appendChild(grid);
       addHint(mount, "game.rush.hint");
 

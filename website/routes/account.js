@@ -121,6 +121,9 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
+  if (!angkorlink.enabled()) {
+    return res.status(503).json({ error: "This service is unavailable right now.", code: "SERVICE_UNAVAILABLE" });
+  }
   const now = Date.now();
   const body = req.body || {};
   const scope = normalizeScope(body.scope);

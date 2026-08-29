@@ -254,7 +254,7 @@ document.getElementById("info-modal").addEventListener("click", (e) => {
 });
 
 /* ---------------- Purchase confirmation ----------------
-   Payment happens on /checkout.html - the customer scans our KHQR, uploads
+   Payment happens on /checkout - the customer scans our KHQR, uploads
    their receipt, and we approve it from Telegram. This dialog is the last
    "is this right?" before an order is created. */
 const buyModal = document.getElementById("buy-modal");
@@ -309,7 +309,7 @@ async function startCheckout() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ itemId: pendingItem.id }),
     });
-    window.location.href = `/checkout.html?order=${encodeURIComponent(result.orderId)}`;
+    window.location.href = `/checkout?order=${encodeURIComponent(result.orderId)}`;
   } catch (err) {
     showToast(err.message);
     btn.disabled = false;
@@ -426,6 +426,26 @@ document.addEventListener("i18n:change", () => {
 
 /* ---------------- Boot ---------------- */
 (async function initStore() {
+  let cfg = null;
+  try {
+    cfg = await getSiteConfig();
+  } catch {
+    /* if the config call itself fails, fall through and let the gate try */
+  }
+  if (cfg && cfg.angkorlinkEnabled === false) {
+    gate.hidden = true;
+    const box = document.getElementById("store-unavailable");
+    box.hidden = false;
+    if (cfg.supportTelegram) {
+      const line = document.getElementById("store-unavailable-support");
+      line.hidden = false;
+      line.innerHTML = `<a href="https://t.me/${encodeURIComponent(cfg.supportTelegram)}" target="_blank" rel="noopener">${escapeHtml(
+        t("checkout.contactSupport")
+      )}</a>`;
+    }
+    return;
+  }
+
   [allItems, account] = await Promise.all([fetchJSON("/api/items"), Account.load("store")]);
   try {
     ladder = (await Account.ranks()).ranks || [];

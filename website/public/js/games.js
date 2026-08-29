@@ -109,6 +109,16 @@ function renderDaily() {
   const balance = account && typeof account.coins === "number" ? account.coins : daily ? daily.coinsEarned : 0;
   coins.textContent = formatCompact(balance);
 
+  // Same real balance, shown as a small chip under the player name (mirrors
+  // the store's profile bar) — only when the plugin actually reports one.
+  const hubCoinsChip = document.getElementById("hub-coins-chip");
+  if (account && typeof account.coins === "number") {
+    hubCoinsChip.textContent = `🪙 ${formatCompact(account.coins)}`;
+    hubCoinsChip.hidden = false;
+  } else {
+    hubCoinsChip.hidden = true;
+  }
+
   if (!daily) {
     earned.textContent = "—";
     reset.textContent = "";
@@ -552,6 +562,26 @@ document.addEventListener("i18n:change", () => {
 
 /* ---------------- Boot ---------------- */
 (async function boot() {
+  let cfg = null;
+  try {
+    cfg = await getSiteConfig();
+  } catch {
+    /* if the config call itself fails, fall through and let the gate try */
+  }
+  if (cfg && cfg.angkorlinkEnabled === false) {
+    gate.hidden = true;
+    const box = document.getElementById("games-unavailable");
+    box.hidden = false;
+    if (cfg.supportTelegram) {
+      const line = document.getElementById("games-unavailable-support");
+      line.hidden = false;
+      line.innerHTML = `<a href="https://t.me/${encodeURIComponent(cfg.supportTelegram)}" target="_blank" rel="noopener">${escapeHtml(
+        t("checkout.contactSupport")
+      )}</a>`;
+    }
+    return;
+  }
+
   account = await Account.load("games");
   if (account && account.player) return openHub();
   updatePreview();

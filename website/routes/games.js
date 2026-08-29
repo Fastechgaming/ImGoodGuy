@@ -39,6 +39,9 @@ router.get("/leaderboard", (req, res) => {
 });
 
 router.post("/round/start", (req, res) => {
+  if (!angkorlink.enabled()) {
+    return res.status(503).json({ error: "Games are unavailable right now.", code: "SERVICE_UNAVAILABLE" });
+  }
   const now = Date.now();
   sweep(now);
 
@@ -59,7 +62,13 @@ router.post("/round/start", (req, res) => {
   }
 
   const roundId = crypto.randomBytes(12).toString("hex");
-  openRounds.set(roundId, { player: account.player, uuid: account.uuid || null, gameId, startedAt: now });
+  openRounds.set(roundId, {
+    player: account.player,
+    uuid: account.uuid || null,
+    edition: account.edition,
+    gameId,
+    startedAt: now,
+  });
 
   res.json({ roundId, daily });
 });
@@ -96,6 +105,7 @@ router.post("/round/finish", async (req, res) => {
       transactionId: `round_${roundId}`,
       uuid: round.uuid,
       name: round.player,
+      edition: round.edition,
       amount: granted,
       reason: cfg.name,
       meta: { gameId: round.gameId, roundId },
