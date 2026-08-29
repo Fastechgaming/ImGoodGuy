@@ -20,19 +20,34 @@ single-secret auth instead of key+HMAC signing).
 
 ## Building
 
+From inside this folder (`AngkorStore/`, the one with `build.gradle` in it):
+
 ```
-gradle build
+./gradlew build
 ```
 
-The jar comes out at `build/libs/AngkorStore-1.0.0.jar`. This repo's sandbox
-could not reach `repo.papermc.io`, `jitpack.io`, or `repo.lucko.me` to
-resolve `paper-api`/`VaultAPI`/`luckperms-api` (network policy blocks those
-hosts here) — **build this on a machine with normal internet access**, or in
-your CI. The source was compiled clean against hand-written stubs of the
-exact Bukkit/Vault/LuckPerms/Gson methods it calls, which catches typos and
-structural mistakes but is not a substitute for a real build against the
-real jars — do that once before you trust the output, same as you would for
-any plugin you didn't build yourself.
+On Windows use `gradlew.bat build` instead. The wrapper downloads its own
+matching Gradle the first time you run it — you do **not** need Gradle
+installed separately, only a JDK (21). On Termux: `pkg install openjdk-21`
+first, then the same `./gradlew build` command works.
+
+The jar comes out at `build/libs/AngkorStore-1.0.0.jar`. Building needs real
+internet access to `repo.papermc.io`, `jitpack.io`, and `repo.lucko.me` to
+resolve `paper-api`/`VaultAPI`/`luckperms-api` — this repo's own sandbox
+blocks those hosts, so the source was instead compiled clean against
+hand-written stubs of the exact Bukkit/Vault/LuckPerms/Gson methods it
+calls, which catches typos and structural mistakes but is not a substitute
+for a real build against the real jars. Run `./gradlew build` yourself
+before you trust the output, same as you would for any plugin you didn't
+build yourself.
+
+Common snags:
+- `Permission denied` running `./gradlew` → `chmod +x gradlew` once.
+- Build fails to resolve dependencies → check you actually have internet
+  access to the three hosts above (a captive portal, VPN, or firewall can
+  silently block just those).
+- First run is slow (downloading Gradle itself, then the dependencies) —
+  normal, later builds are much faster.
 
 ## Installing
 
