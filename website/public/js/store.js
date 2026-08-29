@@ -6,6 +6,7 @@ let ladder = [];        // the rank ladder, ascending
 let account = null;
 let activeCategory = "ranks";
 let pendingItem = null; // the item sitting in the confirmation dialog
+let pendingUpgradeFrom = null; // rank id being traded in, or null for a plain buy
 
 const CATEGORY_KEYS = { ranks: "store.tab.ranks", coins: "store.tab.coins", other: "store.tab.other" };
 
@@ -128,33 +129,78 @@ function rankWeight(itemId) {
   const entry = ladder.find((r) => r.itemId === itemId || `rank-${r.id}` === itemId);
   return entry ? entry.weight : null;
 }
-function myWeight() {
-  if (!account || !account.rank) return null;
-  const entry = ladder.find((r) => r.id === account.rank.id);
-  return entry ? entry.weight : typeof account.rank.weight === "number" ? account.rank.weight : null;
+function ladderEntry(rankId) {
+  return ladder.find((r) => r.id === rankId) || null;
 }
 
-// Buy button state for one item: a plain buy, an upgrade, the rank you already
-// hold, or one you are already past.
-function buttonFor(item) {
-  if (item.comingSoon) {
-    return { cls: "buy-btn", label: t("store.comingSoon"), disabled: true };
-  }
-  if (item.category !== "ranks") {
-    return { cls: "buy-btn", label: t("store.buyNow"), disabled: false };
-  }
-  const mine = myWeight();
+// A player can legitimately hold more than one configured rank at once
+// (bought two separately, neither replacing the other) - the plugin reports
+// all of them in account.ranks, not just the highest.
+function heldRanks() {
+  return account && Array.isArray(account.ranks) ? account.ranks : [];
+}
+
+// Every held rank the player could trade in for `targetWeight` - i.e. worth
+// less - ascending. Empty when there's nothing to upgrade from, even if they
+// hold something *above* the target (buying a rank below what you already
+// have is just a plain purchase, not a downgrade path).
+function eligibleFromRanks(targetWeight) {
+  return heldRanks()
+    .filter((r) => typeof r.weight === "number" && r.weight < targetWeight)
+    .map((r) => ladderEntry(r.id))
+    .filter(Boolean)
+    .sort((a, b) => a.weight - b.weight);
+}
+
+// Buy button state for one rank item: a plain buy, the rank you already
+// hold, or one you could upgrade into (with the ranks you could trade in).
+function buttonState(item) {
+  if (item.comingSoon) return { kind: "soon" };
+  if (item.category !== "ranks") return { kind: "plain" };
   const theirs = rankWeight(item.id);
-  if (mine == null || theirs == null) {
-    return { cls: "buy-btn", label: t("store.buyNow"), disabled: false };
+  if (theirs == null) return { kind: "plain" };
+  if (heldRanks().some((r) => r.weight === theirs)) return { kind: "owned" };
+  const eligible = eligibleFromRanks(theirs);
+  return eligible.length ? { kind: "upgradeable", eligible } : { kind: "plain" };
+}
+
+// Which held rank each upgradeable item is currently armed to trade in for,
+// keyed by item id - set by picking one from the card's Up Rank dropdown,
+// read when Confirm is pressed. Cleared whenever the grid data changes
+// under it (a fresh account load could make a stale choice invalid).
+const armedUpgrade = new Map();
+
+function actionsMarkup(item) {
+  const state = buttonState(item);
+  if (state.kind === "soon") {
+    return `<button class="buy-btn" disabled>${escapeHtml(t("store.comingSoon"))}</button>`;
   }
-  if (theirs === mine) {
-    return { cls: "buy-btn rank-current", label: t("store.currentRank"), disabled: true };
+  if (state.kind === "owned") {
+    return `<button class="buy-btn rank-lower" disabled>${escapeHtml(t("store.alreadyOwned"))}</button>`;
   }
-  if (theirs < mine) {
-    return { cls: "buy-btn rank-lower", label: t("store.lowerRank"), disabled: true };
+  if (state.kind === "plain") {
+    return `<button class="buy-btn" data-buy="${item.id}">${escapeHtml(t("store.buyNow"))}</button>`;
   }
-  return { cls: "buy-btn rank-upgrade", label: t("store.upgradeNow"), disabled: false };
+  // upgradeable: a plain-price Confirm plus a separate Up Rank picker - buying
+  // the rank outright (on top of what they hold) is still a valid choice.
+  const armedId = armedUpgrade.get(item.id) || "";
+  const armed = state.eligible.find((r) => r.id === armedId) || null;
+  return `
+    <div class="rank-split">
+      <button class="buy-btn confirm-part" data-buy="${item.id}">${escapeHtml(t("store.confirm"))}</button>
+      <div class="up-rank-wrap">
+        <button type="button" class="up-rank-btn${armed ? " armed" : ""}" tabindex="-1">
+          <span class="up-rank-icon">⬆️</span>
+          <span class="up-rank-label">${armed ? escapeHtml(armed.displayName) : escapeHtml(t("store.upRank"))}</span>
+        </button>
+        <select class="up-rank-select" data-upgrade-select="${item.id}" aria-label="${escapeHtml(t("store.upRankChoose"))}">
+          <option value="">${escapeHtml(t("store.upRankChoose"))}</option>
+          ${state.eligible
+            .map((r) => `<option value="${r.id}"${r.id === armedId ? " selected" : ""}>${escapeHtml(r.displayName)}</option>`)
+            .join("")}
+        </select>
+      </div>
+    </div>`;
 }
 
 function renderGrid() {
@@ -167,7 +213,6 @@ function renderGrid() {
   grid.innerHTML = items
     .map((item) => {
       const soon = Boolean(item.comingSoon);
-      const btn = buttonFor(item);
       return `
     <div class="item-card${soon ? " coming-soon" : ""}">
       <div class="item-image-wrap">
@@ -182,7 +227,7 @@ function renderGrid() {
         <p>${escapeHtml(item.shortDesc)}</p>
         <div class="price">${soon ? "—" : escapeHtml(formatPrice(item.price))}</div>
         <div class="item-actions">
-          <button class="${btn.cls}"${btn.disabled ? " disabled" : ` data-buy="${item.id}"`}>${escapeHtml(btn.label)}</button>
+          ${actionsMarkup(item)}
           <button class="info-btn" data-info="${item.id}" title="${escapeHtml(t("store.infoTitle"))}">!</button>
         </div>
       </div>
@@ -191,7 +236,17 @@ function renderGrid() {
     .join("");
 
   grid.querySelectorAll("[data-buy]").forEach((btn) =>
-    btn.addEventListener("click", () => openConfirm(findItem(btn.dataset.buy)))
+    btn.addEventListener("click", () => {
+      const item = findItem(btn.dataset.buy);
+      openConfirm(item, armedUpgrade.get(btn.dataset.buy) || null);
+    })
+  );
+  grid.querySelectorAll("[data-upgrade-select]").forEach((select) =>
+    select.addEventListener("change", () => {
+      if (select.value) armedUpgrade.set(select.dataset.upgradeSelect, select.value);
+      else armedUpgrade.delete(select.dataset.upgradeSelect);
+      renderGrid();
+    })
   );
   grid.querySelectorAll("[data-info]").forEach((btn) =>
     btn.addEventListener("click", () => openInfoModal(findItem(btn.dataset.info)))
@@ -221,16 +276,19 @@ function openInfoModal(item) {
   infoItem = item;
   const overlay = document.getElementById("info-modal");
   const embed = toEmbedUrl(item.videoUrl);
-  const btn = buttonFor(item);
+  // The "!" popup always offers a plain buy at full price - the discounted
+  // upgrade path lives on the card itself (Up Rank), not duplicated here.
+  const state = buttonState(item);
+  const disabled = state.kind === "soon" || state.kind === "owned";
+  const label = state.kind === "soon" ? t("store.comingSoon") : state.kind === "owned" ? t("store.alreadyOwned") : t("store.buyNow");
+  const ownedCls = state.kind === "owned" ? " rank-lower" : "";
   document.getElementById("info-modal-body").innerHTML = `
     ${embed ? `<iframe class="video-embed" src="${escapeHtml(embed)}" allowfullscreen></iframe>` : ""}
     <h3>${escapeHtml(item.name)}</h3>
     <p class="info-text">${escapeHtml(item.infoText || item.shortDesc || "")}</p>
     <div class="info-buy-row">
       <span class="price">${item.comingSoon ? "—" : escapeHtml(formatPrice(item.price))}</span>
-      <button class="continue-btn info-buy-btn ${btn.cls.replace("buy-btn", "").trim()}"${
-        btn.disabled ? " disabled" : ' id="info-buy"'
-      }>${escapeHtml(btn.label)}</button>
+      <button class="continue-btn info-buy-btn${ownedCls}"${disabled ? " disabled" : ' id="info-buy"'}>${escapeHtml(label)}</button>
     </div>
   `;
   const infoBuy = overlay.querySelector("#info-buy");
@@ -263,21 +321,39 @@ const buyModalBody = document.getElementById("buy-modal-body");
 function closeBuyModal() {
   buyModal.classList.remove("open");
   pendingItem = null;
+  pendingUpgradeFrom = null;
 }
 document.getElementById("buy-modal-close").addEventListener("click", closeBuyModal);
 buyModal.addEventListener("click", (e) => {
   if (e.target.id === "buy-modal") closeBuyModal();
 });
 
-function openConfirm(item) {
+// `fromRankId` is the trade-in the player picked on the card's Up Rank
+// dropdown, if any - null means a plain full-price purchase, even for an
+// upgrade-eligible item. The price shown here is an estimate for the
+// player's benefit only; /api/checkout recomputes it from the server's own
+// ladder data, the same way it always has for full-price items.
+function openConfirm(item, fromRankId) {
   if (!item || !account) return;
   pendingItem = item;
-  const isUpgrade = item.category === "ranks" && myWeight() != null;
+  const fromEntry = fromRankId ? ladderEntry(fromRankId) : null;
+  const toEntry = ladderEntry(item.id.replace(/^rank-/, ""));
+  pendingUpgradeFrom = fromEntry ? fromEntry.id : null;
+
+  const displayPrice =
+    fromEntry && toEntry ? Math.max(0, toEntry.priceUsd - fromEntry.priceUsd) : item.price;
+
   buyModalBody.innerHTML = `
     <div class="confirm-head">
       <img class="confirm-icon" src="${escapeHtml(item.image)}" alt="" onerror="this.style.display='none'" />
       <h3>${escapeHtml(item.name)}</h3>
-      ${isUpgrade ? `<span class="confirm-tag">${escapeHtml(t("store.upgradeNow"))}</span>` : ""}
+      ${
+        fromEntry
+          ? `<span class="confirm-tag">${escapeHtml(
+              t("store.upgradeSummary", { from: fromEntry.displayName, to: item.name })
+            )}</span>`
+          : ""
+      }
     </div>
     <div class="receipt confirm-rows">
       <div><span>${escapeHtml(t("checkout.inServerName"))}</span><strong>${escapeHtml(account.player)}</strong></div>
@@ -285,7 +361,7 @@ function openConfirm(item) {
         t(account.edition === "bedrock" ? "buy.bedrock" : "buy.java")
       )}</strong></div>
       <div><span>${escapeHtml(t("checkout.total"))}</span><strong class="price">${escapeHtml(
-        formatPrice(item.price)
+        formatPrice(displayPrice)
       )}</strong></div>
     </div>
     <div class="confirm-actions">
@@ -307,7 +383,7 @@ async function startCheckout() {
     const result = await fetchJSON("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId: pendingItem.id }),
+      body: JSON.stringify({ itemId: pendingItem.id, upgradeFromRankId: pendingUpgradeFrom || undefined }),
     });
     window.location.href = `/checkout?order=${encodeURIComponent(result.orderId)}`;
   } catch (err) {

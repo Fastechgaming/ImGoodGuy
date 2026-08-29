@@ -292,13 +292,16 @@ function orderSummaryText(order) {
     "🛒 *New AngkorSMP order*",
     "",
     `*Item:* ${order.itemName}`,
+    order.upgrade ? `*Upgrade:* ${order.upgrade.fromRankId} → ${order.upgrade.toRankId}` : "",
     `*Price:* $${Number(order.amount).toFixed(2)} ${order.currency}`,
     `*In-server name:* \`${order.playerName}\``,
     `*Edition:* ${order.edition === "bedrock" ? "Bedrock" : "Java"}`,
     `*Order:* \`${order.id}\``,
     "",
     "Check the receipt above, then Accept to deliver or Reject to dismiss.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // Called by the website when a customer submits their payment screenshot.
@@ -325,10 +328,47 @@ async function sendOrderForReview(order, proofPath) {
   }
 }
 
+// A rank upgrade trades one held group for another - handled by the plugin's
+// dedicated /rank/upgrade (it re-checks the player's real current rank
+// against expectedFromRankId before touching anything, so a stale/replayed
+// approval can't downgrade someone who ranked up in the meantime). Falls
+// back to two raw RCON commands only when the plugin itself isn't running.
+async function deliverUpgrade(order) {
+  const { fromGroup, toGroup, fromRankId, toRankId } = order.upgrade;
+  const context = { player: order.playerName, itemName: order.itemName, orderId: order.id };
+
+  if (angkorstore.enabled()) {
+    const res = await angkorstore.upgradeRank({
+      transactionId: `order_${order.id}`,
+      uuid: order.playerUuid || null,
+      toRankId,
+      expectedFromRankId: fromRankId,
+    });
+    if (res.ok) {
+      return { ok: true, command: `upgrade ${fromRankId} -> ${toRankId}`, via: "plugin", response: res.duplicate ? "Already delivered." : "" };
+    }
+    if (res.status === 409) {
+      return {
+        ok: false,
+        command: `upgrade ${fromRankId} -> ${toRankId}`,
+        reason: `Their rank has changed since this was priced (now holds: ${res.currentRank ? res.currentRank.id : "none"}) — check in-game and deliver manually if still correct.`,
+      };
+    }
+    console.warn(`[delivery] plugin refused upgrade for order ${order.id}: ${res.error || res.status}`);
+  }
+
+  const remove = await runCommand(`lp user {player} parent remove ${fromGroup}`, context);
+  if (!remove.ok) return { ...remove, via: "rcon" };
+  const add = await runCommand(`lp user {player} parent add ${toGroup}`, context);
+  return { ...add, command: `${remove.command} && ${add.command}`, via: "rcon" };
+}
+
 // Deliver a paid order. The AngkorStore plugin is preferred when it is running:
 // it is idempotent on the order id and queues the delivery if the player is
 // offline. RCON stays as the fallback for servers without the plugin.
 async function deliver(order, item) {
+  if (order.upgrade) return deliverUpgrade(order);
+
   const template = item && item.deliveryCommand;
   if (!template) return { ok: false, reason: "This item has no delivery command configured." };
 

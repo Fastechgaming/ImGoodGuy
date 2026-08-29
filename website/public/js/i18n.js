@@ -61,6 +61,10 @@ const I18n = (() => {
       "store.upgradeNow": "Upgrade Now",
       "store.currentRank": "Your current Rank",
       "store.lowerRank": "This is a lower rank",
+      "store.alreadyOwned": "You already have this",
+      "store.upRank": "Up Rank",
+      "store.upRankChoose": "Choose a rank to upgrade from",
+      "store.upgradeSummary": "Upgrade {from} → {to}",
       "store.confirm": "Confirm",
       "store.cancel": "Cancel",
       "store.changeHint":
@@ -347,6 +351,10 @@ const I18n = (() => {
       "store.upgradeNow": "ដំឡើងឥឡូវ",
       "store.currentRank": "Rank បច្ចុប្បន្នរបស់អ្នក",
       "store.lowerRank": "នេះជា Rank ទាបជាង",
+      "store.alreadyOwned": "អ្នកមានរួចហើយ",
+      "store.upRank": "ដំឡើង Rank",
+      "store.upRankChoose": "ជ្រើសរើស Rank ដើម្បីដំឡើងពី",
+      "store.upgradeSummary": "ដំឡើងពី {from} → {to}",
       "store.confirm": "បញ្ជាក់",
       "store.cancel": "បោះបង់",
       "store.changeHint":

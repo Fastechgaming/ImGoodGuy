@@ -206,12 +206,13 @@ router.post("/logout", (req, res) => {
 
 // The rank ladder the store prices upgrades against. Comes from the plugin when
 // it is running (it knows the real groups), otherwise from the store catalogue.
-// Not scoped — the ladder itself is the same regardless of who's asking.
-router.get("/ranks", async (req, res) => {
+// Shared with routes/api.js, which needs the same ladder to price an upgrade
+// order server-side rather than trust whatever the browser computed.
+async function getRankLadder() {
   if (angkorstore.enabled()) {
     const fromPlugin = await angkorstore.getRanks();
     if (fromPlugin.ok && Array.isArray(fromPlugin.ranks) && fromPlugin.ranks.length) {
-      return res.json({ ranks: fromPlugin.ranks, source: "plugin" });
+      return { ranks: fromPlugin.ranks, source: "plugin" };
     }
   }
   // Catalogue order is price order, which is also the rank order.
@@ -226,7 +227,12 @@ router.get("/ranks", async (req, res) => {
     }))
     .sort((a, b) => a.priceUsd - b.priceUsd)
     .map((rank, index) => ({ ...rank, weight: (index + 1) * 10 }));
-  res.json({ ranks, source: "catalogue" });
+  return { ranks, source: "catalogue" };
+}
+
+// Not scoped — the ladder itself is the same regardless of who's asking.
+router.get("/ranks", async (req, res) => {
+  res.json(await getRankLadder());
 });
 
 // Shared by the games page; kept here so both pages read one shape. Always
@@ -237,4 +243,4 @@ router.get("/daily", (req, res) => {
   res.json(gamestats.getDaily(identity.player));
 });
 
-module.exports = { router, current, payload, GAMES_SCOPE, STORE_SCOPE, COOLDOWN_MS };
+module.exports = { router, current, payload, getRankLadder, GAMES_SCOPE, STORE_SCOPE, COOLDOWN_MS };
