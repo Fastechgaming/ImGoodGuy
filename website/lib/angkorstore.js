@@ -1,68 +1,57 @@
-// Client for the AngkorLink Minecraft plugin (see PLUGIN_PROMPT.md).
+// Client for the AngkorStore Minecraft plugin (see ../../AngkorStore/README.md).
 //
 // The plugin is what lets this website ask the server questions: is this a real
-// player, how many coins do they have, what rank are they. Until it is running,
-// every call here reports `linked: false` and the site falls back to its own
-// local ledger — so nothing breaks while the plugin is being written.
+// player, how many coins do they have, what rank(s) are they. Until it is
+// running, every call here reports `linked: false` and the site falls back to
+// its own local ledger — so nothing breaks while the plugin isn't installed.
 //
 // Set these in .env to switch it on:
-//   ANGKORLINK_URL=http://your-server:8123
-//   ANGKORLINK_KEY=...
-//   ANGKORLINK_SECRET=...
-const crypto = require("crypto");
-
+//   ANGKORSTORE_URL=http://your-server:8123
+//   ANGKORSTORE_SECRET=...
+//
+// Auth is one shared secret in a header, not a signed request — deliberately
+// simpler than the old key+HMAC scheme so a mismatch is a one-line `curl`
+// check instead of a signature-debugging session. If this server isn't on
+// localhost or a private network, put the plugin's port behind a
+// tunnel/VPN so that secret isn't sent in the clear (see the plugin's README).
 const TIMEOUT_MS = 4000;
 
 function config() {
   return {
-    url: (process.env.ANGKORLINK_URL || "").replace(/\/+$/, ""),
-    key: process.env.ANGKORLINK_KEY || "",
-    secret: process.env.ANGKORLINK_SECRET || "",
+    url: (process.env.ANGKORSTORE_URL || "").replace(/\/+$/, ""),
+    secret: process.env.ANGKORSTORE_SECRET || "",
   };
 }
 
 function enabled() {
-  const { url, key } = config();
-  return Boolean(url && key);
-}
-
-// Signature over "<timestamp>\n<METHOD>\n<path>\n<body>", per the plugin brief.
-function sign(secret, timestamp, method, path, body) {
-  return crypto
-    .createHmac("sha256", secret)
-    .update(`${timestamp}\n${method}\n${path}\n${body}`)
-    .digest("hex");
+  const { url, secret } = config();
+  return Boolean(url && secret);
 }
 
 async function request(method, path, payload) {
-  const { url, key, secret } = config();
-  if (!url || !key) return { ok: false, linked: false, error: "AngkorLink is not configured." };
+  const { url, secret } = config();
+  if (!url || !secret) return { ok: false, linked: false, error: "AngkorStore is not configured." };
 
-  const body = payload === undefined ? "" : JSON.stringify(payload);
-  const timestamp = Date.now();
-  const headers = { "X-AngkorSMP-Key": key };
-  if (body) {
-    headers["Content-Type"] = "application/json";
-    headers["X-AngkorSMP-Timestamp"] = String(timestamp);
-    headers["X-AngkorSMP-Signature"] = sign(secret, timestamp, method, path, body);
-  }
+  const body = payload === undefined ? undefined : JSON.stringify(payload);
+  const headers = { "X-AngkorStore-Secret": secret };
+  if (body) headers["Content-Type"] = "application/json";
 
   try {
     const res = await fetch(`${url}${path}`, {
       method,
       headers,
-      body: body || undefined,
+      body,
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.warn(`[angkorlink] ${method} ${path} -> ${res.status} ${data.error || ""}`);
+      console.warn(`[angkorstore] ${method} ${path} -> ${res.status} ${data.error || ""}`);
       return { ok: false, linked: true, status: res.status, ...data };
     }
     return { ...data, ok: true, linked: true };
   } catch (err) {
     // The server being down must never take the website down with it.
-    console.warn(`[angkorlink] ${method} ${path} failed: ${err.message}`);
+    console.warn(`[angkorstore] ${method} ${path} failed: ${err.message}`);
     return { ok: false, linked: false, error: "Could not reach the Minecraft server." };
   }
 }
@@ -70,7 +59,8 @@ async function request(method, path, payload) {
 /* ------------------------------- the calls ------------------------------- */
 
 // Name -> does this player exist, and who are they. Also brings back coins and
-// rank, so the store and games pages need only this one call.
+// every configured rank they hold, so the store and games pages need only
+// this one call.
 function verifyPlayer(name, edition) {
   return request("POST", "/api/v1/player/verify", { name, edition });
 }
@@ -121,6 +111,9 @@ function deliverPurchase({ transactionId, uuid, name, edition, itemId, itemName,
   });
 }
 
+// `expectedFromRankId` is the rank the store priced the upgrade against - the
+// plugin refuses with 409/RANK_CHANGED if the player's real rank has moved on
+// since, rather than silently acting on stale pricing.
 function upgradeRank({ transactionId, uuid, toRankId, expectedFromRankId }) {
   return request("POST", "/api/v1/rank/upgrade", {
     transactionId,

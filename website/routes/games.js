@@ -9,7 +9,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const gamestats = require("../lib/gamestats");
-const angkorlink = require("../lib/angkorlink");
+const angkorstore = require("../lib/angkorstore");
 const { current, GAMES_SCOPE } = require("./account");
 
 const router = express.Router();
@@ -39,7 +39,7 @@ router.get("/leaderboard", (req, res) => {
 });
 
 router.post("/round/start", (req, res) => {
-  if (!angkorlink.enabled()) {
+  if (!angkorstore.enabled()) {
     return res.status(503).json({ error: "Games are unavailable right now.", code: "SERVICE_UNAVAILABLE" });
   }
   const now = Date.now();
@@ -100,8 +100,8 @@ router.post("/round/finish", async (req, res) => {
   // Push the coins into the game itself when the plugin is up. The round id is
   // the transaction id, so a retry can never pay twice.
   let delivered = null;
-  if (granted > 0 && angkorlink.enabled()) {
-    const result = await angkorlink.grantCoins({
+  if (granted > 0 && angkorstore.enabled()) {
+    const result = await angkorstore.grantCoins({
       transactionId: `round_${roundId}`,
       uuid: round.uuid,
       name: round.player,

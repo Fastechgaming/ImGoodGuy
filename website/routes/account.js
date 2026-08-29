@@ -13,13 +13,13 @@
 // farm — it only exists to know who to deliver an order to — so its cooldown
 // is a token 60s, purely to stop someone hammering the verify endpoint.
 //
-// When the AngkorLink plugin is configured, verifying checks the name against
+// When the AngkorStore plugin is configured, verifying checks the name against
 // the Minecraft server and the reply carries the player's UUID, coin balance
 // and rank. Without the plugin the name is accepted on its own so the site
 // still works — the response says which of the two happened via `linked`.
 const express = require("express");
 const gamestats = require("../lib/gamestats");
-const angkorlink = require("../lib/angkorlink");
+const angkorstore = require("../lib/angkorstore");
 const store = require("../lib/store");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 
@@ -57,7 +57,7 @@ function current(req, scope) {
 function payload(identity, scope, now = Date.now()) {
   const cooldownMs = COOLDOWN_MS[normalizeScope(scope)];
   if (!identity) {
-    return { player: null, edition: "java", canChange: true, canChangeAt: now, cooldownMs, linked: angkorlink.enabled() };
+    return { player: null, edition: "java", canChange: true, canChangeAt: now, cooldownMs, linked: angkorstore.enabled() };
   }
   const canChangeAt = identity.setAt + cooldownMs;
   return {
@@ -67,6 +67,7 @@ function payload(identity, scope, now = Date.now()) {
     coins: identity.coins ?? null,
     rank: identity.rank || null,
     nextRank: identity.nextRank || null,
+    ranks: identity.ranks || [],
     linked: Boolean(identity.linked),
     setAt: identity.setAt,
     canChangeAt,
@@ -78,14 +79,14 @@ function payload(identity, scope, now = Date.now()) {
 // Ask the plugin about a name. Falls back to "accept it, but we know nothing"
 // when the plugin isn't set up yet.
 async function verify(player, edition) {
-  if (!angkorlink.enabled()) {
-    return { linked: false, found: true, player, uuid: null, coins: null, rank: null, nextRank: null };
+  if (!angkorstore.enabled()) {
+    return { linked: false, found: true, player, uuid: null, coins: null, rank: null, nextRank: null, ranks: [] };
   }
-  const res = await angkorlink.verifyPlayer(player, edition);
+  const res = await angkorstore.verifyPlayer(player, edition);
   if (!res.linked) {
     // Plugin configured but unreachable — let the player in rather than
     // locking the whole site behind a Minecraft server that is restarting.
-    return { linked: false, found: true, player, uuid: null, coins: null, rank: null, nextRank: null, degraded: true };
+    return { linked: false, found: true, player, uuid: null, coins: null, rank: null, nextRank: null, ranks: [], degraded: true };
   }
   if (!res.ok || res.found === false) {
     return { linked: true, found: false, reason: res.reason || "NEVER_JOINED" };
@@ -98,6 +99,7 @@ async function verify(player, edition) {
     coins: typeof res.coins === "number" ? res.coins : null,
     rank: res.rank || null,
     nextRank: res.nextRank || null,
+    ranks: Array.isArray(res.ranks) ? res.ranks : [],
   };
 }
 
@@ -106,12 +108,13 @@ router.get("/", async (req, res) => {
   const identity = current(req, scope);
   // Refresh coins/rank on every page load, so the store never shows a stale
   // balance — but only when we actually have a UUID to ask about.
-  if (identity && identity.uuid && angkorlink.enabled()) {
-    const profile = await angkorlink.getProfile(identity.uuid);
+  if (identity && identity.uuid && angkorstore.enabled()) {
+    const profile = await angkorstore.getProfile(identity.uuid);
     if (profile.ok) {
       identity.coins = typeof profile.coins === "number" ? profile.coins : identity.coins;
       identity.rank = profile.rank || null;
       identity.nextRank = profile.nextRank || null;
+      identity.ranks = Array.isArray(profile.ranks) ? profile.ranks : identity.ranks || [];
       const both = pair(req);
       both[scope] = identity;
       req.session.account = both;
@@ -121,7 +124,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  if (!angkorlink.enabled()) {
+  if (!angkorstore.enabled()) {
     return res.status(503).json({ error: "This service is unavailable right now.", code: "SERVICE_UNAVAILABLE" });
   }
   const now = Date.now();
@@ -165,6 +168,7 @@ router.post("/", async (req, res) => {
     coins: checked.coins,
     rank: checked.rank,
     nextRank: checked.nextRank,
+    ranks: checked.ranks || [],
     linked: checked.linked,
     setAt: now,
   };
@@ -193,8 +197,8 @@ router.post("/logout", (req, res) => {
 // it is running (it knows the real groups), otherwise from the store catalogue.
 // Not scoped — the ladder itself is the same regardless of who's asking.
 router.get("/ranks", async (req, res) => {
-  if (angkorlink.enabled()) {
-    const fromPlugin = await angkorlink.getRanks();
+  if (angkorstore.enabled()) {
+    const fromPlugin = await angkorstore.getRanks();
     if (fromPlugin.ok && Array.isArray(fromPlugin.ranks) && fromPlugin.ranks.length) {
       return res.json({ ranks: fromPlugin.ranks, source: "plugin" });
     }

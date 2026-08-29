@@ -432,7 +432,7 @@ document.addEventListener("i18n:change", () => {
   } catch {
     /* if the config call itself fails, fall through and let the gate try */
   }
-  if (cfg && cfg.angkorlinkEnabled === false) {
+  if (cfg && cfg.angkorstoreEnabled === false) {
     gate.hidden = true;
     const box = document.getElementById("store-unavailable");
     box.hidden = false;

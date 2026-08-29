@@ -11,7 +11,7 @@ const TelegramBot = require("node-telegram-bot-api");
 const { nanoid } = require("nanoid");
 const store = require("../lib/store");
 const { runCommand, buildCommand } = require("../lib/rcon");
-const angkorlink = require("../lib/angkorlink");
+const angkorstore = require("../lib/angkorstore");
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
@@ -325,7 +325,7 @@ async function sendOrderForReview(order, proofPath) {
   }
 }
 
-// Deliver a paid order. The AngkorLink plugin is preferred when it is running:
+// Deliver a paid order. The AngkorStore plugin is preferred when it is running:
 // it is idempotent on the order id and queues the delivery if the player is
 // offline. RCON stays as the fallback for servers without the plugin.
 async function deliver(order, item) {
@@ -335,8 +335,8 @@ async function deliver(order, item) {
   const context = { player: order.playerName, itemName: order.itemName, orderId: order.id };
   const command = buildCommand(template, context);
 
-  if (angkorlink.enabled()) {
-    const res = await angkorlink.deliverPurchase({
+  if (angkorstore.enabled()) {
+    const res = await angkorstore.deliverPurchase({
       transactionId: `order_${order.id}`,
       uuid: order.playerUuid || null,
       name: order.playerName,

@@ -144,9 +144,9 @@ and the store, so:
 * changing the name has a **60-second cooldown**, purely so nobody can hammer
   the verify endpoint.
 
-When the AngkorLink plugin is connected, verifying also **checks the name
+When the AngkorStore plugin is connected, verifying also **checks the name
 really exists** on the Minecraft server and brings back the player's UUID, live
-coin balance and rank. See "Connecting the Minecraft plugin" below.
+coin balance and rank(s). See "Connecting the Minecraft plugin" below.
 
 ### Points leaderboard
 
@@ -163,11 +163,12 @@ Adding a sixth game means adding one object to `Arcade.list` in
 one entry in the `GAMES` table in `lib/gamestats.js`, and its strings in
 `public/js/i18n.js` — the hub, intro screen and results screen are shared.
 
-## 6. Connecting the Minecraft plugin (AngkorLink)
+## 6. Connecting the Minecraft plugin (AngkorStore)
 
-`PLUGIN_PROMPT.md` in this folder is a complete brief for the plugin that
-bridges this website to the server. The website already speaks to it
-(`lib/angkorlink.js`) and works fine without it:
+`../AngkorStore/` in this repo is the actual plugin that bridges this
+website to the server — build it with `gradle build` there and see its own
+README for installation. The website already speaks to it (`lib/angkorstore.js`)
+and works fine without it:
 
 | | Plugin connected | Plugin absent |
 |---|---|---|
@@ -177,9 +178,11 @@ bridges this website to the server. The website already speaks to it
 | Mini-game payouts | Credited in game, keyed on the round id | Recorded in `data/gamestats.json` only |
 | Store delivery | `POST /purchase/deliver` (queues for offline players) | RCON, as before |
 
-Set `ANGKORLINK_URL`, `ANGKORLINK_KEY` and `ANGKORLINK_SECRET` in `.env` to turn
-it on; the server prints which mode it started in. Requests are signed with
-HMAC-SHA256 over `timestamp\nMETHOD\npath\nbody`.
+Set `ANGKORSTORE_URL` and `ANGKORSTORE_SECRET` in `.env` to turn it on — one
+shared secret, sent as a header on every request, must match `api.secret` in
+the plugin's `config.yml` exactly. The server prints which mode it started
+in. If this server isn't on localhost or a private network, put the
+plugin's port behind a tunnel/VPN, since the secret travels in the clear.
 
 ## 7. The Map page (Live Map)
 
@@ -240,7 +243,7 @@ opening a port. Short version of the two things people get wrong:
 * GitHub Pages and Cloudflare Workers/Pages **cannot host this** — it is a
   Node server that needs raw TCP (RCON, Minecraft pings), a filesystem and a
   long-running process. Cloudflare *Tunnel* is the Cloudflare product that fits.
-* Run it on the same machine as Minecraft if you can. RCON and the AngkorLink
+* Run it on the same machine as Minecraft if you can. RCON and the AngkorStore
   plugin then sit on `127.0.0.1` and never touch the internet.
 
 Whatever you host on, two rules: never commit `.env` (it's already
@@ -260,10 +263,9 @@ website/
   data/leaderboard.json   Lifetime points per player (git-ignored, created on first payout)
   lib/store.js            Tiny JSON-file data layer
   lib/gamestats.js        Play limits, coin allowance and points ledger (UTC+7 day boundary)
-  lib/angkorlink.js       Client for the AngkorLink Minecraft plugin
+  lib/angkorstore.js      Client for the AngkorStore Minecraft plugin (see ../AngkorStore/)
   deploy/                 systemd unit, Cloudflare Tunnel config, update script
   DEPLOY.md               How to put the site online
-  PLUGIN_PROMPT.md        Brief for building the AngkorLink plugin
   lib/minecraft.js        Java+Bedrock status ping
   lib/rcon.js             Runs an item's delivery command on Accept
   routes/api.js           Public JSON API (config, status, items, checkout, proof upload)
