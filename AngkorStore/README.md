@@ -17,6 +17,10 @@ single-secret auth instead of key+HMAC signing).
 - **LuckPerms** — needed for rank detection/upgrade. Everything still starts
   and runs without either; the features they provide are just off, logged
   clearly at startup (`/angkorstore status` shows what's hooked).
+- **LiteBans** (SQLite storage), for the website's Banned Players list — same
+  deal, off without it. This one is read directly from LiteBans' own
+  database file (see `litebans.database-path` in config.yml), not through a
+  plugin API, since LiteBans doesn't have one for listing punishments.
 
 ## Building
 
@@ -31,15 +35,26 @@ matching Gradle the first time you run it — you do **not** need Gradle
 installed separately, only a JDK (21). On Termux: `pkg install openjdk-21`
 first, then the same `./gradlew build` command works.
 
-The jar comes out at `build/libs/AngkorStore-1.0.0.jar`. Building needs real
-internet access to `repo.papermc.io`, `jitpack.io`, and `repo.lucko.me` to
-resolve `paper-api`/`VaultAPI`/`luckperms-api` — this repo's own sandbox
-blocks those hosts, so the source was instead compiled clean against
-hand-written stubs of the exact Bukkit/Vault/LuckPerms/Gson methods it
-calls, which catches typos and structural mistakes but is not a substitute
-for a real build against the real jars. Run `./gradlew build` yourself
-before you trust the output, same as you would for any plugin you didn't
-build yourself.
+The jar comes out at `build/libs/AngkorStore-1.0.0.jar` — that's the one to
+deploy; `./gradlew build` runs the Shadow plugin automatically, which bundles
+the SQLite JDBC driver `hooks.LiteBansHook` needs (the server doesn't provide
+one, unlike Vault/LuckPerms whose own plugins do) directly into that same
+jar, under a relocated package so it can't clash with any other plugin
+shading its own copy. There's no separate jar to remember to grab.
+
+Building needs real internet access to `repo.papermc.io`, `jitpack.io`, and
+`repo.lucko.me` to resolve `paper-api`/`VaultAPI`/`luckperms-api` — this
+repo's own sandbox blocks those hosts, so the source was instead compiled
+clean against hand-written stubs of the exact Bukkit/Vault/LuckPerms/Gson
+methods it calls, which catches typos and structural mistakes but is not a
+substitute for a real build against the real jars. (`hooks.LiteBansHook`
+itself was verified further than that: compiled and run against the real
+`org.xerial:sqlite-jdbc` driver — which mavenCentral serves fine even in
+this sandbox — reading a real SQLite file shaped like LiteBans' own schema,
+which is how a JDBC URL bug in the read-only connection string was actually
+caught rather than just guessed at.) Run `./gradlew build` yourself before
+you trust the output, same as you would for any plugin you didn't build
+yourself.
 
 Common snags:
 - `Permission denied` running `./gradlew` → `chmod +x gradlew` once.
@@ -173,6 +188,30 @@ the website already has a UUID for.
 
 The configured ladder, ascending, each with its LuckPerms `group` and
 `priceUsd` alongside `id`/`displayName`/`weight`.
+
+### `GET /api/v1/bans`
+
+Currently-active LiteBans bans, most recent first (capped at
+`litebans.max-results`, default 200):
+
+```json
+{
+  "ok": true,
+  "available": true,
+  "bans": [
+    { "player": "Steve123", "uuid": "...", "reason": "Griefing",
+      "bannedBy": "AdminOne", "bannedAt": 1735689600000, "expiresAt": null }
+  ]
+}
+```
+
+`expiresAt` is `null` for a permanent ban, otherwise an epoch-millis
+timestamp. `available: false` (with an empty `bans` array, still `200 OK`)
+means LiteBans isn't installed, `litebans.enabled` is off, or its database
+file wasn't found at `litebans.database-path` — never an error response,
+same as how the website already handles the plugin being unreachable at
+all. `player` falls back to the raw UUID string if this server has never
+seen that player join (so it has no cached name for them).
 
 ### `POST /api/v1/coins/grant`
 

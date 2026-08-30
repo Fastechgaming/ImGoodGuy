@@ -26,6 +26,11 @@ public class PluginConfig {
     public final String fallbackSetCommand;
     public final String fallbackRemoveCommand;
 
+    public final boolean litebansEnabled;
+    public final String litebansDatabasePath;
+    public final String litebansTablePrefix;
+    public final int litebansMaxResults;
+
     public final boolean logTransactions;
     public final boolean debug;
 
@@ -58,6 +63,11 @@ public class PluginConfig {
         this.ladder = Collections.unmodifiableList(parsed);
         this.fallbackSetCommand = cfg.getString("ranks.fallback-set-command", "lp user {player} parent add {group}");
         this.fallbackRemoveCommand = cfg.getString("ranks.fallback-remove-command", "lp user {player} parent remove {group}");
+
+        this.litebansEnabled = cfg.getBoolean("litebans.enabled", true);
+        this.litebansDatabasePath = cfg.getString("litebans.database-path", "plugins/LiteBans/litebans.db");
+        this.litebansTablePrefix = cfg.getString("litebans.table-prefix", "litebans_");
+        this.litebansMaxResults = cfg.getInt("litebans.max-results", 200);
 
         this.logTransactions = cfg.getBoolean("logging.transactions", true);
         this.debug = cfg.getBoolean("logging.debug", false);

@@ -2,6 +2,7 @@ package com.angkorsmp.angkorstore.api;
 
 import com.angkorsmp.angkorstore.config.PluginConfig;
 import com.angkorsmp.angkorstore.config.RankInfo;
+import com.angkorsmp.angkorstore.hooks.LiteBansHook;
 import com.angkorsmp.angkorstore.hooks.LuckPermsHook;
 import com.angkorsmp.angkorstore.hooks.VaultHook;
 import com.angkorsmp.angkorstore.http.ApiException;
@@ -41,17 +42,20 @@ public final class AngkorStoreApi {
     private final PluginConfig config;
     private final VaultHook vault;
     private final LuckPermsHook luckPerms;
+    private final LiteBansHook litebans;
     private final PlayerLookup names;
     private final TransactionStore transactions;
     private final PendingDeliveries pending;
 
     public AngkorStoreApi(JavaPlugin plugin, PluginConfig config, VaultHook vault, LuckPermsHook luckPerms,
-                           PlayerLookup names, TransactionStore transactions, PendingDeliveries pending) {
+                           LiteBansHook litebans, PlayerLookup names, TransactionStore transactions,
+                           PendingDeliveries pending) {
         this.plugin = plugin;
         this.log = plugin.getLogger();
         this.config = config;
         this.vault = vault;
         this.luckPerms = luckPerms;
+        this.litebans = litebans;
         this.names = names;
         this.transactions = transactions;
         this.pending = pending;
@@ -341,6 +345,47 @@ public final class AngkorStoreApi {
                                 return result;
                             });
                 }));
+    }
+
+    /* ------------------------------- bans ------------------------------- */
+
+    /**
+     * Currently-active LiteBans bans for the website's "Banned Players"
+     * page. litebans.activeBans() is blocking file I/O, safe to run
+     * directly here since this whole class only ever runs on the HTTP
+     * worker pool (see http.ApiServer) - never the server's main thread.
+     * Only the player-name lookup afterwards needs a MainThread hop.
+     */
+    public CompletableFuture<JsonObject> bans() {
+        if (!litebans.available()) {
+            JsonObject json = new JsonObject();
+            json.addProperty("ok", true);
+            json.addProperty("available", false);
+            json.add("bans", new JsonArray());
+            return CompletableFuture.completedFuture(json);
+        }
+        List<LiteBansHook.BanEntry> entries = litebans.activeBans(config.litebansMaxResults);
+        return MainThread.supply(plugin, () -> {
+            JsonArray array = new JsonArray();
+            for (LiteBansHook.BanEntry entry : entries) {
+                OfflinePlayer player = plugin.getServer().getOfflinePlayer(entry.uuid());
+                String playerName = player.getName();
+                JsonObject ban = new JsonObject();
+                ban.addProperty("player", playerName != null ? playerName : entry.uuid().toString());
+                ban.addProperty("uuid", entry.uuid().toString());
+                ban.addProperty("reason", entry.reason());
+                ban.addProperty("bannedBy", entry.bannedByName());
+                ban.addProperty("bannedAt", entry.time());
+                if (entry.permanent()) ban.add("expiresAt", com.google.gson.JsonNull.INSTANCE);
+                else ban.addProperty("expiresAt", entry.until());
+                array.add(ban);
+            }
+            JsonObject json = new JsonObject();
+            json.addProperty("ok", true);
+            json.addProperty("available", true);
+            json.add("bans", array);
+            return json;
+        });
     }
 
     /* ------------------------------- shared helpers ------------------------------- */

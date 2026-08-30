@@ -5,7 +5,7 @@ api-version: "1.21"
 author: AngkorSMP
 description: Bridges the AngkorSMP website to this server - live coin balance, rank ladder, and store delivery, over a small authenticated HTTP API.
 
-softdepend: [Vault, LuckPerms, floodgate]
+softdepend: [Vault, LuckPerms, floodgate, LiteBans]
 
 commands:
   angkorstore:

@@ -66,6 +66,7 @@ public final class ApiServer {
         server.createContext("/api/v1/health", ex -> handle(ex, false, (e, body) -> api.health()));
         server.createContext("/api/v1/server", ex -> handle(ex, true, (e, body) -> await(api.server())));
         server.createContext("/api/v1/ranks", ex -> handle(ex, true, (e, body) -> api.ranks()));
+        server.createContext("/api/v1/bans", ex -> handle(ex, true, (e, body) -> await(api.bans())));
         server.createContext("/api/v1/player/verify", ex -> handle(ex, true, (e, body) -> await(api.verifyPlayer(body))));
         server.createContext("/api/v1/coins/grant", ex -> handle(ex, true, (e, body) -> await(api.grantCoins(body))));
         server.createContext("/api/v1/purchase/deliver", ex -> handle(ex, true, (e, body) -> await(api.deliverPurchase(body))));
