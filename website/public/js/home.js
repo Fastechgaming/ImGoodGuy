@@ -3,7 +3,10 @@ let lastStatus = null;
 async function loadHome() {
   const cfg = await getSiteConfig();
 
-  document.title = `${cfg.serverName} — Home`;
+  // Keep it dynamic (reflects a renamed server), but keyword-rich rather
+  // than "— Home" - this is what a JS-rendering crawler (Googlebot) sees
+  // instead of the static SEO <title> once the page has loaded.
+  document.title = cfg.tagline ? `${cfg.serverName} — ${cfg.tagline}` : cfg.serverName;
   document.getElementById("hero-logo").src = cfg.logo || "/images/site/logo-full.png";
   const navLogo = document.getElementById("nav-logo");
   if (navLogo) navLogo.src = cfg.logoIcon || cfg.logo || "/images/site/logo-icon.png";
