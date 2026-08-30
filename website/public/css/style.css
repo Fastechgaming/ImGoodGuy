@@ -768,6 +768,11 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   flex-direction: column;
   border: 3px solid var(--stone-darkest);
   cursor: pointer;
+  /* The whole card is a tap target (opens the info popup), so mobile
+     Chrome's default blue tap-highlight would otherwise flash across it -
+     and everything inside, buttons included, since a tap anywhere in the
+     card bubbles up through this same highlighted box. */
+  -webkit-tap-highlight-color: transparent;
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
 }
 .item-card:hover { transform: translateY(-5px) rotate(-0.5deg); }
@@ -844,6 +849,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   font-weight: 800;
   font-family: "Baloo 2", sans-serif;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
@@ -1878,6 +1884,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   border-radius: 10px;
   padding: 0.2rem 0.15rem;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest);
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
@@ -1940,6 +1947,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   border: 2px solid var(--stone-darkest);
   box-shadow: 0 3px 0 var(--stone-darkest);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   text-align: center;
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
