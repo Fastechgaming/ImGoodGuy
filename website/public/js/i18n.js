@@ -25,6 +25,7 @@ const I18n = (() => {
       "nav.games": "🎮 Games",
       "nav.store": "💰 Store",
       "nav.map": "🗺️ Map",
+      "nav.banned": "🚫 Banned",
       "nav.menu": "Menu",
       "nav.language": "Language",
       "footer.copy": "© {year} AngkorSMP · Cambodia Minecraft Server 🇰🇭",
@@ -139,6 +140,20 @@ const I18n = (() => {
       "map.openBluemap": "Open BlueMap in a new tab",
       "map.notConfigured":
         'The live map isn\'t configured yet. Set "bluemapUrl" in website/config/site.config.json to your BlueMap URL.',
+
+      /* ---- banned players ---- */
+      "banned.title": "🌿 Banned Players 🌿",
+      "banned.subtitle": "BANNED",
+      "banned.hint": "Currently banned players, most recent first.",
+      "banned.unavailable": "⚠️ The banned players list is unavailable right now. Contact support for more info.",
+      "banned.empty": "No one is currently banned. 🎉",
+      "banned.colPlayer": "Player",
+      "banned.colReason": "Reason",
+      "banned.colBannedBy": "Banned By",
+      "banned.colDate": "Date",
+      "banned.colExpires": "Expires",
+      "banned.permanent": "Permanent",
+      "banned.noReason": "No reason given",
 
       /* ---- games: gate + hub ---- */
       "games.subtitle": "GAMES",
@@ -312,6 +327,7 @@ const I18n = (() => {
       "nav.games": "🎮 ហ្គេម",
       "nav.store": "💰 ហាង",
       "nav.map": "🗺️ ផែនទី",
+      "nav.banned": "🚫 Banned",
       "nav.menu": "ម៉ឺនុយ",
       "nav.language": "ភាសា",
       "footer.copy": "© {year} AngkorSMP · Minecraft Server កម្ពុជា 🇰🇭",
@@ -426,6 +442,20 @@ const I18n = (() => {
       "map.openBluemap": "បើក BlueMap ក្នុង Tab ថ្មី",
       "map.notConfigured":
         'ផែនទី Live មិនទាន់បានកំណត់ទេ។ សូមដាក់ "bluemapUrl" ក្នុង website/config/site.config.json ជា URL BlueMap របស់អ្នក។',
+
+      /* ---- banned players ---- */
+      "banned.title": "🌿 អ្នកលេងដែលត្រូវ Ban 🌿",
+      "banned.subtitle": "BANNED",
+      "banned.hint": "អ្នកលេងដែលកំពុងត្រូវ Ban បច្ចុប្បន្ន បង្ហាញថ្មីៗបំផុតមុន។",
+      "banned.unavailable": "⚠️ បញ្ជី Ban មិនអាចប្រើបានពេលនេះទេ។ សូមទាក់ទង Support សម្រាប់ព័ត៌មានបន្ថែម។",
+      "banned.empty": "គ្មានអ្នកលេងណាកំពុងត្រូវ Ban ទេពេលនេះ។ 🎉",
+      "banned.colPlayer": "អ្នកលេង",
+      "banned.colReason": "មូលហេតុ",
+      "banned.colBannedBy": "Ban ដោយ",
+      "banned.colDate": "កាលបរិច្ឆេទ",
+      "banned.colExpires": "ផុតកំណត់",
+      "banned.permanent": "ជាអចិន្ត្រៃយ៍",
+      "banned.noReason": "មិនមានមូលហេតុ",
 
       /* ---- games: gate + hub ---- */
       "games.subtitle": "ហ្គេម",

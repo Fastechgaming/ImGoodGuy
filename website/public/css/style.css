@@ -1687,6 +1687,19 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
 }
 .board-empty { color: var(--ink-soft); font-size: 0.88rem; text-align: center; padding: 0.6rem; }
 
+/* Banned Players table */
+.banned-table td.ban-reason { color: var(--ink-soft); }
+.ban-permanent {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--terracotta);
+  color: #fff1ee;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.ban-noreason { color: var(--ink-soft); font-style: italic; font-weight: 600; }
+
 /* full table inside the modal */
 .board-table-wrap { max-height: 55vh; overflow-y: auto; overflow-x: auto; margin: 0.6rem 0; border: 3px solid var(--stone-darkest); border-radius: 12px; }
 .board-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }

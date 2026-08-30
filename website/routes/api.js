@@ -69,6 +69,21 @@ router.get("/items", (req, res) => {
   res.json(store.getItems());
 });
 
+// Currently-active LiteBans bans, via the plugin. Never an error response -
+// a down/unlinked plugin or a disabled/missing LiteBans just reports
+// available: false with an empty list, same as every other AngkorStore
+// call the site makes.
+router.get("/bans", async (req, res) => {
+  if (!angkorstore.enabled()) {
+    return res.json({ available: false, bans: [] });
+  }
+  const result = await angkorstore.getBans();
+  if (!result.linked || !result.ok) {
+    return res.json({ available: false, bans: [] });
+  }
+  res.json({ available: Boolean(result.available), bans: result.bans || [] });
+});
+
 // Public view of an order - used by /checkout and /success.
 // Deliberately omits the delivery command and the stored proof filename.
 router.get("/order/:id", (req, res) => {

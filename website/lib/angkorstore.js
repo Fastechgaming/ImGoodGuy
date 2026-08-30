@@ -73,6 +73,10 @@ function getRanks() {
   return request("GET", "/api/v1/ranks");
 }
 
+function getBans() {
+  return request("GET", "/api/v1/bans");
+}
+
 // Mini-game payout. `transactionId` must be stable for the round so a retry
 // cannot pay twice - the plugin de-duplicates on it.
 //
@@ -132,6 +136,7 @@ module.exports = {
   verifyPlayer,
   getProfile,
   getRanks,
+  getBans,
   grantCoins,
   deliverPurchase,
   upgradeRank,
