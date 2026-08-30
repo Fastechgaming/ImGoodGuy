@@ -25,6 +25,7 @@ const I18n = (() => {
       "nav.games": "🎮 Games",
       "nav.store": "💰 Store",
       "nav.map": "🗺️ Map",
+      "nav.banned": "🚫 Banned",
       "nav.menu": "Menu",
       "nav.language": "Language",
       "footer.copy": "© {year} AngkorSMP · Cambodia Minecraft Server 🇰🇭",
@@ -65,6 +66,9 @@ const I18n = (() => {
       "store.upRank": "Up Rank",
       "store.upRankChoose": "Choose a rank to upgrade from",
       "store.upgradeSummary": "Upgrade {from} → {to}",
+      "store.upgradeCaption": "You are upgrading {from} to {to}",
+      "store.confirmName": "Name",
+      "store.confirmPlatform": "Platform",
       "store.confirm": "Confirm",
       "store.cancel": "Cancel",
       "store.changeHint":
@@ -137,6 +141,20 @@ const I18n = (() => {
       "map.notConfigured":
         'The live map isn\'t configured yet. Set "bluemapUrl" in website/config/site.config.json to your BlueMap URL.',
 
+      /* ---- banned players ---- */
+      "banned.title": "🌿 Banned Players 🌿",
+      "banned.subtitle": "BANNED",
+      "banned.hint": "Currently banned players, most recent first.",
+      "banned.unavailable": "⚠️ The banned players list is unavailable right now. Contact support for more info.",
+      "banned.empty": "No one is currently banned. 🎉",
+      "banned.colPlayer": "Player",
+      "banned.colReason": "Reason",
+      "banned.colBannedBy": "Banned By",
+      "banned.colDate": "Date",
+      "banned.colExpires": "Expires",
+      "banned.permanent": "Permanent",
+      "banned.noReason": "No reason given",
+
       /* ---- games: gate + hub ---- */
       "games.subtitle": "GAMES",
       "games.verify": "Verify",
@@ -190,13 +208,13 @@ const I18n = (() => {
       "games.leaderboardUnranked": "Play a round to join the leaderboard.",
       "games.listHeading": "Mini-games",
       "games.listHint":
-        "3 plays of each game a day, 1–50 Coins a play, up to 500 Coins a day total. Resets at midnight (UTC+7).",
+        "3 plays of each game a day, 1–75 Coins a play, up to 1,000 Coins a day total. Resets at midnight (UTC+7).",
       "games.play": "Play",
       "games.todaysReward": "Today's Reward: {earned} / {cap} Coins",
       "games.dailyComplete": "Daily Reward Complete!",
       "games.dailyCompleteFull": "Daily Reward Complete! {cap} / {cap} Coins",
       "games.dailyCompleteNote": "You can keep playing for fun, but won't earn more Coins today.",
-      "games.rewardNote": "Earn up to <strong>500 Coins</strong> a day from this game.",
+      "games.rewardNote": "Earn up to <strong>1,000 Coins</strong> a day from this game.",
       "games.startBtn": "Start",
 
       /* ---- games: in-game HUD ---- */
@@ -247,12 +265,6 @@ const I18n = (() => {
       "game.tnt.howto":
         "Drag to move (or use the arrow keys). Each TNT shows its blast circle before it goes off — stay out of it. Standing just outside pays +5, and you get +3 for every second alive.",
       "game.tnt.hint": "Drag to move · Stay out of the red · Close call +5",
-
-      "game.parkour.name": "Block Parkour",
-      "game.parkour.desc": "Auto-run a randomly built course. Tap to jump, land the gaps, reach the finish.",
-      "game.parkour.howto":
-        "Tap anywhere (or press Space) to jump — you run forward on your own. Diamond +10 · Checkpoint +25 · Finish +100, with bonuses for a fast time and for finishing without falling. You have 3 hearts — falling in the lava or touching TNT costs one and sends you back to the last checkpoint. Lose all 3 and the run ends.",
-      "game.parkour.hint": "Tap to jump · 💎 +10 · 🏁 +25 · 🏆 +100 · ❤️×3",
 
       /* ---- games: result screen ---- */
       "result.headline": "Nice run!",
@@ -315,6 +327,7 @@ const I18n = (() => {
       "nav.games": "🎮 ហ្គេម",
       "nav.store": "💰 ហាង",
       "nav.map": "🗺️ ផែនទី",
+      "nav.banned": "🚫 Banned",
       "nav.menu": "ម៉ឺនុយ",
       "nav.language": "ភាសា",
       "footer.copy": "© {year} AngkorSMP · Minecraft Server កម្ពុជា 🇰🇭",
@@ -355,6 +368,9 @@ const I18n = (() => {
       "store.upRank": "ដំឡើង Rank",
       "store.upRankChoose": "ជ្រើសរើស Rank ដើម្បីដំឡើងពី",
       "store.upgradeSummary": "ដំឡើងពី {from} → {to}",
+      "store.upgradeCaption": "អ្នកកំពុងដំឡើងពី {from} ទៅ {to}",
+      "store.confirmName": "ឈ្មោះ",
+      "store.confirmPlatform": "Platform",
       "store.confirm": "បញ្ជាក់",
       "store.cancel": "បោះបង់",
       "store.changeHint":
@@ -427,6 +443,20 @@ const I18n = (() => {
       "map.notConfigured":
         'ផែនទី Live មិនទាន់បានកំណត់ទេ។ សូមដាក់ "bluemapUrl" ក្នុង website/config/site.config.json ជា URL BlueMap របស់អ្នក។',
 
+      /* ---- banned players ---- */
+      "banned.title": "🌿 អ្នកលេងដែលត្រូវ Ban 🌿",
+      "banned.subtitle": "BANNED",
+      "banned.hint": "អ្នកលេងដែលកំពុងត្រូវ Ban បច្ចុប្បន្ន បង្ហាញថ្មីៗបំផុតមុន។",
+      "banned.unavailable": "⚠️ បញ្ជី Ban មិនអាចប្រើបានពេលនេះទេ។ សូមទាក់ទង Support សម្រាប់ព័ត៌មានបន្ថែម។",
+      "banned.empty": "គ្មានអ្នកលេងណាកំពុងត្រូវ Ban ទេពេលនេះ។ 🎉",
+      "banned.colPlayer": "អ្នកលេង",
+      "banned.colReason": "មូលហេតុ",
+      "banned.colBannedBy": "Ban ដោយ",
+      "banned.colDate": "កាលបរិច្ឆេទ",
+      "banned.colExpires": "ផុតកំណត់",
+      "banned.permanent": "ជាអចិន្ត្រៃយ៍",
+      "banned.noReason": "មិនមានមូលហេតុ",
+
       /* ---- games: gate + hub ---- */
       "games.subtitle": "ហ្គេម",
       "games.verify": "ផ្ទៀងផ្ទាត់",
@@ -480,13 +510,13 @@ const I18n = (() => {
       "games.leaderboardUnranked": "លេងមួយជុំដើម្បីចូលក្នុងតារាងពិន្ទុ។",
       "games.listHeading": "ហ្គេមតូចៗ",
       "games.listHint":
-        "លេងបាន ៣ ដងក្នុងមួយហ្គេមក្នុងមួយថ្ងៃ, ១–៥០ Coins ក្នុងមួយដង, រហូតដល់ ៥០០ Coins ក្នុងមួយថ្ងៃ។ កំណត់ឡើងវិញនៅពាក់កណ្តាលអធ្រាត្រ (UTC+7)។",
+        "លេងបាន ៣ ដងក្នុងមួយហ្គេមក្នុងមួយថ្ងៃ, ១–៧៥ Coins ក្នុងមួយដង, រហូតដល់ ១.០០០ Coins ក្នុងមួយថ្ងៃ។ កំណត់ឡើងវិញនៅពាក់កណ្តាលអធ្រាត្រ (UTC+7)។",
       "games.play": "លេង",
       "games.todaysReward": "រង្វាន់ថ្ងៃនេះ៖ {earned} / {cap} Coins",
       "games.dailyComplete": "រង្វាន់ប្រចាំថ្ងៃពេញហើយ!",
       "games.dailyCompleteFull": "រង្វាន់ប្រចាំថ្ងៃពេញហើយ! {cap} / {cap} Coins",
       "games.dailyCompleteNote": "អ្នកអាចបន្តលេងកម្សាន្តបាន ប៉ុន្តែនឹងមិនរក Coins បន្ថែមទៀតថ្ងៃនេះទេ។",
-      "games.rewardNote": "រកបានរហូតដល់ <strong>៥០០ Coins</strong> ក្នុងមួយថ្ងៃពីហ្គេមនេះ។",
+      "games.rewardNote": "រកបានរហូតដល់ <strong>១.០០០ Coins</strong> ក្នុងមួយថ្ងៃពីហ្គេមនេះ។",
       "games.startBtn": "ចាប់ផ្តើម",
 
       /* ---- games: in-game HUD ---- */
@@ -537,12 +567,6 @@ const I18n = (() => {
       "game.tnt.howto":
         "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ TNT នីមួយៗបង្ហាញរង្វង់ផ្ទុះមុនពេលផ្ទុះ — កុំនៅក្នុងវា។ ឈរជិតៗខាងក្រៅបាន +5 ហើយបាន +3 រាល់មួយវិនាទីដែលរស់។",
       "game.tnt.hint": "អូសដើម្បីផ្លាស់ទី · ចេញពីរង្វង់ក្រហម · គេចជិត +5",
-
-      "game.parkour.name": "Block Parkour",
-      "game.parkour.desc": "រត់ស្វ័យប្រវត្តិលើផ្លូវដែលបង្កើតចៃដន្យ។ ចុចដើម្បីលោត រួចទៅដល់គោល។",
-      "game.parkour.howto":
-        "ចុចកន្លែងណាក៏បាន (ឬចុច Space) ដើម្បីលោត — តួអង្គរត់ទៅមុខដោយខ្លួនឯង។ Diamond +10 · Checkpoint +25 · ដល់គោល +100 បូករង្វាន់បើលឿន និងបើមិនធ្លាក់សោះ។ អ្នកមានជីវិត ៣ — ធ្លាក់ក្នុង Lava ឬប៉ះ TNT បាត់ជីវិតម្តង ហើយចាប់ផ្តើមពី Checkpoint ចុងក្រោយ។ អស់ជីវិតទាំង ៣ ហ្គេមចប់។",
-      "game.parkour.hint": "ចុចដើម្បីលោត · 💎 +10 · 🏁 +25 · 🏆 +100 · ❤️×3",
 
       /* ---- games: result screen ---- */
       "result.headline": "លេងបានល្អ!",
@@ -631,7 +655,7 @@ const I18n = (() => {
     return `${Math.round(Number(amount || 0) * RIEL_PER_USD).toLocaleString("en-US")}៛`;
   }
   function formatPrice(amount) {
-    return lang === "km" ? `${formatUsd(amount)} (${formatRiel(amount)})` : formatUsd(amount);
+    return lang === "km" ? formatRiel(amount) : formatUsd(amount);
   }
 
   // Swap every marked string in `root` (defaults to the whole document).

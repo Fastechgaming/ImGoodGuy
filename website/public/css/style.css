@@ -767,9 +767,19 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   display: flex;
   flex-direction: column;
   border: 3px solid var(--stone-darkest);
+  cursor: pointer;
+  /* The whole card is a tap target (opens the info popup), so mobile
+     Chrome's default blue tap-highlight would otherwise flash across it -
+     and everything inside, buttons included, since a tap anywhere in the
+     card bubbles up through this same highlighted box. */
+  -webkit-tap-highlight-color: transparent;
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
 }
 .item-card:hover { transform: translateY(-5px) rotate(-0.5deg); }
+/* A transformed ancestor becomes the containing block for its fixed-position
+   descendants, which would break .uprank-menu's viewport-relative
+   positioning while the card underneath it is being hovered. */
+.item-card:has(.uprank-dropdown.open) { transform: none; }
 .item-image-wrap { position: relative; }
 .item-card img { width: 100%; height: 170px; object-fit: contain; padding: 0.5rem; background: var(--cream-dark); border-bottom: 3px solid var(--stone-darkest); }
 /* ✨ Twinkling stars around the item art. Drawn in CSS (no image file) so
@@ -802,6 +812,33 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .item-card p { margin: 0; color: var(--ink-soft); font-size: 0.88rem; flex: 1; }
 .item-card .price { font-family: "Baloo 2", sans-serif; color: var(--terracotta); font-size: 1.25rem; font-weight: 800; }
 .item-card .item-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+/* Price display once an Up Rank trade-in is armed: "$20.00 → $5.00" plus a
+   small caption naming the from/to ranks. */
+.price-block { min-width: 0; }
+.upgrade-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-family: "Baloo 2", sans-serif;
+  font-weight: 800;
+}
+.upgrade-price .price-was {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  font-size: 0.95rem;
+  font-weight: 700;
+  opacity: 0.75;
+}
+.upgrade-price .price-arrow { color: var(--ink-soft); font-size: 0.95rem; }
+.upgrade-price .price-now { color: var(--terracotta); font-size: 1.25rem; }
+.upgrade-caption {
+  margin-top: 0.1rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.rank-lime { color: var(--moss-light); font-weight: 800; }
 .buy-btn {
   flex: 1;
   background: linear-gradient(180deg, var(--gold-light), var(--gold));
@@ -812,28 +849,12 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   font-weight: 800;
   font-family: "Baloo 2", sans-serif;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
   transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
 .buy-btn:hover { transform: scale(1.05); }
 .buy-btn:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 1px 0 var(--stone-darkest); }
-.info-btn {
-  width: 42px;
-  height: 42px;
-  min-width: 42px;
-  border-radius: 8px;
-  border: 3px solid var(--stone-darkest);
-  background: linear-gradient(180deg, var(--moss-light), var(--moss));
-  color: #fff;
-  font-weight: 900;
-  cursor: pointer;
-  font-family: "Baloo 2", serif;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
-  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
-}
-.info-btn:hover { transform: scale(1.1) rotate(8deg); }
-.info-btn:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.35), 0 1px 0 var(--stone-darkest); }
-
 .empty-note { text-align: center; color: var(--ink-soft); padding: 2rem; font-weight: 600; }
 
 /* ---------- Modals ---------- */
@@ -943,6 +964,22 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .continue-btn:active, .primary-btn:active { transform: translateY(4px); box-shadow: var(--press-shadow-active); }
 .continue-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .back-link { background: none; border: none; color: var(--brown-dark); cursor: pointer; font-weight: 700; padding: 0.3rem 0; }
+.change-name-btn {
+  flex-shrink: 0;
+  background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
+  color: var(--ink);
+  border: 2px solid var(--stone-darkest);
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 800;
+  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--stone-darkest);
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
+}
+.change-name-btn:hover { transform: translateY(-2px); }
+.change-name-btn:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--stone-darkest); }
 
 .qr-box { text-align: center; }
 .qr-box img { width: 220px; height: 220px; margin: 0 auto 1rem; border: 4px solid var(--brown-darkest); box-shadow: var(--shadow-hard); border-radius: 10px; background: #fff; padding: 6px; }
@@ -1128,17 +1165,21 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .success-actions { margin-top: 1.2rem; }
 .success-actions .continue-btn { display: inline-block; width: auto; padding: 0.85rem 2.2rem; text-decoration: none; }
 
-/* Buy Now row inside the "!" info popup */
+/* Price + Buy/Up Rank controls row inside the item info popup - same
+   markup (priceMarkup + actionsMarkup) as the card, so the two never show
+   conflicting states or prices. */
 .info-buy-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-top: 1.2rem;
   padding-top: 1rem;
   border-top: 2px dashed var(--stone-dark);
 }
 .info-buy-row .price { font-family: "Baloo 2", sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--terracotta); }
-.info-buy-btn { flex: 1; width: auto; }
+.info-buy-row .item-actions { flex: 1; min-width: 180px; }
 
 @media (max-width: 560px) {
   .checkout-summary { flex-direction: column; align-items: center; text-align: center; }
@@ -1151,15 +1192,13 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .item-card.coming-soon { opacity: 0.82; }
 .item-card.coming-soon:hover { transform: none; }
 .item-card.coming-soon .price { color: var(--ink-soft); }
-.buy-btn:disabled,
-.info-buy-btn:disabled {
+.buy-btn:disabled {
   background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
   color: var(--ink-soft);
   cursor: not-allowed;
   opacity: 0.75;
 }
-.buy-btn:disabled:hover,
-.info-buy-btn:disabled:hover { transform: none; }
+.buy-btn:disabled:hover { transform: none; }
 
 /* ---------- Save-KHQR button ---------- */
 .khqr-actions {
@@ -1648,6 +1687,19 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
 }
 .board-empty { color: var(--ink-soft); font-size: 0.88rem; text-align: center; padding: 0.6rem; }
 
+/* Banned Players table */
+.banned-table td.ban-reason { color: var(--ink-soft); }
+.ban-permanent {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--terracotta);
+  color: #fff1ee;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.ban-noreason { color: var(--ink-soft); font-style: italic; font-weight: 600; }
+
 /* full table inside the modal */
 .board-table-wrap { max-height: 55vh; overflow-y: auto; overflow-x: auto; margin: 0.6rem 0; border: 3px solid var(--stone-darkest); border-radius: 12px; }
 .board-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -1771,7 +1823,9 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .store-profile .player-avatar img { width: 100%; height: 100%; object-fit: contain; }
 .profile-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; }
 .profile-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
   padding: 0.12rem 0.6rem;
   border-radius: 999px;
   border: 2px solid var(--stone-darkest);
@@ -1782,6 +1836,11 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 }
 .profile-chip.coins { color: var(--gold-deep); }
 .profile-chip[hidden] { display: none; }
+.coin-icon { width: 1.1em; height: 1.1em; object-fit: contain; flex-shrink: 0; }
+/* #store-rank-chip holds one .profile-chip per held rank - display:contents
+   makes it invisible as a box, so each pill is a direct flex item of
+   .profile-meta and wraps/gaps exactly like the coins chip beside it. */
+#store-rank-chip { display: contents; }
 
 .coin-unavailable-banner {
   margin: 0 0 1rem;
@@ -1814,14 +1873,17 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   box-shadow: 0 3px 0 #6d1a12;
 }
 .buy-btn.rank-current:hover, .buy-btn.rank-lower:hover { transform: none; }
-.info-buy-btn.rank-current, .info-buy-btn.rank-lower { opacity: 0.95; }
 
 /* Confirm (80%) + Up Rank (20%) split, for a rank the player could trade a
    lower one in for. */
 .rank-split { flex: 1; display: flex; gap: 0.35rem; align-items: stretch; }
 .rank-split .confirm-part { flex: 4; }
-.up-rank-wrap { position: relative; flex: 1; min-width: 44px; }
-.up-rank-btn {
+
+/* Up Rank: a custom dropdown card styled the same as the language switcher
+   (.lang-dropdown/.lang-toggle/.lang-menu/.lang-option), instead of a
+   native <select> that pops the OS picker. */
+.uprank-dropdown { position: relative; flex: 1; min-width: 44px; }
+.uprank-toggle {
   width: 100%;
   height: 100%;
   display: flex;
@@ -1829,14 +1891,18 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
-  background: linear-gradient(180deg, var(--stone-light), var(--stone-mid));
-  color: var(--ink-soft);
+  background: linear-gradient(180deg, var(--gold-light), var(--gold));
+  color: var(--brown-darkest);
   border: 3px solid var(--stone-darkest);
   border-radius: 10px;
   padding: 0.2rem 0.15rem;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest);
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
 }
+.uprank-toggle:hover { transform: scale(1.05); }
+.uprank-toggle:active { transform: translateY(3px); box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 1px 0 var(--stone-darkest); }
 .up-rank-icon { font-size: 0.95rem; line-height: 1; }
 .up-rank-label {
   font-size: 0.56rem;
@@ -1849,32 +1915,82 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.up-rank-btn.armed {
+.uprank-toggle.armed {
   background: linear-gradient(180deg, var(--moss-light), var(--moss));
   color: #1d3a12;
   border-color: #1d3a12;
 }
-.up-rank-select {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+/* position: fixed (not absolute) because .item-card clips overflow for its
+   rounded corners and sparkles - an absolutely-positioned menu would be cut
+   off by that. Coordinates are set inline by positionUprankMenu() in
+   store.js right before the .open class is added. */
+.uprank-menu {
+  position: fixed;
+  width: 170px;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--stone-surface);
+  border: 3px solid var(--stone-darkest);
+  border-radius: 16px;
+  box-shadow: var(--stone-bevel), 0 10px 24px rgba(0, 0, 0, 0.45);
+  transform: translateY(-6px) scale(0.97);
+  transform-origin: top right;
   opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s cubic-bezier(.34,1.4,.64,1);
+  z-index: 120;
+}
+.uprank-dropdown.open .uprank-menu { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.uprank-option {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem;
+  color: var(--on-dark);
+  font-weight: 700;
+  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #7d5936, #5c3f22);
+  border: 2px solid var(--stone-darkest);
+  box-shadow: 0 3px 0 var(--stone-darkest);
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-align: center;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.15s;
+}
+.uprank-option:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--stone-darkest); }
+.uprank-option.active {
+  background: var(--stone-surface);
+  color: var(--ink);
+  border-color: var(--gold);
+  box-shadow: var(--stone-bevel), 0 3px 0 var(--gold-deep);
 }
 
-.confirm-head { text-align: center; margin-bottom: 0.9rem; }
+.confirm-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+  margin-bottom: 0.9rem;
+}
 .confirm-icon {
-  width: 108px;
-  height: 108px;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
   object-fit: contain;
-  margin-bottom: 0.3rem;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
 }
+.confirm-head-text { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
 .confirm-head h3 { margin: 0; font-size: 1.3rem; }
 .confirm-tag {
   display: inline-block;
-  margin-top: 0.35rem;
+  align-self: flex-start;
   padding: 0.15rem 0.7rem;
   border-radius: 999px;
   background: var(--moss);
@@ -1883,6 +1999,17 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   font-weight: 800;
 }
 .confirm-rows { margin: 0 0 1rem; }
+.confirm-rows div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.28rem 0; border-bottom: 1px dashed var(--stone-dark); font-size: 0.88rem; color: var(--ink-soft); font-weight: 600; }
+.confirm-rows div:last-child { border-bottom: none; }
+.confirm-rows strong { color: var(--ink); text-align: right; }
+.confirm-price {
+  text-align: center;
+  font-family: "Baloo 2", sans-serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--terracotta);
+  margin-bottom: 0.9rem;
+}
 .confirm-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
 .confirm-actions .continue-btn { max-width: 260px; }
 

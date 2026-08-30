@@ -42,6 +42,8 @@ public final class AngkorStoreCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(status("Vault economy", plugin.vaultHook().available(),
                 plugin.vaultHook().available() ? plugin.vaultHook().providerName() : "no economy plugin registered"));
         sender.sendMessage(status("LuckPerms", plugin.luckPermsHook().available(), null));
+        sender.sendMessage(status("LiteBans", plugin.liteBansHook().available(),
+                plugin.liteBansHook().available() ? null : "database not found - see config.yml litebans.database-path"));
         sender.sendMessage(ChatColor.GRAY + "Pending deliveries queued: "
                 + ChatColor.WHITE + plugin.pendingDeliveries().size());
         sender.sendMessage(ChatColor.GRAY + "Rank ladder: " + ChatColor.WHITE
@@ -53,6 +55,7 @@ public final class AngkorStoreCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(status("HTTP server bound", plugin.apiRunning(), null));
         sender.sendMessage(status("Economy read", plugin.vaultHook().available(), null));
         sender.sendMessage(status("Rank read (LuckPerms)", plugin.luckPermsHook().available(), null));
+        sender.sendMessage(status("Ban list read (LiteBans)", plugin.liteBansHook().available(), null));
         if (plugin.config().secret.isBlank() || "CHANGE-ME".equals(plugin.config().secret)) {
             sender.sendMessage(ChatColor.RED + "api.secret is still the default - the website cannot be trusted until you change it.");
         }

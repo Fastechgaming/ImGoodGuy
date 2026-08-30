@@ -88,20 +88,20 @@ public final class LuckPermsHook {
 
     private <T> CompletableFuture<T> withUser(UUID uuid, java.util.function.Function<User, T> fn) {
         UserManager um = api.getUserManager();
-        User cached = um.getIfLoaded(uuid);
+        User cached = um.getUser(uuid);
         if (cached != null) return CompletableFuture.completedFuture(fn.apply(cached));
         return um.loadUser(uuid).thenApply(user -> {
             try {
                 return fn.apply(user);
             } finally {
-                um.cleanupUser(user); // it wasn't already loaded (e.g. player online) - don't leak it
+                um.cleanupUser(user); // we loaded it ourselves (cached was null) - don't leave it cached forever
             }
         });
     }
 
     private CompletableFuture<Void> withUserVoid(UUID uuid, java.util.function.Consumer<User> fn) {
         UserManager um = api.getUserManager();
-        boolean wasLoaded = um.getIfLoaded(uuid) != null;
+        boolean wasLoaded = um.getUser(uuid) != null;
         return um.loadUser(uuid).thenCompose(user -> {
             fn.accept(user);
             return um.saveUser(user).thenRun(() -> {

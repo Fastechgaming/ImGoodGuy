@@ -3,8 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Games — AngkorSMP</title>
+<title>Mini-games — AngkorSMP</title>
+<meta name="description" content="Play free mini-games on the AngkorSMP website and earn Angkor Coins for your in-game balance — Lava Run, Block Breaker, Wind Charge Dodge, Diamond Rush, TNT Escape, and a points leaderboard." />
+<link rel="canonical" href="https://www.angkorsmp.com/games" />
+<meta name="theme-color" content="#f7b537" />
 <link rel="icon" href="/images/site/logo-icon.png" />
+<link rel="apple-touch-icon" href="/images/site/logo-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AngkorSMP" />
+<meta property="og:url" content="https://www.angkorsmp.com/games" />
+<meta property="og:title" content="Mini-games — AngkorSMP" />
+<meta property="og:description" content="Play free mini-games on the AngkorSMP website and earn Angkor Coins for your in-game balance." />
+<meta property="og:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Mini-games — AngkorSMP" />
+<meta name="twitter:description" content="Play free mini-games on the AngkorSMP website and earn Angkor Coins for your in-game balance." />
+<meta name="twitter:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
+
 <link rel="stylesheet" href="/css/style.css" />
 <script>
 // Apply the saved theme before first paint so there's no flash. Dark is default.
@@ -36,6 +54,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         <li><a href="/games" class="active" data-i18n="nav.games">🎮 Games</a></li>
         <li><a href="/store" data-i18n="nav.store">💰 Store</a></li>
         <li><a href="/map" data-i18n="nav.map">🗺️ Map</a></li>
+        <li><a href="/banned" data-i18n="nav.banned">🚫 Banned</a></li>
       </ul>
       <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
@@ -91,7 +110,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
                 </div>
               </div>
             </div>
-            <button class="back-link" id="games-switch-btn" data-i18n="games.changeName">Change name</button>
+            <button class="change-name-btn" id="games-switch-btn" data-i18n="games.changeName">Change name</button>
           </div>
 
           <div class="info-grid games-stats">
@@ -118,7 +137,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
           <h3 class="games-list-heading" data-i18n="games.listHeading">Mini-games</h3>
           <p class="checkout-hint centered" data-i18n="games.listHint">
-            Three plays of each game a day, 1–50 Coins a play, up to 500 Coins a
+            Three plays of each game a day, 1–75 Coins a play, up to 1,000 Coins a
             day. Closing a game counts as a play. Resets at midnight (UTC+7).
           </p>
           <div class="item-grid" id="games-grid"></div>

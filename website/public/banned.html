@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Live Map — AngkorSMP</title>
-<meta name="description" content="Explore the AngkorSMP Minecraft world in real time with the live BlueMap — see builds, terrain, and the Khmer-inspired landscape as players are shaping it." />
-<link rel="canonical" href="https://www.angkorsmp.com/map" />
+<title>Banned Players — AngkorSMP</title>
+<meta name="description" content="See who is currently banned from the AngkorSMP Minecraft server, with the reason, staff member, and ban date for each." />
+<link rel="canonical" href="https://www.angkorsmp.com/banned" />
 <meta name="theme-color" content="#f7b537" />
 <link rel="icon" href="/images/site/logo-icon.png" />
 <link rel="apple-touch-icon" href="/images/site/logo-icon.png" />
 
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="AngkorSMP" />
-<meta property="og:url" content="https://www.angkorsmp.com/map" />
-<meta property="og:title" content="Live Map — AngkorSMP" />
-<meta property="og:description" content="Explore the AngkorSMP Minecraft world in real time with the live BlueMap." />
+<meta property="og:url" content="https://www.angkorsmp.com/banned" />
+<meta property="og:title" content="Banned Players — AngkorSMP" />
+<meta property="og:description" content="See who is currently banned from the AngkorSMP Minecraft server." />
 <meta property="og:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Live Map — AngkorSMP" />
-<meta name="twitter:description" content="Explore the AngkorSMP Minecraft world in real time with the live BlueMap." />
+<meta name="twitter:title" content="Banned Players — AngkorSMP" />
+<meta name="twitter:description" content="See who is currently banned from the AngkorSMP Minecraft server." />
 <meta name="twitter:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
 
 <link rel="stylesheet" href="/css/style.css" />
@@ -53,30 +53,41 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         <li><a href="/" data-i18n="nav.home">🏠 Home</a></li>
         <li><a href="/games" data-i18n="nav.games">🎮 Games</a></li>
         <li><a href="/store" data-i18n="nav.store">💰 Store</a></li>
-        <li><a href="/map" class="active" data-i18n="nav.map">🗺️ Map</a></li>
-        <li><a href="/banned" data-i18n="nav.banned">🚫 Banned</a></li>
+        <li><a href="/map" data-i18n="nav.map">🗺️ Map</a></li>
+        <li><a href="/banned" class="active" data-i18n="nav.banned">🚫 Banned</a></li>
       </ul>
       <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
   </nav>
   <div class="khmer-strip" aria-hidden="true"></div>
 
-  <main class="map-wrap">
-    <div class="container">
-      <h2 class="no-rule" data-i18n="map.title">🌿 Cambodia Map 🌿</h2>
-      <p class="section-subtitle" data-i18n="map.subtitle">LIVE MAP</p>
-      <p class="map-age" id="map-age-text"></p>
-      <p style="text-align:center; color: var(--ink-soft); margin-top:-0.5rem;">
-        <span data-i18n="map.explain">Explore AngkorSMP in real time. Having trouble viewing it below?</span>
-        <a id="map-open-link" href="#" target="_blank" rel="noopener" data-i18n="map.openNew">Open the map in a new tab ↗</a>
-      </p>
-      <div class="map-frame-holder" id="map-frame-holder">
-        <div class="map-fallback" id="map-fallback">
-          <p data-i18n="map.fallback">The live map couldn't be embedded here.</p>
-          <a href="#" id="map-open-link-2" target="_blank" rel="noopener" data-i18n="map.openBluemap">Open BlueMap in a new tab</a>
+  <main>
+    <section class="section">
+      <div class="container">
+        <h2 class="no-rule" data-i18n="banned.title">🌿 Banned Players 🌿</h2>
+        <p class="section-subtitle" data-i18n="banned.subtitle">BANNED</p>
+        <p class="checkout-hint centered" data-i18n="banned.hint">Currently banned players, most recent first.</p>
+
+        <div class="coin-unavailable-banner" id="banned-unavailable" hidden>
+          <span data-i18n="banned.unavailable">⚠️ The banned players list is unavailable right now. Contact support for more info.</span>
+        </div>
+
+        <div class="board-table-wrap">
+          <table class="board-table banned-table">
+            <thead>
+              <tr>
+                <th data-i18n="banned.colPlayer">Player</th>
+                <th data-i18n="banned.colReason">Reason</th>
+                <th data-i18n="banned.colBannedBy">Banned By</th>
+                <th data-i18n="banned.colDate">Date</th>
+                <th data-i18n="banned.colExpires">Expires</th>
+              </tr>
+            </thead>
+            <tbody id="banned-body"></tbody>
+          </table>
         </div>
       </div>
-    </div>
+    </section>
   </main>
 
   <div class="khmer-strip" aria-hidden="true"></div>
@@ -86,6 +97,6 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
 
   <script src="/js/i18n.js"></script>
   <script src="/js/main.js"></script>
-  <script src="/js/map.js"></script>
+  <script src="/js/banned.js"></script>
 </body>
 </html>

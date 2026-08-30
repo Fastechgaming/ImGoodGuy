@@ -52,6 +52,20 @@ ranks:
   fallback-set-command: "lp user {player} parent add {group}"
   fallback-remove-command: "lp user {player} parent remove {group}"
 
+litebans:
+  enabled: true
+  # Path to LiteBans' own SQLite database file, relative to the server's
+  # root folder (the one "plugins/" lives in) - or an absolute path. This
+  # is read directly, read-only, once per website request; LiteBans has no
+  # runtime API for listing punishments, so reading its own database is the
+  # integration method LiteBans' own wiki recommends for external tools.
+  # Matches LiteBans' own config.yml storage.sqlite.filename setting.
+  database-path: "plugins/LiteBans/litebans.db"
+  # LiteBans' own config.yml "table_prefix" setting.
+  table-prefix: "litebans_"
+  # Most recent active bans returned per website request, most recent first.
+  max-results: 200
+
 logging:
   transactions: true     # plugins/AngkorStore/transactions.log
   debug: false

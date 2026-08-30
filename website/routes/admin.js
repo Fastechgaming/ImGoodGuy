@@ -53,19 +53,39 @@ router.get("/items/new", requireAuth, (req, res) => {
   res.render("item-form", { item: null, categories: store.CATEGORIES, defaultCategory: req.query.category || "ranks" });
 });
 
+function slugify(str) {
+  return String(str)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 router.post("/items", requireAuth, upload.single("imageFile"), (req, res, next) => {
   try {
     const { category, name, price, shortDesc, infoText, videoUrl, imageUrl, deliveryCommand } = req.body;
     if (!store.CATEGORIES.includes(category)) throw new Error("Invalid category");
 
-    const slug = name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+    const slug = slugify(name);
+
+    // A rank item is matched to the Minecraft plugin's LuckPerms ladder (and
+    // to the catalogue-derived fallback ladder when the plugin isn't
+    // connected) by exact id: `rank-<ladder id>`, e.g. rank-bee, rank-titan
+    // - see AngkorStore's config.yml `ranks.ladder`. So unlike every other
+    // category, a rank's id can't carry a random nanoid suffix; it has to
+    // be `rank-<slug>` with a trailing "rank" word stripped (name "Titan
+    // Rank" -> id rank-titan), or Up Rank silently won't recognise it.
+    let id;
+    if (category === "ranks") {
+      const rankSlug = slug.replace(/-rank$/, "") || slug;
+      id = `rank-${rankSlug}`;
+      if (store.findItem(id)) id = `rank-${rankSlug}-${nanoid(4)}`;
+    } else {
+      id = `${category}-${slug}-${nanoid(4)}`;
+    }
 
     const item = {
-      id: `${category}-${slug}-${nanoid(4)}`,
+      id,
       name,
       price: Number(price),
       currency: "USD",

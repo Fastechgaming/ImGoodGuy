@@ -16,11 +16,11 @@ const STATS_FILE = path.join(DATA_DIR, "gamestats.json");
 const BOARD_FILE = path.join(DATA_DIR, "leaderboard.json");
 
 const PLAYS_PER_GAME_PER_DAY = 3;
-const COINS_PER_DAY = 500;
-const MAX_COINS_PER_PLAY = 50;
+const COINS_PER_DAY = 1000;
+const MAX_COINS_PER_PLAY = 75;
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 
-// Per-game tuning. `pointsForFullCoins` is the score that earns the full 30
+// Per-game tuning. `pointsForFullCoins` is the score that earns the full 75
 // coins; anything less scales down proportionally, with a floor of 1 coin for
 // a round that scored at all. `maxPointsPerSecond` is the plausibility
 // ceiling - no honest player scores faster than this, so anything above it is
@@ -31,7 +31,6 @@ const GAMES = {
   "wind-charge-dodge": { name: "Wind Charge Dodge", pointsForFullCoins: 190, maxPointsPerSecond: 9 },
   "diamond-rush": { name: "Diamond Rush", pointsForFullCoins: 260, maxPointsPerSecond: 22 },
   "tnt-escape": { name: "TNT Escape", pointsForFullCoins: 240, maxPointsPerSecond: 10 },
-  "block-parkour": { name: "Block Parkour", pointsForFullCoins: 300, maxPointsPerSecond: 14 },
 };
 
 const GAME_IDS = Object.keys(GAMES);

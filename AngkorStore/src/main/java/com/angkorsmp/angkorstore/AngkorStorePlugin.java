@@ -3,6 +3,7 @@ package com.angkorsmp.angkorstore;
 import com.angkorsmp.angkorstore.api.AngkorStoreApi;
 import com.angkorsmp.angkorstore.commands.AngkorStoreCommand;
 import com.angkorsmp.angkorstore.config.PluginConfig;
+import com.angkorsmp.angkorstore.hooks.LiteBansHook;
 import com.angkorsmp.angkorstore.hooks.LuckPermsHook;
 import com.angkorsmp.angkorstore.hooks.VaultHook;
 import com.angkorsmp.angkorstore.http.ApiServer;
@@ -19,6 +20,7 @@ public final class AngkorStorePlugin extends JavaPlugin {
     private PluginConfig config;
     private VaultHook vaultHook;
     private LuckPermsHook luckPermsHook;
+    private LiteBansHook liteBansHook;
     private TransactionStore transactionStore;
     private PendingDeliveries pendingDeliveries;
     private AngkorStoreApi api;
@@ -43,13 +45,14 @@ public final class AngkorStorePlugin extends JavaPlugin {
 
         this.vaultHook = new VaultHook(this);
         this.luckPermsHook = new LuckPermsHook(this, config);
+        this.liteBansHook = new LiteBansHook(this, config);
         vaultHook.hook();
         luckPermsHook.hook();
 
         PlayerLookup lookup = new PlayerLookup(this, config);
         this.transactionStore = new TransactionStore(getDataFolder(), getLogger());
         this.pendingDeliveries = new PendingDeliveries(getDataFolder(), getLogger());
-        this.api = new AngkorStoreApi(this, config, vaultHook, luckPermsHook, lookup, transactionStore, pendingDeliveries);
+        this.api = new AngkorStoreApi(this, config, vaultHook, luckPermsHook, liteBansHook, lookup, transactionStore, pendingDeliveries);
 
         if (config.secret.isBlank() || "CHANGE-ME".equals(config.secret)) {
             getLogger().severe("[AngkorStore] api.secret is not set in config.yml - the website cannot be trusted to talk to this "
@@ -85,6 +88,10 @@ public final class AngkorStorePlugin extends JavaPlugin {
 
     public LuckPermsHook luckPermsHook() {
         return luckPermsHook;
+    }
+
+    public LiteBansHook liteBansHook() {
+        return liteBansHook;
     }
 
     public AngkorStoreApi api() {

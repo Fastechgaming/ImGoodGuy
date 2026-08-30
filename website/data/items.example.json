@@ -59,6 +59,30 @@
       "videoUrl": "",
       "category": "ranks",
       "deliveryCommand": "lp user {player} parent add dragon"
+    },
+    {
+      "id": "rank-titan",
+      "name": "Titan Rank",
+      "price": 30,
+      "currency": "USD",
+      "image": "/images/items/rank-titan.png",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Titan Rank\n\nPerks and kit contents will be listed here soon.",
+      "videoUrl": "",
+      "category": "ranks",
+      "deliveryCommand": "lp user {player} parent add titan"
+    },
+    {
+      "id": "rank-angkor",
+      "name": "Angkor Rank",
+      "price": 50,
+      "currency": "USD",
+      "image": "/images/items/rank-angkor.png",
+      "shortDesc": "Description coming soon.",
+      "infoText": "Angkor Rank\n\nPerks and kit contents will be listed here soon.",
+      "videoUrl": "",
+      "category": "ranks",
+      "deliveryCommand": "lp user {player} parent add angkor"
     }
   ],
   "coins": [

@@ -15,6 +15,17 @@ npm start               # or: npm run dev (auto-restart with nodemon)
 
 The site runs at `http://localhost:3000` by default (`PORT` in `.env`).
 
+`data/items.json` and `data/orders.json` are **not** tracked in git — they're
+live data the running site writes to (the admin panel/Telegram bot edit the
+catalogue, checkout writes real orders), so a `git pull` on a deploy must
+never touch them. `data/items.json` doesn't need to be created by hand: if
+it's missing, the server seeds it from `data/items.example.json` the moment
+it starts (see `lib/store.js`), so a fresh checkout or a redeploy to a new
+box never comes up with an empty store. After that first seed, manage the
+catalogue through the admin panel or Telegram bot, not by hand-editing the
+JSON. `data/orders.json` has no seed file — a missing one just starts empty,
+which is correct for order history.
+
 ## 2. What you need to fill in
 
 Everything below lives in **`website/.env`** (secrets) and **`website/config/site.config.json`** (public, non-secret settings).

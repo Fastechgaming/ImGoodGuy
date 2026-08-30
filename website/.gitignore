@@ -4,3 +4,5 @@ node_modules/
 data/gamestats.json
 data/proofs/
 data/leaderboard.json
+data/orders.json
+data/items.json

@@ -4,7 +4,25 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Store — AngkorSMP</title>
+<meta name="description" content="Buy ranks and Angkor Coin packs for the AngkorSMP Minecraft server. Java and Bedrock supported, KHQR payment, instant Telegram delivery." />
+<link rel="canonical" href="https://www.angkorsmp.com/store" />
+<meta name="theme-color" content="#f7b537" />
 <link rel="icon" href="/images/site/logo-icon.png" />
+<link rel="apple-touch-icon" href="/images/site/logo-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AngkorSMP" />
+<meta property="og:url" content="https://www.angkorsmp.com/store" />
+<meta property="og:title" content="Store — AngkorSMP" />
+<meta property="og:description" content="Buy ranks and Angkor Coin packs for the AngkorSMP Minecraft server. Java and Bedrock supported." />
+<meta property="og:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Store — AngkorSMP" />
+<meta name="twitter:description" content="Buy ranks and Angkor Coin packs for the AngkorSMP Minecraft server. Java and Bedrock supported." />
+<meta name="twitter:image" content="https://www.angkorsmp.com/images/site/og-cover.png" />
+
 <link rel="stylesheet" href="/css/style.css" />
 <script>
 // Apply the saved theme before first paint so there's no flash. Dark is default.
@@ -36,6 +54,7 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
         <li><a href="/games" data-i18n="nav.games">🎮 Games</a></li>
         <li><a href="/store" class="active" data-i18n="nav.store">💰 Store</a></li>
         <li><a href="/map" data-i18n="nav.map">🗺️ Map</a></li>
+        <li><a href="/banned" data-i18n="nav.banned">🚫 Banned</a></li>
       </ul>
       <button class="nav-toggle" onclick="toggleNav()" aria-label="Menu" data-i18n-aria="nav.menu">&#9776;</button>
     </div>
@@ -93,12 +112,12 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
                 <div class="player-label" data-i18n="store.loggedInAs">Logged in as</div>
                 <div class="player-name" id="store-player-name">—</div>
                 <div class="profile-meta">
-                  <span class="profile-chip" id="store-rank-chip"></span>
+                  <span id="store-rank-chip"></span>
                   <span class="profile-chip coins" id="store-coins-chip"></span>
                 </div>
               </div>
             </div>
-            <button class="back-link" id="store-change-btn" data-i18n="games.changeName">Change name</button>
+            <button class="change-name-btn" id="store-change-btn" data-i18n="games.changeName">Change name</button>
           </div>
 
           <div class="store-tabs" id="store-tabs"></div>
