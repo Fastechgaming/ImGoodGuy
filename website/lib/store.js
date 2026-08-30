@@ -4,8 +4,19 @@ const path = require("path");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const ITEMS_FILE = path.join(DATA_DIR, "items.json");
+const ITEMS_SEED_FILE = path.join(DATA_DIR, "items.example.json");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const CONFIG_FILE = path.join(__dirname, "..", "config", "site.config.json");
+
+// items.json holds admin-edited catalogue data, so it's gitignored - a
+// `git pull` on the live box must never overwrite it. But that also means a
+// *fresh* checkout (a redeploy to a new box, a container rebuild) won't have
+// it either, and getItems()'s empty-catalogue fallback would then show as a
+// store with nothing for sale. Seed it from the tracked example once, right
+// here at startup, so a fresh checkout is never silently empty.
+if (!fs.existsSync(ITEMS_FILE) && fs.existsSync(ITEMS_SEED_FILE)) {
+  fs.copyFileSync(ITEMS_SEED_FILE, ITEMS_FILE);
+}
 
 function readJson(file, fallback) {
   try {

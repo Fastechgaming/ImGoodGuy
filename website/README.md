@@ -10,7 +10,6 @@ This lives in its own folder (`website/`) with its own `package.json`, separate 
 cd website
 npm install
 cp .env.example .env   # then fill in the values (see below)
-cp data/items.example.json data/items.json   # first run only - seeds the store catalogue
 npm start               # or: npm run dev (auto-restart with nodemon)
 ```
 
@@ -19,9 +18,13 @@ The site runs at `http://localhost:3000` by default (`PORT` in `.env`).
 `data/items.json` and `data/orders.json` are **not** tracked in git — they're
 live data the running site writes to (the admin panel/Telegram bot edit the
 catalogue, checkout writes real orders), so a `git pull` on a deploy must
-never touch them. `data/items.example.json` is only a one-time seed for a
-fresh install; after that, manage the catalogue through the admin panel or
-Telegram bot, not by hand-editing the JSON.
+never touch them. `data/items.json` doesn't need to be created by hand: if
+it's missing, the server seeds it from `data/items.example.json` the moment
+it starts (see `lib/store.js`), so a fresh checkout or a redeploy to a new
+box never comes up with an empty store. After that first seed, manage the
+catalogue through the admin panel or Telegram bot, not by hand-editing the
+JSON. `data/orders.json` has no seed file — a missing one just starts empty,
+which is correct for order history.
 
 ## 2. What you need to fill in
 
