@@ -46,11 +46,15 @@ dependencies {
 
     // The one real exception to "never shaded": LiteBans has no runtime
     // Java API for listing punishments, so hooks.LiteBansHook reads its
-    // SQLite database directly - and unlike LuckPerms/Vault's APIs, no
-    // installed plugin puts a SQLite JDBC driver on this server's
-    // classpath. Shaded and relocated below so it can't clash with any
-    // other plugin bundling its own copy of the same driver.
+    // database directly - and unlike LuckPerms/Vault's APIs, no installed
+    // plugin puts either of these drivers on this server's classpath.
+    // Both are shaded and relocated below so neither clashes with another
+    // plugin (LiteBans included) bundling its own copy of the same driver.
+    // Both are needed since LiteBans' storage format changed at some point
+    // (see hooks.LiteBansHook's own doc comment) - SQLite for an older
+    // install, H2 for LiteBans' current default.
     implementation "org.xerial:sqlite-jdbc:3.46.1.3"
+    implementation "com.h2database:h2:2.3.232"
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -80,4 +84,5 @@ tasks.named("shadowJar") {
     archiveVersion = project.version
     archiveClassifier = ""
     relocate "org.sqlite", "com.angkorsmp.angkorstore.libs.sqlite"
+    relocate "org.h2", "com.angkorsmp.angkorstore.libs.h2"
 }
