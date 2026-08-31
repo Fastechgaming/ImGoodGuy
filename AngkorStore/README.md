@@ -17,10 +17,13 @@ single-secret auth instead of key+HMAC signing).
 - **LuckPerms** — needed for rank detection/upgrade. Everything still starts
   and runs without either; the features they provide are just off, logged
   clearly at startup (`/angkorstore status` shows what's hooked).
-- **LiteBans** (SQLite storage), for the website's Banned Players list — same
-  deal, off without it. This one is read directly from LiteBans' own
-  database file (see `litebans.database-path` in config.yml), not through a
-  plugin API, since LiteBans doesn't have one for listing punishments.
+- **LiteBans**, for the website's Banned Players list — same deal, off
+  without it. This one is read directly from LiteBans' own database file
+  (see `litebans.database-path` in config.yml), not through a plugin API,
+  since LiteBans doesn't have one for listing punishments. Both storage
+  shapes LiteBans uses are auto-detected: H2 (a `*.mv.db` file, its current
+  default for a standalone server) and classic SQLite (a plain `*.db`
+  file, older installs).
 
 ## Building
 
@@ -37,10 +40,11 @@ first, then the same `./gradlew build` command works.
 
 The jar comes out at `build/libs/AngkorStore-1.0.0.jar` — that's the one to
 deploy; `./gradlew build` runs the Shadow plugin automatically, which bundles
-the SQLite JDBC driver `hooks.LiteBansHook` needs (the server doesn't provide
-one, unlike Vault/LuckPerms whose own plugins do) directly into that same
-jar, under a relocated package so it can't clash with any other plugin
-shading its own copy. There's no separate jar to remember to grab.
+the SQLite *and* H2 JDBC drivers `hooks.LiteBansHook` needs (the server
+doesn't provide either, unlike Vault/LuckPerms whose own plugins do)
+directly into that same jar, under relocated packages so neither can clash
+with LiteBans' own copies of the same drivers. There's no separate jar to
+remember to grab.
 
 Building needs real internet access to `repo.papermc.io`, `jitpack.io`, and
 `repo.lucko.me` to resolve `paper-api`/`VaultAPI`/`luckperms-api` — this
@@ -48,13 +52,17 @@ repo's own sandbox blocks those hosts, so the source was instead compiled
 clean against hand-written stubs of the exact Bukkit/Vault/LuckPerms/Gson
 methods it calls, which catches typos and structural mistakes but is not a
 substitute for a real build against the real jars. (`hooks.LiteBansHook`
-itself was verified further than that: compiled and run against the real
-`org.xerial:sqlite-jdbc` driver — which mavenCentral serves fine even in
-this sandbox — reading a real SQLite file shaped like LiteBans' own schema,
-which is how a JDBC URL bug in the read-only connection string was actually
-caught rather than just guessed at.) Run `./gradlew build` yourself before
-you trust the output, same as you would for any plugin you didn't build
-yourself.
+itself was verified further than that - both storage shapes, against real
+drivers, which mavenCentral serves fine even in this sandbox: compiled and
+run against `org.xerial:sqlite-jdbc` reading a real SQLite file, which is
+how a JDBC URL bug in the read-only connection string was caught rather
+than just guessed at; and against `com.h2database:h2` reading a real H2
+file *while a second, independent process held it open* - simulating
+LiteBans actually running - which is how a second bug was caught: a
+second H2 instance can't open a live `*.mv.db` file at all, even
+read-only, the way SQLite allows; the fix reads a filesystem copy of it
+instead.) Run `./gradlew build` yourself before you trust the output,
+same as you would for any plugin you didn't build yourself.
 
 Common snags:
 - `Permission denied` running `./gradlew` → `chmod +x gradlew` once.

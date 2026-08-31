@@ -54,13 +54,19 @@ ranks:
 
 litebans:
   enabled: true
-  # Path to LiteBans' own SQLite database file, relative to the server's
-  # root folder (the one "plugins/" lives in) - or an absolute path. This
-  # is read directly, read-only, once per website request; LiteBans has no
-  # runtime API for listing punishments, so reading its own database is the
-  # integration method LiteBans' own wiki recommends for external tools.
-  # Matches LiteBans' own config.yml storage.sqlite.filename setting.
-  database-path: "plugins/LiteBans/litebans.db"
+  # Path to LiteBans' own database file, relative to the server's root
+  # folder (the one "plugins/" lives in) - or an absolute path. This is
+  # read directly once per website request (LiteBans has no runtime API
+  # for listing punishments, so reading its own database is the
+  # integration method LiteBans' own wiki recommends for external tools).
+  #
+  # LiteBans' current default for a standalone (non-networked) server is
+  # H2, a "*.mv.db" file - that's what's set below. If your install is old
+  # enough to still be on plain SQLite instead (a "*.db" file, no "mv" in
+  # the name), this is auto-detected either way: point this at whichever
+  # one actually exists in your plugins/LiteBans/ folder, or just leave
+  # the default - both the .mv.db and the .db shape are checked for.
+  database-path: "plugins/LiteBans/litebans.mv.db"
   # LiteBans' own config.yml "table_prefix" setting.
   table-prefix: "litebans_"
   # Most recent active bans returned per website request, most recent first.
