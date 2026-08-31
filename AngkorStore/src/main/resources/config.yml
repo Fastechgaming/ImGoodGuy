@@ -37,17 +37,15 @@ coins:
 ranks:
   # Ascending order — lowest rank first. `group` is the LuckPerms group
   # AngkorStore adds/removes on a purchase or upgrade; `id` is what the
-  # website's store items use (rank-bee, rank-zombie, ...). Any group a
+  # website's store items use (rank-vip, rank-mvp, ...). Any group a
   # player holds that ISN'T in this list (default, staff, merchant,
   # monarch, ...) is completely ignored — never reported, never touched.
   ladder:
-    - { id: bee,    group: bee,    displayName: "Bee",    weight: 10, priceUsd: 3 }
-    - { id: zombie, group: zombie, displayName: "Zombie", weight: 20, priceUsd: 6 }
-    - { id: warden, group: warden, displayName: "Warden", weight: 30, priceUsd: 10 }
-    - { id: wither, group: wither, displayName: "Wither", weight: 40, priceUsd: 15 }
-    - { id: dragon, group: dragon, displayName: "Dragon", weight: 50, priceUsd: 20 }
-    - { id: titan,  group: titan,  displayName: "Titan",  weight: 60, priceUsd: 30 }
-    - { id: angkor, group: angkor, displayName: "Angkor", weight: 70, priceUsd: 50 }
+    - { id: vip,    group: vip,    displayName: "VIP",    weight: 10, priceUsd: 3 }
+    - { id: mvp,    group: mvp,    displayName: "MVP",    weight: 20, priceUsd: 6 }
+    - { id: pro,    group: pro,    displayName: "PRO",    weight: 30, priceUsd: 10 }
+    - { id: epic,   group: epic,   displayName: "EPIC",   weight: 40, priceUsd: 15 }
+    - { id: makong, group: makong, displayName: "MAKONG", weight: 50, priceUsd: 20 }
   # Used only when the LuckPerms API isn't available (LuckPerms absent).
   fallback-set-command: "lp user {player} parent add {group}"
   fallback-remove-command: "lp user {player} parent remove {group}"

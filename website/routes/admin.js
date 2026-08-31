@@ -70,11 +70,11 @@ router.post("/items", requireAuth, upload.single("imageFile"), (req, res, next) 
 
     // A rank item is matched to the Minecraft plugin's LuckPerms ladder (and
     // to the catalogue-derived fallback ladder when the plugin isn't
-    // connected) by exact id: `rank-<ladder id>`, e.g. rank-bee, rank-titan
+    // connected) by exact id: `rank-<ladder id>`, e.g. rank-vip, rank-pro
     // - see AngkorStore's config.yml `ranks.ladder`. So unlike every other
     // category, a rank's id can't carry a random nanoid suffix; it has to
-    // be `rank-<slug>` with a trailing "rank" word stripped (name "Titan
-    // Rank" -> id rank-titan), or Up Rank silently won't recognise it.
+    // be `rank-<slug>` with a trailing "rank" word stripped (name "PRO
+    // Rank" -> id rank-pro), or Up Rank silently won't recognise it.
     let id;
     if (category === "ranks") {
       const rankSlug = slug.replace(/-rank$/, "") || slug;

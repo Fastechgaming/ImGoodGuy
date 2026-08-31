@@ -1,88 +1,64 @@
 {
   "ranks": [
     {
-      "id": "rank-bee",
-      "name": "Bee Rank",
+      "id": "rank-vip",
+      "name": "VIP Rank",
       "price": 3,
       "currency": "USD",
-      "image": "/images/items/rank-bee.png",
+      "image": "/images/items/rank-vip.png",
       "shortDesc": "Description coming soon.",
-      "infoText": "Bee Rank\n\nPerks and kit contents will be listed here soon.",
+      "infoText": "VIP Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add bee"
+      "deliveryCommand": "lp user {player} parent add vip"
     },
     {
-      "id": "rank-zombie",
-      "name": "Zombie Rank",
+      "id": "rank-mvp",
+      "name": "MVP Rank",
       "price": 6,
       "currency": "USD",
-      "image": "/images/items/rank-zombie.png",
+      "image": "/images/items/rank-mvp.png",
       "shortDesc": "Description coming soon.",
-      "infoText": "Zombie Rank\n\nPerks and kit contents will be listed here soon.",
+      "infoText": "MVP Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add zombie"
+      "deliveryCommand": "lp user {player} parent add mvp"
     },
     {
-      "id": "rank-warden",
-      "name": "Warden Rank",
+      "id": "rank-pro",
+      "name": "PRO Rank",
       "price": 10,
       "currency": "USD",
-      "image": "/images/items/rank-warden.png",
+      "image": "/images/items/rank-pro.png",
       "shortDesc": "Description coming soon.",
-      "infoText": "Warden Rank\n\nPerks and kit contents will be listed here soon.",
+      "infoText": "PRO Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add warden"
+      "deliveryCommand": "lp user {player} parent add pro"
     },
     {
-      "id": "rank-wither",
-      "name": "Wither Rank",
+      "id": "rank-epic",
+      "name": "EPIC Rank",
       "price": 15,
       "currency": "USD",
-      "image": "/images/items/rank-wither.png",
+      "image": "/images/items/rank-epic.png",
       "shortDesc": "Description coming soon.",
-      "infoText": "Wither Rank\n\nPerks and kit contents will be listed here soon.",
+      "infoText": "EPIC Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add wither"
+      "deliveryCommand": "lp user {player} parent add epic"
     },
     {
-      "id": "rank-dragon",
-      "name": "Dragon Rank",
+      "id": "rank-makong",
+      "name": "MAKONG Rank",
       "price": 20,
       "currency": "USD",
-      "image": "/images/items/rank-dragon.png",
+      "image": "/images/items/rank-makong.png",
       "shortDesc": "Description coming soon.",
-      "infoText": "Dragon Rank\n\nPerks and kit contents will be listed here soon.",
+      "infoText": "MAKONG Rank\n\nPerks and kit contents will be listed here soon.",
       "videoUrl": "",
       "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add dragon"
-    },
-    {
-      "id": "rank-titan",
-      "name": "Titan Rank",
-      "price": 30,
-      "currency": "USD",
-      "image": "/images/items/rank-titan.png",
-      "shortDesc": "Description coming soon.",
-      "infoText": "Titan Rank\n\nPerks and kit contents will be listed here soon.",
-      "videoUrl": "",
-      "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add titan"
-    },
-    {
-      "id": "rank-angkor",
-      "name": "Angkor Rank",
-      "price": 50,
-      "currency": "USD",
-      "image": "/images/items/rank-angkor.png",
-      "shortDesc": "Description coming soon.",
-      "infoText": "Angkor Rank\n\nPerks and kit contents will be listed here soon.",
-      "videoUrl": "",
-      "category": "ranks",
-      "deliveryCommand": "lp user {player} parent add angkor"
+      "deliveryCommand": "lp user {player} parent add makong"
     }
   ],
   "coins": [
