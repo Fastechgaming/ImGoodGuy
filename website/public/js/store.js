@@ -179,7 +179,7 @@ function buttonState(item) {
 const armedUpgrade = new Map();
 
 // The ladder entry for the rank an item *is* (independent of what the
-// player holds) - e.g. rank-pro -> the "pro" ladder entry.
+// player holds) - e.g. rank-warden -> the "warden" ladder entry.
 function ladderEntryForItem(item) {
   return ladderEntry(item.id.replace(/^rank-/, ""));
 }
