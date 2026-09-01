@@ -27,9 +27,16 @@ public class PluginConfig {
     public final String fallbackRemoveCommand;
 
     public final boolean litebansEnabled;
+    public final String litebansStorageType;     // "file" (H2/SQLite, auto-detected) or "mysql"
     public final String litebansDatabasePath;
     public final String litebansTablePrefix;
     public final int litebansMaxResults;
+    public final String litebansMysqlHost;
+    public final int litebansMysqlPort;
+    public final String litebansMysqlDatabase;
+    public final String litebansMysqlUsername;
+    public final String litebansMysqlPassword;
+    public final boolean litebansMysqlUseSsl;
 
     public final boolean logTransactions;
     public final boolean debug;
@@ -65,9 +72,16 @@ public class PluginConfig {
         this.fallbackRemoveCommand = cfg.getString("ranks.fallback-remove-command", "lp user {player} parent remove {group}");
 
         this.litebansEnabled = cfg.getBoolean("litebans.enabled", true);
+        this.litebansStorageType = cfg.getString("litebans.storage-type", "file");
         this.litebansDatabasePath = cfg.getString("litebans.database-path", "plugins/LiteBans/litebans.db");
         this.litebansTablePrefix = cfg.getString("litebans.table-prefix", "litebans_");
         this.litebansMaxResults = cfg.getInt("litebans.max-results", 200);
+        this.litebansMysqlHost = cfg.getString("litebans.mysql.host", "localhost");
+        this.litebansMysqlPort = cfg.getInt("litebans.mysql.port", 3306);
+        this.litebansMysqlDatabase = cfg.getString("litebans.mysql.database", "litebans");
+        this.litebansMysqlUsername = cfg.getString("litebans.mysql.username", "litebans");
+        this.litebansMysqlPassword = cfg.getString("litebans.mysql.password", "");
+        this.litebansMysqlUseSsl = cfg.getBoolean("litebans.mysql.use-ssl", false);
 
         this.logTransactions = cfg.getBoolean("logging.transactions", true);
         this.debug = cfg.getBoolean("logging.debug", false);

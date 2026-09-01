@@ -18,12 +18,16 @@ single-secret auth instead of key+HMAC signing).
   and runs without either; the features they provide are just off, logged
   clearly at startup (`/angkorstore status` shows what's hooked).
 - **LiteBans**, for the website's Banned Players list — same deal, off
-  without it. This one is read directly from LiteBans' own database file
-  (see `litebans.database-path` in config.yml), not through a plugin API,
-  since LiteBans doesn't have one for listing punishments. Both storage
-  shapes LiteBans uses are auto-detected: H2 (a `*.mv.db` file, its current
-  default for a standalone server) and classic SQLite (a plain `*.db`
-  file, older installs).
+  without it. LiteBans has no plugin API for listing punishments, so this
+  reads its database directly, either its own local file (`litebans.
+  database-path` in config.yml — both storage shapes LiteBans uses this
+  way are auto-detected: H2, a `*.mv.db` file, its current default for a
+  standalone server; and classic SQLite, a plain `*.db` file, older
+  installs) or, if you set `litebans.storage-type: mysql`, a live network
+  connection straight to LiteBans' own MySQL/MariaDB database instead —
+  simpler and more reliable if LiteBans is already set up that way, since
+  it sidesteps the local-file locking/staleness/transfer concerns
+  entirely. See the `litebans.mysql.*` settings in config.yml.
 
 ## Building
 

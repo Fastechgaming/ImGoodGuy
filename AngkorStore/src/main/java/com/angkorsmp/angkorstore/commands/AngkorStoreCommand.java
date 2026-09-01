@@ -42,8 +42,10 @@ public final class AngkorStoreCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(status("Vault economy", plugin.vaultHook().available(),
                 plugin.vaultHook().available() ? plugin.vaultHook().providerName() : "no economy plugin registered"));
         sender.sendMessage(status("LuckPerms", plugin.luckPermsHook().available(), null));
-        sender.sendMessage(status("LiteBans", plugin.liteBansHook().available(),
-                plugin.liteBansHook().available() ? null : "database not found - see config.yml litebans.database-path"));
+        sender.sendMessage(status("LiteBans", plugin.liteBansHook().available(), plugin.liteBansHook().available() ? null
+                : ("mysql".equalsIgnoreCase(config.litebansStorageType)
+                        ? "could not connect - see config.yml litebans.mysql.*"
+                        : "database not found - see config.yml litebans.database-path")));
         sender.sendMessage(ChatColor.GRAY + "Pending deliveries queued: "
                 + ChatColor.WHITE + plugin.pendingDeliveries().size());
         sender.sendMessage(ChatColor.GRAY + "Rank ladder: " + ChatColor.WHITE

@@ -1,8 +1,9 @@
 plugins {
     id "java"
-    // Only needed for hooks.LiteBansHook's SQLite JDBC driver (see the
-    // dependency and shadowJar block below) - everything else here still
-    // relies on the server/soft-depended plugins to provide its classes.
+    // Only needed for hooks.LiteBansHook's SQLite/H2/MariaDB JDBC drivers
+    // (see the dependency and shadowJar block below) - everything else here
+    // still relies on the server/soft-depended plugins to provide its
+    // classes.
     id "com.gradleup.shadow" version "8.3.5"
 }
 
@@ -47,14 +48,29 @@ dependencies {
     // The one real exception to "never shaded": LiteBans has no runtime
     // Java API for listing punishments, so hooks.LiteBansHook reads its
     // database directly - and unlike LuckPerms/Vault's APIs, no installed
-    // plugin puts either of these drivers on this server's classpath.
-    // Both are shaded and relocated below so neither clashes with another
+    // plugin puts any of these drivers on this server's classpath. All
+    // three are shaded and relocated below so none can clash with another
     // plugin (LiteBans included) bundling its own copy of the same driver.
-    // Both are needed since LiteBans' storage format changed at some point
-    // (see hooks.LiteBansHook's own doc comment) - SQLite for an older
-    // install, H2 for LiteBans' current default.
+    // SQLite and H2 cover LiteBans' two local-file storage shapes (see
+    // hooks.LiteBansHook's own doc comment - SQLite for an older install, H2
+    // for LiteBans' current default); mariadb-java-client covers the third,
+    // optional shape - a LiteBans install pointed at a real MySQL/MariaDB
+    // server (litebans.storage-type: mysql) - and was picked over MySQL's
+    // own official connector because a plain `gradle dependencies` check
+    // showed the official one pulls in protobuf plus an optional native
+    // zstd library for X Protocol support, neither of which this needs or
+    // wants shaded in. mariadb-java-client isn't actually dependency-free
+    // either though: by default it drags in com.github.waffle:waffle-jna
+    // (Windows-only integrated/Kerberos auth) and its own tree - JNA,
+    // Caffeine, slf4j - none of which a plain username+password TCP
+    // connection to a Linux-hosted MySQL server needs, so that's excluded
+    // below (confirmed with the same `gradle dependencies` check: excluding
+    // it drops the runtime classpath to just the driver itself).
     implementation "org.xerial:sqlite-jdbc:3.46.1.3"
     implementation "com.h2database:h2:2.3.232"
+    implementation("org.mariadb.jdbc:mariadb-java-client:3.4.1") {
+        exclude group: "com.github.waffle", module: "waffle-jna"
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -89,6 +105,7 @@ tasks.named("shadowJar") {
     archiveClassifier = "all"
     relocate "org.sqlite", "com.angkorsmp.angkorstore.libs.sqlite"
     relocate "org.h2", "com.angkorsmp.angkorstore.libs.h2"
+    relocate "org.mariadb", "com.angkorsmp.angkorstore.libs.mariadb"
 }
 
 tasks.named("assemble") {

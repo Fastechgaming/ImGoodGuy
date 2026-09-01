@@ -23,31 +23,41 @@ import java.util.logging.Logger;
  * is the integration method LiteBans' own wiki recommends for external
  * tools like this.
  *
- * Two storage shapes are handled, auto-detected from what's actually on
- * disk: H2 (a "*.mv.db" file - LiteBans' current default for a standalone,
- * non-networked server) and classic SQLite (a plain "*.db" file - older
- * LiteBans installs, or a server that switched storage-mode by hand).
- * Point litebans.database-path at whichever one you have; this looks for
- * both shapes next to it.
+ * Three storage shapes are handled. If `litebans.storage-type` is set to
+ * "mysql" (matching LiteBans' own storage.type: MYSQL setting), this
+ * connects straight to that database over the network - the cleanest
+ * option where it's available: no local file, no locking, always live,
+ * and it's the same schema (verified against LiteBans' own external-tool
+ * ecosystem, e.g. the litebans-php project's queries - uuid/reason/
+ * banned_by_name/time/until/active are plain columns, uuid stored as an
+ * ordinary 36-character string, not raw bytes, on every backend LiteBans
+ * supports) so the exact same query in queryBans() below works unchanged.
  *
- * The two need genuinely different handling, not just a different JDBC
- * URL: SQLite is a lock-file-based format explicitly designed for a
- * second, independent library instance to open the same file read-only
- * while another instance (LiteBans itself) has it open for writing - so a
- * direct "?mode=ro" connection to the live file works. H2's embedded
- * engine is not - a second, independent H2 instance (this one; LiteBans
- * almost certainly shades its own separate copy of H2, exactly like this
- * plugin does) opening the same *.mv.db file while another instance has it
- * open throws "Database may be already in use", even in read-only mode -
- * confirmed against a real two-process test while writing this, including
- * that H2's own AUTO_SERVER escape hatch doesn't help here either (it
- * needs the *original* connection to have opened with AUTO_SERVER=TRUE,
- * which LiteBans doesn't). The reliable fix, and apparently the standard
- * one for reading a live embedded H2 database from a second process: copy
- * the file first, then open an ordinary connection against the copy - a
- * plain filesystem copy of it is safe to read even mid-write (also
- * confirmed against a real running instance), so the copy is always a
- * valid, just possibly slightly-stale, snapshot.
+ * Otherwise (the default, "file") this auto-detects from what's actually
+ * on disk: H2 (a "*.mv.db" file - LiteBans' current default for a
+ * standalone, non-networked server) and classic SQLite (a plain "*.db"
+ * file - older LiteBans installs, or a server that switched storage-mode
+ * by hand). Point litebans.database-path at whichever one you have; this
+ * looks for both shapes next to it.
+ *
+ * The two file shapes need genuinely different handling, not just a
+ * different JDBC URL: SQLite is a lock-file-based format explicitly
+ * designed for a second, independent library instance to open the same
+ * file read-only while another instance (LiteBans itself) has it open for
+ * writing - so a direct "?mode=ro" connection to the live file works. H2's
+ * embedded engine is not - a second, independent H2 instance (this one;
+ * LiteBans almost certainly shades its own separate copy of H2, exactly
+ * like this plugin does) opening the same *.mv.db file while another
+ * instance has it open throws "Database may be already in use", even in
+ * read-only mode - confirmed against a real two-process test while
+ * writing this, including that H2's own AUTO_SERVER escape hatch doesn't
+ * help here either (it needs the *original* connection to have opened
+ * with AUTO_SERVER=TRUE, which LiteBans doesn't). The reliable fix, and
+ * apparently the standard one for reading a live embedded H2 database from
+ * a second process: copy the file first, then open an ordinary connection
+ * against the copy - a plain filesystem copy of it is safe to read even
+ * mid-write (also confirmed against a real running instance), so the copy
+ * is always a valid, just possibly slightly-stale, snapshot.
  *
  * Runs on whatever thread calls it (the HTTP worker pool - see
  * http.ApiServer); neither path ever touches Bukkit, so unlike everything
@@ -62,7 +72,7 @@ public final class LiteBansHook {
         }
     }
 
-    private enum Kind { H2, SQLITE, NONE }
+    private enum Kind { H2, SQLITE, MYSQL, NONE }
 
     private final JavaPlugin plugin;
     private final Logger log;
@@ -71,6 +81,7 @@ public final class LiteBansHook {
     private final File sqliteFile;
     private volatile Boolean sqliteDriverAvailable;
     private volatile Boolean h2DriverAvailable;
+    private volatile Boolean mysqlDriverAvailable;
 
     public LiteBansHook(JavaPlugin plugin, PluginConfig config) {
         this.plugin = plugin;
@@ -105,6 +116,7 @@ public final class LiteBansHook {
 
     private Kind detect() {
         if (!config.litebansEnabled) return Kind.NONE;
+        if ("mysql".equalsIgnoreCase(config.litebansStorageType)) return Kind.MYSQL;
         if (h2File.exists()) return Kind.H2;
         if (sqliteFile.exists()) return Kind.SQLITE;
         return Kind.NONE;
@@ -114,6 +126,7 @@ public final class LiteBansHook {
         return switch (detect()) {
             case H2 -> ensureH2Driver();
             case SQLITE -> ensureSqliteDriver();
+            case MYSQL -> ensureMysqlDriver();
             case NONE -> false;
         };
     }
@@ -136,6 +149,15 @@ public final class LiteBansHook {
         }
     }
 
+    private boolean ensureMysqlDriver() {
+        if (mysqlDriverAvailable != null) return mysqlDriverAvailable;
+        synchronized (this) {
+            if (mysqlDriverAvailable != null) return mysqlDriverAvailable;
+            mysqlDriverAvailable = tryLoadDriver("org.mariadb.jdbc.Driver", "MySQL/MariaDB");
+            return mysqlDriverAvailable;
+        }
+    }
+
     private boolean tryLoadDriver(String className, String label) {
         try {
             Class.forName(className);
@@ -155,6 +177,7 @@ public final class LiteBansHook {
             return switch (kind) {
                 case SQLITE -> readSqlite(limit);
                 case H2 -> readH2(limit);
+                case MYSQL -> readMysql(limit);
                 case NONE -> List.of();
             };
         } catch (Exception e) {
@@ -211,7 +234,21 @@ public final class LiteBansHook {
         }
     }
 
-    /** Same query, same row shape - H2 and SQLite both understand this SQL. */
+    private List<BanEntry> readMysql(int limit) throws Exception {
+        if (!ensureMysqlDriver()) return List.of();
+        // No file-locking workaround needed here at all - this is a normal,
+        // live network connection to whatever database LiteBans itself is
+        // writing to, same as LiteBans' own connection pool. Always current,
+        // never a stale snapshot.
+        String sslMode = config.litebansMysqlUseSsl ? "TRUST" : "DISABLE";
+        String url = "jdbc:mariadb://" + config.litebansMysqlHost + ":" + config.litebansMysqlPort
+                + "/" + config.litebansMysqlDatabase + "?sslMode=" + sslMode + "&connectTimeout=5000";
+        try (Connection conn = DriverManager.getConnection(url, config.litebansMysqlUsername, config.litebansMysqlPassword)) {
+            return queryBans(conn, limit);
+        }
+    }
+
+    /** Same query, same row shape - H2, SQLite and MySQL all understand this SQL. */
     private List<BanEntry> queryBans(Connection conn, int limit) throws Exception {
         List<BanEntry> results = new ArrayList<>();
         String sql = "SELECT uuid, reason, banned_by_name, time, until FROM " + config.litebansTablePrefix

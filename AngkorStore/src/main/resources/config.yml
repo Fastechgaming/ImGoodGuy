@@ -54,23 +54,43 @@ ranks:
 
 litebans:
   enabled: true
-  # Path to LiteBans' own database file, relative to the server's root
-  # folder (the one "plugins/" lives in) - or an absolute path. This is
-  # read directly once per website request (LiteBans has no runtime API
-  # for listing punishments, so reading its own database is the
-  # integration method LiteBans' own wiki recommends for external tools).
+  # "file" (default) or "mysql" - must match how LiteBans itself is set up
+  # (LiteBans' own config.yml "storage.type" setting).
   #
+  # "file" reads LiteBans' own database file directly (LiteBans has no
+  # runtime API for listing punishments, so reading its own database is the
+  # integration method LiteBans' own wiki recommends for external tools).
   # LiteBans' current default for a standalone (non-networked) server is
-  # H2, a "*.mv.db" file - that's what's set below. If your install is old
-  # enough to still be on plain SQLite instead (a "*.db" file, no "mv" in
-  # the name), this is auto-detected either way: point this at whichever
-  # one actually exists in your plugins/LiteBans/ folder, or just leave
-  # the default - both the .mv.db and the .db shape are checked for.
+  # H2, a "*.mv.db" file - that's what database-path is set to below. If
+  # your install is old enough to still be on plain SQLite instead (a
+  # "*.db" file, no "mv" in the name), this is auto-detected either way:
+  # point database-path at whichever one actually exists in your
+  # plugins/LiteBans/ folder, or just leave the default - both the .mv.db
+  # and the .db shape are checked for.
+  #
+  # "mysql" connects straight to LiteBans' own MySQL/MariaDB database over
+  # the network instead - no local file involved at all, so nothing below
+  # about database-path applies; fill in the mysql section instead. This is
+  # the simpler, more reliable option if LiteBans is already using MySQL -
+  # a live connection with no locking/staleness/file-transfer concerns.
+  storage-type: "file"
   database-path: "plugins/LiteBans/litebans.mv.db"
-  # LiteBans' own config.yml "table_prefix" setting.
+  # LiteBans' own config.yml "table_prefix" setting. Applies to both
+  # storage-type settings above.
   table-prefix: "litebans_"
   # Most recent active bans returned per website request, most recent first.
+  # Applies to both storage-type settings above.
   max-results: 200
+  # Only used when storage-type is "mysql" above - same values as LiteBans'
+  # own config.yml "storage.mysql" section (this can safely point at the
+  # exact same database LiteBans itself uses; this only ever reads).
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "litebans"
+    username: "litebans"
+    password: ""
+    use-ssl: false
 
 logging:
   transactions: true     # plugins/AngkorStore/transactions.log
