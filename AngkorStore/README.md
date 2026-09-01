@@ -38,13 +38,19 @@ matching Gradle the first time you run it — you do **not** need Gradle
 installed separately, only a JDK (21). On Termux: `pkg install openjdk-21`
 first, then the same `./gradlew build` command works.
 
-The jar comes out at `build/libs/AngkorStore-1.0.0.jar` — that's the one to
-deploy; `./gradlew build` runs the Shadow plugin automatically, which bundles
-the SQLite *and* H2 JDBC drivers `hooks.LiteBansHook` needs (the server
-doesn't provide either, unlike Vault/LuckPerms whose own plugins do)
-directly into that same jar, under relocated packages so neither can clash
-with LiteBans' own copies of the same drivers. There's no separate jar to
-remember to grab.
+`./gradlew build` produces **two** jars in `build/libs/` — deploy
+**`AngkorStore-1.0.0-all.jar`** (the `-all` one). It bundles the SQLite
+*and* H2 JDBC drivers `hooks.LiteBansHook` needs (the server doesn't
+provide either, unlike Vault/LuckPerms whose own plugins do), under
+relocated packages so neither can clash with LiteBans' own copies of the
+same drivers. The other one, plain `AngkorStore-1.0.0.jar`, is Gradle's
+default `jar` task output with nothing shaded in — LiteBans support silently
+won't work if you deploy that one instead, with no error anywhere to warn
+you (this exact mixup is why it looked broken for a while: `com.gradleup.shadow`
+doesn't wire `shadowJar` into `build`/`assemble` on its own, so plain
+`./gradlew build` used to produce *only* the unshaded jar; `build.gradle`
+now forces `shadowJar` to run too and gives it its own filename so there's
+no ambiguity about which one to grab).
 
 Building needs real internet access to `repo.papermc.io`, `jitpack.io`, and
 `repo.lucko.me` to resolve `paper-api`/`VaultAPI`/`luckperms-api` — this

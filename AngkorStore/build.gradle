@@ -73,16 +73,24 @@ tasks.named("jar") {
     archiveVersion = project.version
 }
 
-// The Shadow plugin wires shadowJar into the normal "build"/"assemble"
-// lifecycle automatically, so plain `./gradlew build` keeps working exactly
-// as before - it now just also produces this shaded jar, at the same
-// build/libs/AngkorStore-1.0.0.jar path (empty classifier below overwrites
-// the plain jar output there), so there's only ever one jar to deploy and
-// no risk of accidentally shipping the one missing the SQLite driver.
+// com.gradleup.shadow does NOT wire shadowJar into "build"/"assemble" on its
+// own (verified empirically: `gradle build --dry-run` never lists :shadowJar
+// unless this is added) - so without the dependsOn below, plain
+// `./gradlew build` silently produces only the unshaded jar, missing the
+// SQLite/H2 driver hooks.LiteBansHook needs, with no error or warning
+// anywhere. This also gives shadowJar its own filename rather than sharing
+// the plain jar task's: they don't depend on each other, so two tasks
+// racing to write the same path is its own separate way to end up with the
+// unshaded jar depending on which one happened to finish last (also
+// verified empirically - reproduces on every run, not just occasionally).
 tasks.named("shadowJar") {
     archiveBaseName = "AngkorStore"
     archiveVersion = project.version
-    archiveClassifier = ""
+    archiveClassifier = "all"
     relocate "org.sqlite", "com.angkorsmp.angkorstore.libs.sqlite"
     relocate "org.h2", "com.angkorsmp.angkorstore.libs.h2"
+}
+
+tasks.named("assemble") {
+    dependsOn tasks.named("shadowJar")
 }
