@@ -53,7 +53,23 @@ dependencies {
     // plugin (LiteBans included) bundling its own copy of the same driver.
     // SQLite and H2 cover LiteBans' two local-file storage shapes (see
     // hooks.LiteBansHook's own doc comment - SQLite for an older install, H2
-    // for LiteBans' current default); mariadb-java-client covers the third,
+    // for LiteBans' current default).
+    //
+    // The H2 version pin below (1.4.200, NOT a current 2.x release) is
+    // deliberate and load-bearing, not an oversight: LiteBans itself still
+    // ships H2 1.4.x internally (confirmed against a real LiteBans *.mv.db
+    // file - its MVStore header reports "format:1", which only H2's 1.4.x
+    // line ever wrote; every 2.x release bumped that to format 2 or 3, and
+    // a 2.x driver flatly refuses to open a format:1 file at all - "Message
+    // 90048 not found", H2's own unsupported-file-version error, verified
+    // by reproducing it against the same real file with 2.3.232). 1.4.200
+    // was picked as the last H2 1.4.x release, on the theory it's the most
+    // broadly read-compatible one for whatever earlier 1.4.x sub-version
+    // LiteBans itself is actually running - confirmed empirically reading
+    // a database file created by 1.4.197. Do NOT bump this to a 2.x
+    // release without re-verifying against a real LiteBans database file.
+    //
+    // mariadb-java-client covers the third,
     // optional shape - a LiteBans install pointed at a real MySQL/MariaDB
     // server (litebans.storage-type: mysql) - and was picked over MySQL's
     // own official connector because a plain `gradle dependencies` check
@@ -67,7 +83,7 @@ dependencies {
     // below (confirmed with the same `gradle dependencies` check: excluding
     // it drops the runtime classpath to just the driver itself).
     implementation "org.xerial:sqlite-jdbc:3.46.1.3"
-    implementation "com.h2database:h2:2.3.232"
+    implementation "com.h2database:h2:1.4.200"
     implementation("org.mariadb.jdbc:mariadb-java-client:3.4.1") {
         exclude group: "com.github.waffle", module: "waffle-jna"
     }

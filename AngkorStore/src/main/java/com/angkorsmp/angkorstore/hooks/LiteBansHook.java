@@ -225,7 +225,15 @@ public final class LiteBansHook {
             String base = snapshot.getAbsolutePath().replace('\\', '/');
             base = base.substring(0, base.length() - ".mv.db".length());
             String url = "jdbc:h2:file:" + base + ";ACCESS_MODE_DATA=r;IFEXISTS=TRUE";
-            try (Connection conn = DriverManager.getConnection(url, "sa", "")) {
+            // Empty username, NOT "sa" - LiteBans' own config.yml ships
+            // storage username/password as empty strings for its H2 setup,
+            // and whatever credentials the FIRST connection to a fresh H2
+            // database uses become that database's actual admin account
+            // (H2 doesn't treat "sa" as reserved/automatic) - so LiteBans'
+            // own database ends up with an empty-string user, not "sa".
+            // Confirmed against a real LiteBans *.mv.db file: "sa" fails
+            // with H2's generic "wrong user name or password", "" succeeds.
+            try (Connection conn = DriverManager.getConnection(url, "", "")) {
                 return queryBans(conn, limit);
             }
         } finally {
