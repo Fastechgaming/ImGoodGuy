@@ -125,6 +125,18 @@
   ],
   "other": [
     {
+      "id": "other-unban",
+      "name": "Unban Account",
+      "price": 5,
+      "currency": "USD",
+      "image": "/images/items/placeholder-other.svg",
+      "shortDesc": "Lift an active ban so you can rejoin right away.",
+      "infoText": "Unban Account\n\nRemoves an active ban from your account so you can rejoin the server immediately after payment is confirmed.",
+      "videoUrl": "",
+      "category": "other",
+      "deliveryCommand": "unban {player}"
+    },
+    {
       "id": "other-slot-1",
       "name": "Coming Soon",
       "price": 0,
