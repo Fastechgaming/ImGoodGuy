@@ -259,8 +259,14 @@ public final class LiteBansHook {
     /** Same query, same row shape - H2, SQLite and MySQL all understand this SQL. */
     private List<BanEntry> queryBans(Connection conn, int limit) throws Exception {
         List<BanEntry> results = new ArrayList<>();
+        // "No expiry" (permanent()'s own until <= 0 convention) needs to be
+        // matched the same way here - confirmed against a real LiteBans
+        // database that permanent bans are actually stored as until = 0,
+        // not -1: a version of this query that only special-cased -1
+        // silently excluded every permanent ban and only ever showed
+        // temporary ones, with no error to hint why the counts were low.
         String sql = "SELECT uuid, reason, banned_by_name, time, until FROM " + config.litebansTablePrefix
-                + "bans WHERE active = 1 AND (until = -1 OR until > ?) ORDER BY time DESC LIMIT ?";
+                + "bans WHERE active = 1 AND (until <= 0 OR until > ?) ORDER BY time DESC LIMIT ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, System.currentTimeMillis());
             stmt.setInt(2, Math.max(1, limit));
