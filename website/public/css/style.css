@@ -1688,6 +1688,20 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
 .board-empty { color: var(--ink-soft); font-size: 0.88rem; text-align: center; padding: 0.6rem; }
 
 /* Banned Players table */
+.banned-search-wrap { display: flex; justify-content: center; margin: 0.4rem 0 0.8rem; }
+.banned-search {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 3px solid var(--stone-darkest);
+  background: var(--input-bg);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-family: "Baloo 2", sans-serif;
+  text-align: center;
+}
+.banned-search::placeholder { color: var(--ink-soft); }
 .banned-table td.ban-reason { color: var(--ink-soft); }
 .ban-permanent {
   display: inline-block;

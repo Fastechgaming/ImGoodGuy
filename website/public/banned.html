@@ -72,6 +72,10 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
           <span data-i18n="banned.unavailable">⚠️ The banned players list is unavailable right now. Contact support for more info.</span>
         </div>
 
+        <div class="banned-search-wrap">
+          <input type="text" id="banned-search" class="banned-search" data-i18n-placeholder="banned.searchPlaceholder" placeholder="Search player…" autocomplete="off" />
+        </div>
+
         <div class="board-table-wrap">
           <table class="board-table banned-table">
             <thead>

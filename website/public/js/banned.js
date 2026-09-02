@@ -5,6 +5,7 @@
 (async function loadBanned() {
   const banner = document.getElementById("banned-unavailable");
   const body = document.getElementById("banned-body");
+  const searchInput = document.getElementById("banned-search");
 
   let data;
   try {
@@ -12,17 +13,26 @@
   } catch {
     data = { available: false, bans: [] };
   }
+  const allBans = data.bans || [];
 
   if (!data.available) {
     banner.hidden = false;
   }
-  render(data.bans || []);
+  renderFiltered();
 
-  document.addEventListener("i18n:change", () => render(data.bans || []));
+  searchInput.addEventListener("input", renderFiltered);
+  document.addEventListener("i18n:change", renderFiltered);
 
-  function render(bans) {
+  function renderFiltered() {
+    const query = searchInput.value.trim().toLowerCase();
+    const bans = query ? allBans.filter((ban) => ban.player.toLowerCase().includes(query)) : allBans;
+    render(bans, query);
+  }
+
+  function render(bans, query) {
     if (!bans.length) {
-      body.innerHTML = `<tr><td colspan="5" class="board-empty">${escapeHtml(t("banned.empty"))}</td></tr>`;
+      const message = query ? t("banned.noMatch") : t("banned.empty");
+      body.innerHTML = `<tr><td colspan="5" class="board-empty">${escapeHtml(message)}</td></tr>`;
       return;
     }
     const locale = I18n.lang === "km" ? "km-KH" : "en-US";
