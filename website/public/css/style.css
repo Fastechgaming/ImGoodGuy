@@ -1702,6 +1702,23 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
   text-align: center;
 }
 .banned-search::placeholder { color: var(--ink-soft); }
+.banned-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 0.8rem; }
+.pagination-arrow {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 3px solid var(--stone-darkest);
+  background: linear-gradient(180deg, var(--gold-light), var(--gold));
+  color: var(--brown-darkest);
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pagination-arrow:disabled { opacity: 0.4; cursor: not-allowed; background: var(--input-bg); color: var(--ink-soft); }
+.pagination-label { font-weight: 800; color: var(--ink); min-width: 3.5rem; text-align: center; }
 .banned-table td.ban-reason { color: var(--ink-soft); }
 .ban-permanent {
   display: inline-block;

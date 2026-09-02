@@ -90,6 +90,12 @@ try { if (localStorage.getItem("angkorsmp-theme") === "light") document.document
             <tbody id="banned-body"></tbody>
           </table>
         </div>
+
+        <div class="banned-pagination" id="banned-pagination" hidden>
+          <button type="button" id="banned-prev" class="pagination-arrow" aria-label="Previous page">&laquo;</button>
+          <span id="banned-page-label" class="pagination-label"></span>
+          <button type="button" id="banned-next" class="pagination-arrow" aria-label="Next page">&raquo;</button>
+        </div>
       </div>
     </section>
   </main>
