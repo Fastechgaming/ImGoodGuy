@@ -433,7 +433,7 @@ const Arcade = (() => {
             ctx.fillRect(i * 16, finishScreenY - 12, 16, 12);
           }
           ctx.fillStyle = "#ffd873";
-          ctx.font = "bold 16px 'Baloo 2', sans-serif";
+          ctx.font = "bold 16px 'Minecraft', sans-serif";
           ctx.textAlign = "center";
           ctx.fillText("🏆 FINISH", w / 2, finishScreenY - 20);
         }
@@ -458,7 +458,7 @@ const Arcade = (() => {
           ctx.lineWidth = 2;
           ctx.strokeRect(p.x, y, p.w, thickness);
           if (p.checkpoint) {
-            ctx.font = "bold 13px 'Baloo 2', sans-serif";
+            ctx.font = "bold 13px 'Minecraft', sans-serif";
             ctx.textAlign = "center";
             ctx.fillText("🏃", p.x + p.w / 2, y - 4);
           }
@@ -546,7 +546,7 @@ const Arcade = (() => {
         ctx.translate(RAIL_W - 6, h / 2);
         ctx.rotate(-Math.PI / 2);
         ctx.fillStyle = "rgba(255,255,255,0.75)";
-        ctx.font = "bold 10px 'Baloo 2', sans-serif";
+        ctx.font = "bold 10px 'Minecraft', sans-serif";
         ctx.textAlign = "center";
         ctx.fillText(`${Math.round(best / GAP)}m / ${PLATFORMS}m`, 0, 0);
         ctx.restore();

@@ -1,7 +1,17 @@
 /* ===== AngkorSMP — cartoony Angkor Wat / jungle Minecraft theme ===== */
-@import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Press+Start+2P&family=Noto+Sans:wght@400;600;700&family=Kantumruy+Pro:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans:wght@400;600;700&family=Kantumruy+Pro:wght@400;600;700&display=swap");
 /* Kantumruy Pro carries the Khmer glyphs - it sits in every font stack after
-   the Latin faces so the site reads properly with the language set to ខ្មែរ. */
+   the Latin faces so the site reads properly with the language set to ខ្មែរ.
+   "Minecraft" (the game's own in-game font) is self-hosted, not a Google
+   Font - it has no Khmer glyphs at all, so every stack below still lists
+   Kantumruy Pro right after it: the browser falls back per-character, so
+   English renders in Minecraft's font and Khmer still renders correctly. */
+@font-face {
+  font-family: "Minecraft";
+  src: url("/fonts/Minecraft.ttf") format("truetype");
+  font-weight: 400 800;
+  font-display: swap;
+}
 
 /* ---------------------------------------------------------------
    Theming. DARK is the default (plain :root); light is opt-in via
@@ -117,14 +127,14 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  font-family: "Noto Sans", "Kantumruy Pro", system-ui, sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", "Noto Sans", system-ui, sans-serif;
   background: var(--cream);
   color: var(--ink);
   line-height: 1.5;
 }
 
 h1, h2, h3, .brand {
-  font-family: "Baloo 2", "Kantumruy Pro", "Noto Sans", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", "Noto Sans", sans-serif;
   color: var(--brown-dark);
   letter-spacing: 0.01em;
   font-weight: 800;
@@ -232,7 +242,7 @@ button { font-family: inherit; }
   padding: 0;
   border-radius: 10px;
   cursor: pointer;
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-weight: 800;
   font-size: 0.95rem;
   color: var(--on-dark);
@@ -277,7 +287,7 @@ button { font-family: inherit; }
   align-items: center;
   color: var(--on-dark);
   font-weight: 700;
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-size: 0.95rem;
   border-radius: 10px;
   background: linear-gradient(180deg, #7d5936, #5c3f22);
@@ -486,7 +496,7 @@ button { font-family: inherit; }
   border: 3px solid var(--stone-darkest);
   cursor: pointer;
   font-weight: 800;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   text-decoration: none;
   color: #fff3e0;
   text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
@@ -601,7 +611,7 @@ button { font-family: inherit; }
 .section h2.no-rule::after { display: none; }
 .section-subtitle {
   text-align: center;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
   letter-spacing: 0.32em;
@@ -654,10 +664,10 @@ button { font-family: inherit; }
   transform: scaleY(-1);
   pointer-events: none;
 }
-.info-card .value { font-family: "Baloo 2", serif; font-weight: 800; font-size: 1.6rem; color: var(--terracotta); }
+.info-card .value { font-family: "Minecraft", serif; font-weight: 800; font-size: 1.6rem; color: var(--terracotta); }
 .info-card .label { color: var(--ink-soft); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
 .info-card.stacked .stat-divider { height: 2px; background: rgba(0, 0, 0, 0.22); border-radius: 2px; margin: 0.9rem 0; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); }
-.info-card.stacked .sub-value { font-family: "Baloo 2", serif; font-weight: 700; font-size: 1.2rem; color: var(--moss-dark); }
+.info-card.stacked .sub-value { font-family: "Minecraft", serif; font-weight: 700; font-size: 1.2rem; color: var(--moss-dark); }
 .info-card.stacked .sub-label { color: var(--ink-soft); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
 
 .welcome-box {
@@ -713,7 +723,7 @@ button { font-family: inherit; }
   border: 2px solid var(--stone-darkest);
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5), inset 0 -2px 0 rgba(0, 0, 0, 0.15), 0 2px 0 var(--stone-dark);
 }
-.feature-card .feature-title { font-family: "Baloo 2", sans-serif; font-weight: 800; color: var(--brown-dark); font-size: 1.02rem; margin-bottom: 0.2rem; }
+.feature-card .feature-title { font-family: "Minecraft", sans-serif; font-weight: 800; color: var(--brown-dark); font-size: 1.02rem; margin-bottom: 0.2rem; }
 .feature-card .feature-desc { color: var(--ink-soft); font-size: 0.85rem; font-weight: 600; }
 a.feature-card.linked { border-color: var(--moss); }
 a.feature-card.linked .feature-title { color: var(--link-accent); }
@@ -743,7 +753,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   padding: 0.6rem 1.4rem;
   border-radius: 999px;
   font-weight: 800;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   cursor: pointer;
   color: var(--ink-soft);
   box-shadow: var(--stone-bevel), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
@@ -810,7 +820,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .item-card .item-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
 .item-card h3 { margin: 0; font-size: 1.1rem; color: var(--brown-dark); }
 .item-card p { margin: 0; color: var(--ink-soft); font-size: 0.88rem; flex: 1; }
-.item-card .price { font-family: "Baloo 2", sans-serif; color: var(--terracotta); font-size: 1.25rem; font-weight: 800; }
+.item-card .price { font-family: "Minecraft", sans-serif; color: var(--terracotta); font-size: 1.25rem; font-weight: 800; }
 .item-card .item-actions { display: flex; gap: 0.5rem; align-items: center; }
 
 /* Price display once an Up Rank trade-in is armed: "$20.00 → $5.00" plus a
@@ -820,7 +830,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
 }
 .upgrade-price .price-was {
@@ -847,7 +857,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   padding: 0.6rem;
   border-radius: 10px;
   font-weight: 800;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.4), 0 4px 0 var(--stone-darkest), 0 7px 12px rgba(42, 22, 8, 0.22);
@@ -954,7 +964,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   background: linear-gradient(180deg, var(--gold-light), var(--gold));
   color: var(--brown-darkest);
   font-weight: 800;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   cursor: pointer;
   font-size: 1.05rem;
   box-shadow: var(--press-shadow);
@@ -972,7 +982,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   border-radius: 10px;
   padding: 0.5rem 0.9rem;
   font-weight: 800;
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-size: 0.85rem;
   cursor: pointer;
   box-shadow: 0 3px 0 var(--stone-darkest);
@@ -1007,7 +1017,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
 .map-wrap .section-subtitle { margin-bottom: 0.9rem; }
 .map-age {
   text-align: center;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   color: var(--terracotta);
   font-size: 1.1rem;
@@ -1091,7 +1101,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   font-weight: 600;
 }
 .checkout-rows strong { color: var(--ink); }
-.checkout-rows .price { color: var(--terracotta); font-family: "Baloo 2", sans-serif; font-size: 1.1rem; }
+.checkout-rows .price { color: var(--terracotta); font-family: "Minecraft", sans-serif; font-size: 1.1rem; }
 
 .checkout-step { padding: 1.25rem 0 0; }
 .checkout-step h3 { margin: 0 0 0.3rem; font-size: 1.1rem; }
@@ -1178,7 +1188,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   padding-top: 1rem;
   border-top: 2px dashed var(--stone-dark);
 }
-.info-buy-row .price { font-family: "Baloo 2", sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--terracotta); }
+.info-buy-row .price { font-family: "Minecraft", sans-serif; font-size: 1.4rem; font-weight: 800; color: var(--terracotta); }
 .info-buy-row .item-actions { flex: 1; min-width: 180px; }
 
 @media (max-width: 560px) {
@@ -1215,7 +1225,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   padding: 0.7rem 1.5rem;
   border-radius: 12px;
   text-decoration: none;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   color: var(--ink);
   background: var(--stone-surface);
@@ -1260,7 +1270,7 @@ a.feature-card.linked .feature-title { color: var(--link-accent); }
   box-shadow: inset 0 2px 0 rgba(255,255,255,0.4), inset 0 -2px 0 rgba(0,0,0,0.15);
 }
 .player-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; color: var(--ink-soft); }
-.player-name { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--brown-dark); }
+.player-name { font-family: "Minecraft", sans-serif; font-weight: 800; font-size: 1.25rem; color: var(--brown-dark); }
 
 .games-stats { margin-bottom: 1.1rem; max-width: none; }
 .games-stats .info-card .value { color: var(--gold); }
@@ -1327,9 +1337,9 @@ body.game-open { overflow: hidden; }
 .game-go-btn { max-width: 260px; margin: 0 auto; }
 .result-score { display: flex; flex-direction: column; gap: 0.1rem; margin: 0.6rem 0 0.3rem; }
 .result-score-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--ink-soft); }
-.result-score-value { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 2.2rem; color: var(--brown-dark); }
+.result-score-value { font-family: "Minecraft", sans-serif; font-weight: 800; font-size: 2.2rem; color: var(--brown-dark); }
 .coins-won {
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   font-size: 2rem;
   color: var(--gold);
@@ -1357,7 +1367,7 @@ body.game-open { overflow: hidden; }
 }
 .hud-cell { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
 .hud-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--ink-soft); }
-.hud-value { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 1.15rem; color: var(--brown-dark); }
+.hud-value { font-family: "Minecraft", sans-serif; font-weight: 800; font-size: 1.15rem; color: var(--brown-dark); }
 .game-hint { text-align: center; font-size: 0.78rem; color: var(--ink-soft); font-weight: 600; margin: 0.6rem 0 0; }
 
 .game-stage {
@@ -1386,7 +1396,7 @@ body.game-open { overflow: hidden; }
 .float-text {
   position: absolute;
   transform: translate(-50%, -50%);
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   font-size: 1.15rem;
   pointer-events: none;
@@ -1412,7 +1422,7 @@ body.game-open { overflow: hidden; }
 }
 .bb-target-label { font-size: 0.72rem; letter-spacing: 0.14em; font-weight: 800; color: var(--ink-soft); }
 .bb-target-block {
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-weight: 800;
   font-size: 1.25rem;
   color: var(--bb, var(--gold));
@@ -1537,7 +1547,7 @@ body.game-open { overflow: hidden; }
 /* ---------- Build It! ---------- */
 .build-banner {
   text-align: center;
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-weight: 800;
   font-size: 1.05rem;
   margin-bottom: 0.6rem;
@@ -1669,9 +1679,9 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
   font-size: 0.9rem;
 }
 .board-row.is-you { border-color: var(--gold); box-shadow: 0 0 10px rgba(255, 205, 90, 0.45); }
-.board-rank { font-family: "Baloo 2", "Kantumruy Pro", sans-serif; font-size: 1.05rem; text-align: center; color: var(--ink-soft); }
+.board-rank { font-family: "Minecraft", "Kantumruy Pro", sans-serif; font-size: 1.05rem; text-align: center; color: var(--ink-soft); }
 .board-name { color: var(--ink); overflow-wrap: anywhere; }
-.board-points { font-family: "Baloo 2", "Kantumruy Pro", sans-serif; font-weight: 800; color: var(--gold-deep); }
+.board-points { font-family: "Minecraft", "Kantumruy Pro", sans-serif; font-weight: 800; color: var(--gold-deep); }
 .board-you {
   display: inline-block;
   margin-left: 0.35rem;
@@ -1696,7 +1706,7 @@ html[lang="km"] .checkout-hint { line-height: 1.7; }
   background: var(--input-bg);
   color: var(--ink);
   font-size: 0.92rem;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   text-align: center;
 }
 .banned-search::placeholder { color: var(--ink-soft); }
@@ -1824,7 +1834,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 }
 .countdown-screen { padding: 2rem 0 1rem; }
 .countdown-number {
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-weight: 800;
   font-size: 4.5rem;
   line-height: 1;
@@ -1936,7 +1946,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .up-rank-label {
   font-size: 0.56rem;
   font-weight: 800;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   line-height: 1.1;
   text-align: center;
   max-width: 100%;
@@ -1982,7 +1992,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
   padding: 0.5rem;
   color: var(--on-dark);
   font-weight: 700;
-  font-family: "Baloo 2", "Kantumruy Pro", sans-serif;
+  font-family: "Minecraft", "Kantumruy Pro", sans-serif;
   font-size: 0.85rem;
   border-radius: 10px;
   background: linear-gradient(180deg, #7d5936, #5c3f22);
@@ -2033,7 +2043,7 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .confirm-rows strong { color: var(--ink); text-align: right; }
 .confirm-price {
   text-align: center;
-  font-family: "Baloo 2", sans-serif;
+  font-family: "Minecraft", sans-serif;
   font-size: 1.7rem;
   font-weight: 800;
   color: var(--terracotta);
