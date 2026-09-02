@@ -1441,13 +1441,11 @@ body.game-open { overflow: hidden; }
 .bb-cell.miss { animation: bb-shake 0.26s; border-color: #ff4d3d; }
 @keyframes bb-shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 .bb-emoji { font-size: 1.5rem; line-height: 1; }
-.bb-name { font-size: 0.6rem; font-weight: 700; color: var(--ink); text-align: center; line-height: 1.1; }
 
 @media (max-width: 560px) {
   .game-panel-body { padding: 0.7rem; }
   .game-stage { height: min(52vh, 340px); }
   .hud-value { font-size: 1rem; }
-  .bb-name { font-size: 0.55rem; }
   .result-score-value { font-size: 1.8rem; }
 }
 

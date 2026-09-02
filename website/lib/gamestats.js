@@ -179,6 +179,28 @@ function coinsForRound(gameId, points) {
   return Math.max(1, Math.min(MAX_COINS_PER_PLAY, scaled));
 }
 
+// Block Breaker only: coins scale with blocks broken, piecewise-linear
+// between the exact points a level is cleared (10/20/30/40 blocks, out of
+// PER_LEVEL=10 across the 4 LEVELS in public/js/arcade.js) rather than the
+// single points-wide formula every other game uses above - so a round that
+// only gets through level 1 pays 1-10 coins, level 2 pays 10-25, level 3
+// pays 25-40, and clearing level 4 (all 40 blocks) pays the full 75.
+const BREAKER_BLOCK_BREAKPOINTS = [0, 10, 20, 30, 40];
+const BREAKER_COIN_BREAKPOINTS = [0, 10, 25, 40, MAX_COINS_PER_PLAY];
+function coinsForBreaker(blocksBroken) {
+  const blocks = Math.max(0, Math.min(40, Math.floor(Number(blocksBroken) || 0)));
+  for (let i = 1; i < BREAKER_BLOCK_BREAKPOINTS.length; i++) {
+    if (blocks > BREAKER_BLOCK_BREAKPOINTS[i]) continue;
+    const loBlocks = BREAKER_BLOCK_BREAKPOINTS[i - 1];
+    const hiBlocks = BREAKER_BLOCK_BREAKPOINTS[i];
+    const loCoins = BREAKER_COIN_BREAKPOINTS[i - 1];
+    const hiCoins = BREAKER_COIN_BREAKPOINTS[i];
+    const frac = (blocks - loBlocks) / (hiBlocks - loBlocks);
+    return Math.round(loCoins + frac * (hiCoins - loCoins));
+  }
+  return MAX_COINS_PER_PLAY;
+}
+
 /* ------------------------- points leaderboard ------------------------- */
 //
 // Lifetime points per player, kept separately from the daily ledger so it
@@ -255,6 +277,7 @@ module.exports = {
   recordPlay,
   award,
   coinsForRound,
+  coinsForBreaker,
   addPoints,
   getLeaderboard,
 };

@@ -481,7 +481,7 @@ async function showResult(game, result) {
       payout = await fetchJSON("/api/games/round/finish", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ roundId: activeRoundId, points }),
+        body: JSON.stringify({ roundId: activeRoundId, points, blocksBroken: result.blocksBroken }),
       });
       daily = payout.daily;
       // Coins that reached the game itself bump the headline balance too,

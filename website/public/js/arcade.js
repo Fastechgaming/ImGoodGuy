@@ -691,8 +691,7 @@ const Arcade = (() => {
             const cell = el(
               "button",
               "bb-cell",
-              `<img class="bb-tex" src="/images/blocks/${block.tex}.png" alt="" draggable="false" />
-               <span class="bb-name">${T(block.key)}</span>`
+              `<img class="bb-tex" src="/images/blocks/${block.tex}.png" alt="" draggable="false" />`
             );
             cell.type = "button";
             cell.style.setProperty("--bb", block.colour);
@@ -774,6 +773,7 @@ const Arcade = (() => {
         stop();
         onFinish({
           points,
+          blocksBroken: correct, // drives the coin payout server-side - see lib/gamestats.js coinsForBreaker
           detail: [
             ["result.levelsCleared", allDone ? `${LEVELS.length}/${LEVELS.length}` : `${level}/${LEVELS.length}`],
             ["result.blocksBroken", correct],

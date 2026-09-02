@@ -91,7 +91,16 @@ router.post("/round/finish", async (req, res) => {
   // Plausibility: cap the paid points at what the clock says was reachable.
   // The +10 grace covers the first couple of quick hits in a very short round.
   const countedPoints = Math.min(points, Math.floor(cfg.maxPointsPerSecond * elapsedSec) + 10);
-  const roundCoins = gamestats.coinsForRound(round.gameId, countedPoints);
+
+  // Block Breaker pays by level reached instead of the generic points curve
+  // every other game uses - see gamestats.coinsForBreaker's own comment.
+  // 40 is a hard ceiling regardless of elapsedSec: that's the total blocks
+  // across all 4 levels (public/js/arcade.js), so no per-second plausibility
+  // clamp is needed the way points/coins get one above.
+  const roundCoins =
+    round.gameId === "block-breaker"
+      ? gamestats.coinsForBreaker(body.blocksBroken)
+      : gamestats.coinsForRound(round.gameId, countedPoints);
   gamestats.addPoints(round.player, countedPoints, now); // points always count - they're a website stat, not real coins
 
   // What the day's 500-coin allowance would still allow, without committing
