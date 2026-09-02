@@ -140,6 +140,18 @@ h1, h2, h3, .brand {
   font-weight: 800;
 }
 
+/* The Minecraft font's letters sit close enough together that at desktop
+   sizes (bigger type, more of it on screen at once) it reads as cramped -
+   not an issue on mobile's smaller type. English only: letter-spacing
+   pulls Khmer's clustered vowels/diacritics apart from their base
+   consonant, so this must never apply under html[lang="km"] (see the
+   longer explanation near .section-subtitle below, where the same
+   concern already applies to a couple of specific labels). */
+@media (min-width: 761px) {
+  html[lang="en"] body { letter-spacing: 0.1em; }
+  html[lang="en"] h1, html[lang="en"] h2, html[lang="en"] h3, html[lang="en"] .brand { letter-spacing: 0.1em; }
+}
+
 .pixel-text {
   font-family: "Press Start 2P", monospace;
   letter-spacing: 0.02em;
