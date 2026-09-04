@@ -103,31 +103,25 @@ router.post("/round/finish", async (req, res) => {
       : gamestats.coinsForRound(round.gameId, countedPoints);
   gamestats.addPoints(round.player, countedPoints, now); // points always count - they're a website stat, not real coins
 
-  // What the day's 500-coin allowance would still allow, without committing
-  // it to the local ledger yet: a round that never reaches the game (plugin
-  // down, or not configured at all) must not eat into that allowance for
-  // nothing, and must not report coins the player never actually got.
   let daily = gamestats.getDaily(round.player, now);
-  const headroom = Math.max(0, daily.coinCap - daily.coinsEarned);
-  const wouldGrant = Math.max(0, Math.min(headroom, roundCoins));
-
   let granted = 0;
   let delivered = null;
-  if (wouldGrant > 0 && angkorstore.enabled()) {
+  if (roundCoins > 0 && angkorstore.enabled()) {
     // Transaction id is the round id, so a retry can never pay twice.
     const result = await angkorstore.grantCoins({
       transactionId: `round_${roundId}`,
       uuid: round.uuid,
       name: round.player,
       edition: round.edition,
-      amount: wouldGrant,
+      amount: roundCoins,
       reason: cfg.name,
       meta: { gameId: round.gameId, roundId },
     });
     if (result.ok) {
       // Only now, once the plugin has actually confirmed it landed, commit
-      // the same amount to the local day-cap ledger.
-      const awarded = gamestats.award(round.player, wouldGrant, now);
+      // the same amount to the local ledger (still tracked for stats, just
+      // no longer capped against an overall daily allowance).
+      const awarded = gamestats.award(round.player, roundCoins, now);
       granted = awarded.granted;
       daily = awarded.daily;
       delivered = { ok: true, balance: result.balanceAfter ?? null };
@@ -145,8 +139,6 @@ router.post("/round/finish", async (req, res) => {
     // local-only number that never lands in-game is worse than none at all.
     coinsLive: Boolean(delivered && delivered.ok),
     maxCoinsPerPlay: gamestats.MAX_COINS_PER_PLAY,
-    // true when the daily allowance would have swallowed part (or all) of the round
-    capped: wouldGrant < roundCoins,
     daily,
     delivered,
     leaderboard: gamestats.getLeaderboard(5, round.player),

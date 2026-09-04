@@ -1813,8 +1813,6 @@ html[lang="km"] .board-mini-title { text-transform: none; letter-spacing: 0; }
 .board-view-full:hover { transform: translateY(-1px); }
 .games-stats .info-card.stacked { padding-bottom: 1rem; }
 
-.sub-value.cap-reached { color: var(--gold); }
-
 /* plays-left pips on each game card */
 .plays-left { margin: 0.55rem 0 0.7rem; text-align: center; }
 .plays-pips { display: flex; justify-content: center; gap: 4px; margin-bottom: 0.3rem; }

@@ -1,10 +1,11 @@
 // Server-side ledger for the website mini-games.
 //
 // The rules the ledger enforces (the browser is never trusted with these):
-//   * each game can be played 3 times a day. A play is counted the moment a
+//   * each game can be played 2 times a day. A play is counted the moment a
 //     round STARTS, so closing the panel mid-game still uses one up.
 //   * a round pays 1-50 coins depending on how well it went.
-//   * all games together pay at most 500 coins a day.
+//   * there is no separate overall daily coin cap - the 2-plays x 5-games
+//     limit above already bounds how much a player can earn in a day.
 //   * the day rolls over at 00:00 Cambodia time (UTC+7).
 //
 // Points are tracked separately and forever, for the leaderboard.
@@ -15,12 +16,11 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const STATS_FILE = path.join(DATA_DIR, "gamestats.json");
 const BOARD_FILE = path.join(DATA_DIR, "leaderboard.json");
 
-const PLAYS_PER_GAME_PER_DAY = 3;
-const COINS_PER_DAY = 1000;
-const MAX_COINS_PER_PLAY = 75;
+const PLAYS_PER_GAME_PER_DAY = 2;
+const MAX_COINS_PER_PLAY = 50;
 const TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // UTC+7, Cambodia
 
-// Per-game tuning. `pointsForFullCoins` is the score that earns the full 75
+// Per-game tuning. `pointsForFullCoins` is the score that earns the full 50
 // coins; anything less scales down proportionally, with a floor of 1 coin for
 // a round that scored at all. `maxPointsPerSecond` is the plausibility
 // ceiling - no honest player scores faster than this, so anything above it is
@@ -93,7 +93,7 @@ function readRow(data, today, key) {
   for (const id of GAME_IDS) {
     row.plays[id] = Math.max(0, Math.min(PLAYS_PER_GAME_PER_DAY, Number((stored.plays || {})[id]) || 0));
   }
-  row.coins = Math.max(0, Math.min(COINS_PER_DAY, Number(stored.coins) || 0));
+  row.coins = Math.max(0, Number(stored.coins) || 0);
   return row;
 }
 
@@ -117,9 +117,6 @@ function getDaily(playerName, now = Date.now()) {
     day: today,
     resetAt: nextResetAt(now),
     coinsEarned: row.coins,
-    coinCap: COINS_PER_DAY,
-    coinsLeft: Math.max(0, COINS_PER_DAY - row.coins),
-    coinCapReached: row.coins >= COINS_PER_DAY,
     playCap: PLAYS_PER_GAME_PER_DAY,
     maxCoinsPerPlay: MAX_COINS_PER_PLAY,
     games,
@@ -159,12 +156,12 @@ function recordPlay(playerName, gameId, now = Date.now()) {
   return { allowed, daily: getDaily(playerName, now) };
 }
 
-// Credits coins, clamped to what is left of the 500/day allowance.
+// Credits coins - no overall daily cap, the per-game play limit already
+// bounds how much a player can earn in a day (see the file-header comment).
 function award(playerName, coins, now = Date.now()) {
   const today = dayKey(now);
   const granted = mutate(playerName, today, (row) => {
-    const headroom = Math.max(0, COINS_PER_DAY - row.coins);
-    const give = Math.max(0, Math.min(headroom, Math.floor(Number(coins) || 0)));
+    const give = Math.max(0, Math.floor(Number(coins) || 0));
     row.coins += give;
     return give;
   });
@@ -268,7 +265,6 @@ module.exports = {
   GAMES,
   GAME_IDS,
   PLAYS_PER_GAME_PER_DAY,
-  COINS_PER_DAY,
   MAX_COINS_PER_PLAY,
   dayKey,
   nextResetAt,

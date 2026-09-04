@@ -128,9 +128,8 @@ function renderDaily() {
     return;
   }
   earned.textContent = available
-    ? t("games.earnedToday", { earned: daily.coinsEarned.toLocaleString(), cap: daily.coinCap.toLocaleString() })
+    ? t("games.earnedToday", { earned: daily.coinsEarned.toLocaleString() })
     : t("games.coinsUnavailable");
-  earned.classList.toggle("cap-reached", available && daily.coinCapReached);
   startResetCountdown(reset);
 }
 
@@ -506,7 +505,6 @@ async function showResult(game, result) {
 
   const coinsLive = Boolean(payout && payout.coinsLive);
   const coins = coinsLive ? payout.coinsEarned : 0;
-  const capped = coinsLive ? payout.daily.coinCapReached : false;
 
   const rows = (result.detail || [])
     .map(
@@ -518,7 +516,7 @@ async function showResult(game, result) {
   gameBody.innerHTML = `
     <div class="game-screen result-screen">
       <div class="game-screen-icon">${coins >= 30 ? "🏆" : "🎉"}</div>
-      <h3>${escapeHtml(capped ? t("games.dailyComplete") : t("result.headline"))}</h3>
+      <h3>${escapeHtml(t("result.headline"))}</h3>
       <div class="result-score">
         <span class="result-score-label">${escapeHtml(t("hud.points"))}</span>
         <span class="result-score-value">${points.toLocaleString()}</span>
@@ -530,12 +528,7 @@ async function showResult(game, result) {
           : !coinsLive
           ? `<p class="checkout-hint centered">${escapeHtml(t("games.coinBannerText"))}</p>`
           : `<p class="checkout-hint centered">${escapeHtml(
-              capped
-                ? t("games.dailyCompleteNote")
-                : t("games.earnedToday", {
-                    earned: payout.daily.coinsEarned.toLocaleString(),
-                    cap: payout.daily.coinCap.toLocaleString(),
-                  })
+              t("games.earnedToday", { earned: payout.daily.coinsEarned.toLocaleString() })
             )}</p>`
       }
       <div class="receipt result-detail">${rows}</div>

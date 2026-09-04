@@ -119,10 +119,12 @@ into `public/images/blocks/` — re-run it to change them.
 
 Games score **points**; the **server** decides the coins.
 
-* Each game can be played **3 times a day**. A play is counted the moment a
+* Each game can be played **2 times a day**. A play is counted the moment a
   round *starts*, so closing the panel mid-game still uses one up.
-* A round pays **1–50 coins**, scaled by how well it went.
-* All games together pay at most **500 coins a day**.
+* A round pays **1–50 coins**, scaled by how well it went (Block Breaker pays
+  by level reached instead - see `gamestats.coinsForBreaker`).
+* No separate overall daily coin cap - the 2-plays-per-game limit above
+  already bounds how much a player can earn in a day.
 * Everything resets at **midnight Cambodia time (00:00 UTC+7)**.
 
 That is enforced in `lib/gamestats.js` + `routes/games.js`, not in the page:
