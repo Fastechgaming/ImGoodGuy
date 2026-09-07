@@ -254,6 +254,14 @@ function actionsMarkup(item) {
             .join("")}
         </div>
       </div>
+      ${
+        armed
+          ? `<button type="button" class="uprank-cancel" data-uprank-cancel="${item.id}">
+              <span class="up-rank-icon">✕</span>
+              <span class="up-rank-label">${escapeHtml(t("store.cancelUpgrade"))}</span>
+            </button>`
+          : ""
+      }
     </div>`;
 }
 
@@ -363,6 +371,15 @@ document.addEventListener("click", (e) => {
     document.querySelectorAll(".uprank-dropdown.open").forEach((el) => el.classList.remove("open"));
     renderGrid();
     if (infoItem && infoItem.id === option.dataset.uprankOption) openInfoModal(infoItem);
+    return;
+  }
+
+  const cancel = e.target.closest("[data-uprank-cancel]");
+  if (cancel) {
+    e.stopPropagation();
+    armedUpgrade.delete(cancel.dataset.uprankCancel);
+    renderGrid();
+    if (infoItem && infoItem.id === cancel.dataset.uprankCancel) openInfoModal(infoItem);
     return;
   }
 
