@@ -252,16 +252,13 @@ function actionsMarkup(item) {
                 `<button type="button" role="menuitem" class="uprank-option${r.id === armedId ? " active" : ""}" data-uprank-option="${item.id}" data-rank-id="${r.id}">${escapeHtml(r.displayName)}</button>`
             )
             .join("")}
+          ${
+            armed
+              ? `<button type="button" role="menuitem" class="uprank-option uprank-cancel" data-uprank-cancel="${item.id}">${escapeHtml(t("store.cancelUpgrade"))}</button>`
+              : ""
+          }
         </div>
       </div>
-      ${
-        armed
-          ? `<button type="button" class="uprank-cancel" data-uprank-cancel="${item.id}">
-              <span class="up-rank-icon">✕</span>
-              <span class="up-rank-label">${escapeHtml(t("store.cancelUpgrade"))}</span>
-            </button>`
-          : ""
-      }
     </div>`;
 }
 
@@ -378,6 +375,7 @@ document.addEventListener("click", (e) => {
   if (cancel) {
     e.stopPropagation();
     armedUpgrade.delete(cancel.dataset.uprankCancel);
+    document.querySelectorAll(".uprank-dropdown.open").forEach((el) => el.classList.remove("open"));
     renderGrid();
     if (infoItem && infoItem.id === cancel.dataset.uprankCancel) openInfoModal(infoItem);
     return;
