@@ -7,6 +7,7 @@ const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
 const angkorstore = require("../lib/angkorstore");
+const proofCheck = require("../lib/proofCheck");
 const { current: currentAccount, STORE_SCOPE, getRankLadder } = require("./account");
 
 const router = express.Router();
@@ -180,8 +181,12 @@ router.post("/checkout", async (req, res) => {
   }
 });
 
-// Step 2: customer uploads their payment screenshot. We forward it straight to
-// the admin's Telegram with Accept / Reject buttons.
+// Step 2: customer uploads their payment screenshot. A local, free check
+// (lib/proofCheck.js - OCR + EXIF + dimensions, no paid API) looks it over
+// first: anything it flags goes to the admin's Telegram with the usual
+// Accept / Reject buttons, and anything that looks genuine is delivered
+// immediately with Correct / Wrong buttons sent after the fact instead - see
+// telegram.reviewOrder.
 router.post("/order/:id/proof", (req, res, next) => {
   proofUpload.single("proof")(req, res, async (uploadErr) => {
     if (uploadErr) return res.status(400).json({ error: uploadErr.message });
@@ -196,7 +201,18 @@ router.post("/order/:id/proof", (req, res, next) => {
         submittedAt: Date.now(),
       });
 
-      const sent = await telegram.sendOrderForReview(updated, path.join(PROOF_DIR, req.file.filename));
+      const proofPath = path.join(PROOF_DIR, req.file.filename);
+      let check;
+      try {
+        check = await proofCheck.analyzeProof(proofPath, updated);
+      } catch (err) {
+        // Can't tell if it's genuine - treat that as suspicious rather than
+        // risk auto-delivering on a check that never actually ran.
+        console.error("[order] fraud check failed:", err.message);
+        check = { suspicious: true, reasons: ["The automatic screenshot check failed — needs a manual look."] };
+      }
+
+      const sent = await telegram.reviewOrder(updated, proofPath, check);
       if (!sent.ok) {
         // The order is still recorded, so the owner can find it in the admin
         // panel even when Telegram is misconfigured or down.

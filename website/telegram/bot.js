@@ -10,8 +10,15 @@ const https = require("https");
 const TelegramBot = require("node-telegram-bot-api");
 const { nanoid } = require("nanoid");
 const store = require("../lib/store");
-const { runCommand, buildCommand } = require("../lib/rcon");
+const { runCommand, buildCommand, reverseCommand } = require("../lib/rcon");
 const angkorstore = require("../lib/angkorstore");
+
+// Run when an admin flags an auto-accepted order as fraudulent (see
+// reviewOrder below). Configurable because ban plugins' command syntax
+// varies - this project's server runs LiteBans. {player}/{order} are
+// substituted the same way any delivery command is.
+const FRAUD_BAN_COMMAND =
+  process.env.FRAUD_BAN_COMMAND || "ban {player} permanent Fraudulent payment screenshot (order {order})";
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID
@@ -304,14 +311,23 @@ function orderSummaryText(order) {
     .join("\n");
 }
 
+// Appended to the review caption when the local fraud check (see
+// lib/proofCheck.js) found something worth a second look - empty for a
+// plain manual-review order (the plugin isn't configured, or delivery
+// failed) that has nothing suspicious about it.
+function suspicionText(check) {
+  if (!check || !check.reasons || !check.reasons.length) return "";
+  return ["", "⚠️ *Flagged for review:*", ...check.reasons.map((r) => `• ${r}`)].join("\n");
+}
+
 // Called by the website when a customer submits their payment screenshot.
-async function sendOrderForReview(order, proofPath) {
+async function sendOrderForReview(order, proofPath, check) {
   if (!bot || !ADMIN_CHAT_ID) {
     return { ok: false, reason: "Telegram bot is not configured (token / admin chat id missing)." };
   }
   try {
     await bot.sendPhoto(ADMIN_CHAT_ID, fs.createReadStream(proofPath), {
-      caption: orderSummaryText(order),
+      caption: orderSummaryText(order) + suspicionText(check),
       parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
@@ -403,6 +419,106 @@ async function deliver(order, item) {
   return { ...viaRcon, via: "rcon" };
 }
 
+// Called by the website once proof is uploaded and the local fraud check
+// (lib/proofCheck.js - no real payment API is available yet) has run.
+// Anything the check flagged still goes through the usual manual Accept /
+// Reject buttons, with its reasons attached so you know why. A screenshot
+// that passed the check is delivered immediately instead of waiting on you
+// - you're told about it right after, with Correct / Wrong buttons, so a
+// wrong auto-accept can still be caught and undone.
+async function reviewOrder(order, proofPath, check) {
+  if (!bot || !ADMIN_CHAT_ID) {
+    return { ok: false, reason: "Telegram bot is not configured (token / admin chat id missing)." };
+  }
+
+  if (check.suspicious) {
+    return sendOrderForReview(order, proofPath, check);
+  }
+
+  const item = store.findItem(order.itemId);
+  const result = await deliver(order, item);
+  if (!result.ok) {
+    // Couldn't actually auto-deliver (plugin down, RCON unreachable, item has
+    // no delivery command, ...) - fall back to manual review rather than
+    // silently doing nothing.
+    return sendOrderForReview(order, proofPath, {
+      suspicious: true,
+      reasons: [...(check.reasons || []), `Auto-delivery failed: ${result.reason || "unknown error"}`],
+    });
+  }
+
+  store.updateOrder(order.id, {
+    status: "delivered",
+    decidedAt: Date.now(),
+    deliveredCommand: result.command,
+    autoAccepted: true,
+  });
+
+  try {
+    await bot.sendPhoto(ADMIN_CHAT_ID, fs.createReadStream(proofPath), {
+      caption: [
+        "✅ *Auto-delivered AngkorSMP order* — screenshot passed the checks",
+        "",
+        `*Item:* ${order.itemName}`,
+        order.upgrade ? `*Upgrade:* ${order.upgrade.fromRankId} → ${order.upgrade.toRankId}` : "",
+        `*Price:* $${Number(order.amount).toFixed(2)} ${order.currency}`,
+        `*In-server name:* \`${order.playerName}\``,
+        `*Order:* \`${order.id}\``,
+        `Ran: \`${result.command}\``,
+        "",
+        "Take a look — is this correct?",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Correct", callback_data: `ord:confirm:${order.id}` },
+            { text: "🚫 Wrong — ban & revoke", callback_data: `ord:fraud:${order.id}` },
+          ],
+        ],
+      },
+    });
+  } catch (err) {
+    console.error("[order] auto-accept notification failed:", err.message);
+  }
+
+  return { ok: true, autoAccepted: true };
+}
+
+// Undoes an auto-accepted order flagged as fraud: bans the player and, when
+// the delivery command is one of the two reversible shapes this catalogue
+// uses (a rank grant or a coin grant), runs its inverse too. Anything else
+// just gets the ban - there's no safe generic undo for an arbitrary one-off
+// command, so that's left for the admin to handle by hand in-game.
+async function reverseOrder(order, item) {
+  const context = { player: order.playerName, itemName: order.itemName, orderId: order.id };
+  const lines = [];
+
+  const ban = await runCommand(FRAUD_BAN_COMMAND, context);
+  lines.push(ban.ok ? `Banned: \`${ban.command}\`` : `⚠️ Ban failed: ${ban.reason}`);
+
+  if (order.upgrade) {
+    const { fromGroup, toGroup } = order.upgrade;
+    const undo = await runCommand(`lp user {player} parent remove ${toGroup}`, context);
+    const restore = await runCommand(`lp user {player} parent add ${fromGroup}`, context);
+    lines.push(undo.ok ? `Reverted: \`${undo.command}\`` : `⚠️ Revert failed: ${undo.reason}`);
+    lines.push(restore.ok ? `Restored: \`${restore.command}\`` : `⚠️ Restore failed: ${restore.reason}`);
+  } else {
+    const template = item && item.deliveryCommand;
+    const reversed = reverseCommand(template);
+    if (reversed) {
+      const undo = await runCommand(reversed, context);
+      lines.push(undo.ok ? `Reverted: \`${undo.command}\`` : `⚠️ Revert failed: ${undo.reason}`);
+    } else if (template) {
+      lines.push(`No automatic undo for \`${buildCommand(template, context)}\` — revoke it manually in-game.`);
+    }
+  }
+
+  return { lines };
+}
+
 async function handleOrderDecision(query) {
   const data = String(query.data || "");
   if (!data.startsWith("ord:")) return;
@@ -417,14 +533,21 @@ async function handleOrderDecision(query) {
   if (!order) {
     return bot.answerCallbackQuery(query.id, { text: "Order not found.", show_alert: true });
   }
-  if (order.status === "delivered" || order.status === "rejected") {
-    return bot.answerCallbackQuery(query.id, { text: `Already ${order.status}.`, show_alert: true });
-  }
 
   const chatId = query.message.chat.id;
   const messageId = query.message.message_id;
   const clearButtons = () =>
     bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: chatId, message_id: messageId }).catch(() => {});
+
+  // Accept/Reject only make sense on an order still awaiting a decision -
+  // Correct/Fraud (below) are their counterpart for one the fraud check
+  // already auto-delivered, which by then is already "delivered", so they
+  // fall outside this guard.
+  if (action === "reject" || action === "accept") {
+    if (order.status === "delivered" || order.status === "rejected") {
+      return bot.answerCallbackQuery(query.id, { text: `Already ${order.status}.`, show_alert: true });
+    }
+  }
 
   if (action === "reject") {
     store.updateOrder(orderId, { status: "rejected", decidedAt: Date.now() });
@@ -433,6 +556,30 @@ async function handleOrderDecision(query) {
     return bot.sendMessage(chatId, `❌ Rejected order \`${orderId}\` — nothing was delivered.`, {
       parse_mode: "Markdown",
     });
+  }
+
+  if (action === "confirm") {
+    await clearButtons();
+    await bot.answerCallbackQuery(query.id, { text: "Marked correct." });
+    return bot.sendMessage(chatId, `✅ Confirmed order \`${orderId}\` — nothing more to do.`, {
+      parse_mode: "Markdown",
+    });
+  }
+
+  if (action === "fraud") {
+    if (order.status === "fraud_reversed") {
+      return bot.answerCallbackQuery(query.id, { text: "Already reversed.", show_alert: true });
+    }
+    await bot.answerCallbackQuery(query.id, { text: "Reversing…" });
+    const item = store.findItem(order.itemId);
+    const outcome = await reverseOrder(order, item);
+    store.updateOrder(orderId, { status: "fraud_reversed", decidedAt: Date.now(), reversal: outcome.lines });
+    await clearButtons();
+    return bot.sendMessage(
+      chatId,
+      [`🚫 *Flagged as fraud* — order \`${orderId}\``, ...outcome.lines].join("\n"),
+      { parse_mode: "Markdown" }
+    );
   }
 
   if (action !== "accept") return;
@@ -478,4 +625,4 @@ async function handleOrderDecision(query) {
   );
 }
 
-module.exports = { initBot, sendOrderForReview };
+module.exports = { initBot, sendOrderForReview, reviewOrder };

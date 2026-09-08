@@ -48,4 +48,18 @@ async function runCommand(commandTemplate, context) {
   }
 }
 
-module.exports = { runCommand, buildCommand };
+// Best-effort inverse of a delivery command, used to undo an auto-accepted
+// order an admin later flags as fraudulent. Only understands the two verb
+// pairs this catalogue's delivery commands actually use (rank grants and
+// coin grants) - anything else (a one-off "other" item, a custom command)
+// has no safe automatic undo and is left for the admin to handle by hand.
+function reverseCommand(template) {
+  if (!template) return null;
+  const rank = template.match(/^(.*\bparent\s+)add(\s+\S+.*)$/i);
+  if (rank) return `${rank[1]}remove${rank[2]}`;
+  const coins = template.match(/^(\s*eco\s+)give(\s+.*)$/i);
+  if (coins) return `${coins[1]}take${coins[2]}`;
+  return null;
+}
+
+module.exports = { runCommand, buildCommand, reverseCommand };

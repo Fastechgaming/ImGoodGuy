@@ -51,7 +51,8 @@ Everything below lives in **`website/.env`** (secrets) and **`website/config/sit
 | `TELEGRAM_BOT_TOKEN` | Create a bot via [@BotFather](https://t.me/BotFather) on Telegram. |
 | `TELEGRAM_ADMIN_CHAT_ID` | Your personal numeric Telegram ID — message [@userinfobot](https://t.me/userinfobot) to get it. Purchase alerts and the `/additem` etc. admin commands are locked to this ID only. |
 | `TELEGRAM_SUPPORT_USERNAME` | Your public support `@username` shown on the purchase-success screen. |
-| `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` | Your Minecraft server's RCON details, used to run an item's delivery command when you press **Accept** in Telegram. Enable `enable-rcon=true`, `rcon.port`, `rcon.password` in `server.properties` first. Leave blank to approve orders manually. |
+| `RCON_HOST` / `RCON_PORT` / `RCON_PASSWORD` | Your Minecraft server's RCON details, used to run an item's delivery command when you press **Accept** in Telegram (or when a screenshot auto-delivers — see "Purchase flow" below). Enable `enable-rcon=true`, `rcon.port`, `rcon.password` in `server.properties` first. Leave blank to approve orders manually. |
+| `FRAUD_BAN_COMMAND` | Optional. The ban command run when you tap **Wrong** on an auto-delivered order. Defaults to `ban {player} permanent Fraudulent payment screenshot (order {order})` (LiteBans syntax) — override it if your ban plugin's command is different. |
 
 ## 3. Managing store items (3 ways — pick whichever is easiest for you)
 
@@ -84,15 +85,44 @@ from Telegram with one tap.
    - Bedrock names are normalised the way Geyser/Floodgate does it: a single leading `.` is added and spaces become `_`. So `Play er`, `.Play er` and `Play_er` all become `.Play_er` — never `..Play er`. The form shows the exact result live as **"In server name: …"**.
 2. **Continue** → they land on **Complete your Purchase** (`/checkout`): a summary of what they're buying, your KHQR to scan, and a drop zone for their payment screenshot.
 3. **SUBMIT** → they get a **Submit successful** page telling them to wait for the owner to confirm, with a support link and a **Back to home** button.
-4. You receive a Telegram message with the receipt photo, the item, the price, and the in-server name, plus **✅ Accept** and **❌ Reject** buttons.
-   - **Reject** → the order is marked rejected. Nothing else happens.
-   - **Accept** → the website runs that item's **delivery command** on your Minecraft server over RCON (e.g. `lp user .Play_er parent add apsara`) and replies telling you what it ran and what the server said. If delivery fails (RCON not set up, plugin missing, etc.) it tells you why and leaves the order pending so you can fix it and press Accept again.
+4. The uploaded screenshot first goes through a local, free check
+   (`lib/proofCheck.js` — OCR + EXIF + image dimensions, no paid API and no
+   internet dependency beyond that first-run OCR data, which ships bundled
+   in `node_modules`): does the order's amount actually appear in the
+   screenshot's own text, was it saved by known editing software, is it an
+   implausibly tiny/cropped image?
+   - **Nothing looks off** → the order is delivered immediately (same RCON
+     delivery command as Accept, below), and you get a Telegram message
+     *after the fact* with the receipt, what was delivered, and **✅
+     Correct** / **🚫 Wrong — ban & revoke** buttons.
+     - **Correct** → nothing more happens, it was already delivered.
+     - **Wrong** → runs `FRAUD_BAN_COMMAND` (see `.env` above) and, when the
+       delivery command was a rank grant or a coin grant, its exact inverse
+       (`parent add` → `parent remove`, `eco give` → `eco take`) — both over
+       RCON. Anything else (a one-off "other" item) just gets the ban; undo
+       it in-game yourself.
+   - **Something looks off** → you get the usual **✅ Accept** / **❌
+     Reject** message, with the reasons it was flagged attached, and nothing
+     is delivered until you decide.
+     - **Reject** → the order is marked rejected. Nothing else happens.
+     - **Accept** → the website runs that item's **delivery command** on
+       your Minecraft server over RCON (e.g. `lp user .Play_er parent add
+       apsara`) and replies telling you what it ran and what the server
+       said. If delivery fails (RCON not set up, plugin missing, etc.) it
+       tells you why and leaves the order pending so you can fix it and
+       press Accept again.
+   - This is a local, best-effort check, not a real payment verification —
+     it exists because the real Bakong payment API isn't wired up yet. A
+     wrongly-flagged genuine order just falls back to a one-tap manual
+     Accept; a wrongly-auto-accepted fake one is still reported to you
+     immediately, and one tap bans and reverses it.
 
 Each item's delivery command is configured per item — set it in the web admin
 form ("Delivery command") or via `/edititem <id> deliveryCommand <command>` in
 Telegram. Use `{player}` where the in-server name should go. Leave it blank to
 handle that item by hand. The command needs a plugin that provides it — e.g.
-LuckPerms for `lp user … parent add …`, an economy plugin for `eco give …`.
+LuckPerms for `lp user … parent add …`, an economy plugin for `eco give …`
+(these two shapes are also the ones the auto-fraud-reversal above can undo).
 
 Payment screenshots are stored in `website/data/proofs/` and are **not** served
 publicly — they only go to your Telegram.
