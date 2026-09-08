@@ -86,18 +86,30 @@ function daysHoursSince(sinceISO) {
 }
 
 function formatDaysHours({ days, hours }) {
-  return `${days}d ${hours}h`;
+  return typeof I18n !== "undefined" && I18n.lang === "km" ? `${days}ថ្ងៃ ${hours}ម៉ោង` : `${days}d ${hours}h`;
 }
+
+const KM_MONTHS = [
+  "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា",
+  "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ",
+];
 
 // Formats just the calendar date (Y-M-D) from a config ISO string, ignoring
 // the visitor's own timezone - so "2025-05-31T00:00:00+07:00" always reads
-// as May 31, never May 30 for someone browsing from the Americas.
+// as May 31, never May 30 for someone browsing from the Americas. Khmer month
+// names are spelled out by hand rather than left to Intl/toLocaleDateString -
+// several real browsers (older Android WebViews especially) ship without
+// Khmer ICU data and silently fall back to English instead of erroring, which
+// would defeat the whole point of switching the site to Khmer.
 function formatConfigDate(iso) {
   if (!iso) return "—";
   const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return "—";
   const [, y, mo, d] = m;
-  return new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString(undefined, {
+  if (typeof I18n !== "undefined" && I18n.lang === "km") {
+    return `${+d} ${KM_MONTHS[+mo - 1]} ${y}`;
+  }
+  return new Date(Date.UTC(+y, +mo - 1, +d)).toLocaleDateString("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",

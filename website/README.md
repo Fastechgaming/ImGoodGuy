@@ -42,6 +42,16 @@ Everything below lives in **`website/.env`** (secrets) and **`website/config/sit
 | `season` | Free text, e.g. `"Season 2: Jungle Reclaims"`. |
 | `bluemapUrl` | The public URL of your hosted BlueMap. Leave the placeholder in place and the Map page will show a friendly "not configured yet" message instead of a broken embed. |
 | `welcomeMessage`, `tagline` | Shown on the Home page. |
+| `serverFeatures[].title`, `.desc` | The three cards under "Server Info" on the Home page. |
+
+The site's UI chrome (buttons, labels, page titles) is fully bilingual via
+`public/js/i18n.js` and defaults to Khmer. The five fields above, plus each
+`serverFeatures[]` entry's `title`/`desc`, are free text **you** write, so
+they only ever show in whichever language you typed them in — add a
+`_km` sibling (`tagline_km`, `welcomeMessage_km`, `season_km`,
+`serverFeatures[].title_km`, `serverFeatures[].desc_km`) to give any of them
+a Khmer version too; omit it and that field just falls back to the plain one
+in both languages, same as before.
 
 ### `.env` (copy from `.env.example`)
 | Variable | Where to get it |

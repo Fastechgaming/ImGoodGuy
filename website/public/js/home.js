@@ -1,18 +1,29 @@
 let lastStatus = null;
 
+// Admin-authored config text (tagline, welcome message, season, feature
+// cards) isn't in the DICT translation system - it's whatever the owner
+// typed into site.config.json. An optional "<field>_km" sibling lets them
+// give it a Khmer version too; without one it just falls back to the plain
+// field in either language, same as before.
+function localized(cfg, field) {
+  if (I18n.lang === "km" && cfg[`${field}_km`]) return cfg[`${field}_km`];
+  return cfg[field];
+}
+
 async function loadHome() {
   const cfg = await getSiteConfig();
 
   // Keep it dynamic (reflects a renamed server), but keyword-rich rather
   // than "— Home" - this is what a JS-rendering crawler (Googlebot) sees
   // instead of the static SEO <title> once the page has loaded.
-  document.title = cfg.tagline ? `${cfg.serverName} — ${cfg.tagline}` : cfg.serverName;
+  const tagline = localized(cfg, "tagline");
+  document.title = tagline ? `${cfg.serverName} — ${tagline}` : cfg.serverName;
   document.getElementById("hero-logo").src = cfg.logo || "/images/site/logo-full.png";
   const navLogo = document.getElementById("nav-logo");
   if (navLogo) navLogo.src = cfg.logoIcon || cfg.logo || "/images/site/logo-icon.png";
   document.getElementById("hero-title").textContent = cfg.serverName;
-  document.getElementById("hero-tagline").textContent = cfg.tagline || "";
-  document.getElementById("welcome-message").textContent = cfg.welcomeMessage || "";
+  document.getElementById("hero-tagline").textContent = tagline || "";
+  document.getElementById("welcome-message").textContent = localized(cfg, "welcomeMessage") || "";
 
   document.getElementById("telegram-btn").href = cfg.telegramLink || "#";
 
@@ -43,7 +54,7 @@ async function loadHome() {
     ? formatDaysHours(daysHoursSince(cfg.releaseDate))
     : "—";
 
-  document.getElementById("season-value").textContent = cfg.season || "—";
+  document.getElementById("season-value").textContent = localized(cfg, "season") || "—";
   document.getElementById("season-age-value").textContent = cfg.seasonStartDate
     ? formatDaysHours(daysHoursSince(cfg.seasonStartDate))
     : "—";
@@ -58,6 +69,20 @@ async function loadHome() {
     applyLabels(mobile);
     renderStatus(lastStatus);
     document.getElementById("release-value").textContent = formatConfigDate(cfg.releaseDate);
+    document.getElementById("server-age-value").textContent = cfg.releaseDate
+      ? formatDaysHours(daysHoursSince(cfg.releaseDate))
+      : "—";
+    document.getElementById("season-age-value").textContent = cfg.seasonStartDate
+      ? formatDaysHours(daysHoursSince(cfg.seasonStartDate))
+      : "—";
+    // Re-run everything a language switch can change the text of - the
+    // admin-authored config fields above have no data-i18n hook of their own.
+    const nextTagline = localized(cfg, "tagline");
+    document.title = nextTagline ? `${cfg.serverName} — ${nextTagline}` : cfg.serverName;
+    document.getElementById("hero-tagline").textContent = nextTagline || "";
+    document.getElementById("welcome-message").textContent = localized(cfg, "welcomeMessage") || "";
+    document.getElementById("season-value").textContent = localized(cfg, "season") || "—";
+    renderFeatures(cfg.serverFeatures || []);
   });
 }
 
@@ -76,8 +101,8 @@ function renderFeatures(features) {
       return `
         <${tag} class="${cls}"${href}>
           <div class="feature-icon">${escapeHtml(f.icon || "")}</div>
-          <div class="feature-title">${escapeHtml(f.title || "")}</div>
-          <div class="feature-desc">${escapeHtml(f.desc || "")}</div>
+          <div class="feature-title">${escapeHtml(localized(f, "title") || "")}</div>
+          <div class="feature-desc">${escapeHtml(localized(f, "desc") || "")}</div>
         </${tag}>`;
     })
     .join("");

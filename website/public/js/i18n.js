@@ -323,7 +323,7 @@ const I18n = (() => {
       "nav.games": "🎮 ហ្គេម",
       "nav.store": "💰 ហាង",
       "nav.map": "🗺️ ផែនទី",
-      "nav.banned": "🚫 Banned",
+      "nav.banned": "🚫 ហាមឃាត់",
       "nav.menu": "ម៉ឺនុយ",
       "nav.language": "ភាសា",
       "footer.copy": "© {year} AngkorSMP · Minecraft Server កម្ពុជា 🇰🇭",
@@ -337,7 +337,7 @@ const I18n = (() => {
       "home.storeSub": "Ranks, Coins និងច្រើនទៀត",
       "home.checking": "កំពុងពិនិត្យស្ថានភាព Server…",
       "home.online": "Online — អ្នកលេង {online}/{max} នាក់",
-      "home.offline": "Server Offline",
+      "home.offline": "Server ក្រៅបណ្តាញ",
       "home.statusUnavailable": "មិនអាចពិនិត្យស្ថានភាពបានទេ",
       "home.welcome": "🌿 សូមស្វាគមន៍ 🌿",
       "home.released": "ចេញផ្សាយ",
@@ -367,7 +367,7 @@ const I18n = (() => {
       "store.upgradeSummary": "ដំឡើងពី {from} → {to}",
       "store.upgradeCaption": "អ្នកកំពុងដំឡើងពី {from} ទៅ {to}",
       "store.confirmName": "ឈ្មោះ",
-      "store.confirmPlatform": "Platform",
+      "store.confirmPlatform": "វេទិកា",
       "store.confirm": "បញ្ជាក់",
       "store.cancel": "បោះបង់",
       "store.changeHint":
@@ -381,7 +381,7 @@ const I18n = (() => {
       "store.infoTitle": "ព័ត៌មានទំនិញ និងវីដេអូ Kit",
       "buy.title": "ទិញ៖ {item}",
       "buy.username": "ឈ្មោះ Minecraft",
-      "buy.edition": "Edition",
+      "buy.edition": "កំណែ",
       "buy.java": "Java",
       "buy.bedrock": "Bedrock",
       "buy.inServerName": "ឈ្មោះក្នុង Server៖ {name}",
@@ -394,7 +394,7 @@ const I18n = (() => {
       "checkout.title": "🌿 បញ្ចប់ការទិញរបស់អ្នក 🌿",
       "checkout.loading": "កំពុងផ្ទុកការបញ្ជាទិញ…",
       "checkout.inServerName": "ឈ្មោះក្នុង Server",
-      "checkout.edition": "Edition",
+      "checkout.edition": "កំណែ",
       "checkout.total": "សរុប",
       "checkout.step1": "១. ស្កេនដើម្បីបង់ប្រាក់",
       "checkout.scanHint": "ស្កេន KHQR នេះជាមួយ App ធនាគារកម្ពុជាណាមួយ ហើយបង់ឲ្យត្រូវ {amount}។",
@@ -442,7 +442,7 @@ const I18n = (() => {
 
       /* ---- banned players ---- */
       "banned.title": "🌿 អ្នកលេងដែលត្រូវ Ban 🌿",
-      "banned.subtitle": "BANNED",
+      "banned.subtitle": "ហាមឃាត់",
       "banned.hint": "អ្នកលេងដែលកំពុងត្រូវ Ban បច្ចុប្បន្ន បង្ហាញថ្មីៗបំផុតមុន។",
       "banned.unavailable": "⚠️ បញ្ជី Ban មិនអាចប្រើបានពេលនេះទេ។ សូមទាក់ទង Support សម្រាប់ព័ត៌មានបន្ថែម។",
       "banned.empty": "គ្មានអ្នកលេងណាកំពុងត្រូវ Ban ទេពេលនេះ។ 🎉",
@@ -528,13 +528,13 @@ const I18n = (() => {
       "hud.level": "កម្រិត",
 
       /* ---- games: the five games ---- */
-      "game.lava.name": "Lava Run",
+      "game.lava.name": "រត់ភ្លើងឡាវ៉ា",
       "game.lava.desc": "ឡើងឲ្យបាន ១០០ម មុនពេល Lava ឡើងមកដល់។ ប្រមូល Diamond តាមផ្លូវ។",
       "game.lava.howto":
         "អូសទៅឆ្វេង-ស្តាំដើម្បីបញ្ជា — តួអង្គលោតដោយស្វ័យប្រវត្តិ។ Diamond +5 · Checkpoint +15 · ដល់គោល +100 បូកមួយពិន្ទុរាល់មួយម៉ែត្រ និងរង្វាន់បន្ថែមបើលឿន។ របារខាងឆ្វេងបង្ហាញគោល ទីតាំងអ្នក និង Lava។",
       "game.lava.hint": "អូសដើម្បីបញ្ជា · 💎 +15 · 🏃 +15 · 🏆 +100",
 
-      "game.breaker.name": "Block Breaker",
+      "game.breaker.name": "អ្នកបំបែកប្លុក",
       "game.breaker.desc": "ទម្លាយតែ Block ដែលបង្ហាញនៅខាងលើ។ ៤ កម្រិត កម្រិតនីមួយៗ ១០ Block។",
       "game.breaker.howto":
         "ទម្លាយ Block គោលដៅ ១០ ដងដើម្បីឆ្លងកម្រិត។ កម្រិតខ្ពស់ផ្តល់ពិន្ទុច្រើនជាង ហើយឆ្លងគ្រប់ ៤ កម្រិតបានរង្វាន់ពេញ។ Block ខុសកាត់ពេល ១ វិនាទី។",
@@ -542,20 +542,20 @@ const I18n = (() => {
       "game.breaker.target": "ទម្លាយ",
       "game.breaker.penalty": "-1វិ",
 
-      "game.dodge.name": "Wind Charge Dodge",
+      "game.dodge.name": "គេចគ្រាប់ខ្យល់",
       "game.dodge.desc": "គេច Wind Charge ប្រមូល Emerald ហើយរស់ឲ្យបានយូរបំផុត។",
       "game.dodge.howto":
         "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ គេចជិត Wind Charge បាន +2 និង Emerald បាន +5។ ប៉ះម្តងគឺចប់។",
       "game.dodge.hint": "អូសដើម្បីផ្លាស់ទី · គេចជិត +2 · Emerald +5",
 
-      "game.rush.name": "Diamond Rush",
+      "game.rush.name": "ប្រណាំងប្រមូលត្បូងពេជ្រ",
       "game.rush.desc": "៣០ វិនាទីដើម្បីជីករករ៉ែឲ្យបានតម្លៃច្រើនបំផុត។ ចុច TNT ម្តងគឺចប់។",
       "game.rush.howto":
         "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12។ TNT បញ្ចប់ជុំភ្លាម ហើយរ៉ែផ្លាស់ទីកាន់តែញឹកញាប់ — មើលឲ្យច្បាស់មុនចុច។",
       "game.rush.hint": "Coal +1 · Iron +2 · Gold +4 · Diamond +8 · Emerald +12 · TNT = ចប់",
       "game.rush.rubble": "ថ្ម",
 
-      "game.tnt.name": "TNT Escape",
+      "game.tnt.name": "រត់គេច TNT",
       "game.tnt.desc": "រស់ឲ្យបាន ៤៥ វិនាទីក្នុងទីលានដែលមាន TNT ធ្លាក់។ កុំឈប់ផ្លាស់ទី។",
       "game.tnt.howto":
         "អូសដើម្បីផ្លាស់ទី (ឬប្រើគ្រាប់ចុចព្រួញ)។ TNT នីមួយៗបង្ហាញរង្វង់ផ្ទុះមុនពេលផ្ទុះ — កុំនៅក្នុងវា។ ឈរជិតៗខាងក្រៅបាន +5 ហើយបាន +3 រាល់មួយវិនាទីដែលរស់។",
@@ -624,7 +624,7 @@ const I18n = (() => {
     }
   }
 
-  let lang = stored() || "en"; // English is the default, as asked
+  let lang = stored() || "km"; // Khmer is the default, as asked
 
   function translate(key, vars) {
     const table = DICT[lang] || DICT.en;

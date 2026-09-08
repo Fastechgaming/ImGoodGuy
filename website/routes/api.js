@@ -36,7 +36,9 @@ router.get("/config", (req, res) => {
   res.json({
     serverName: cfg.serverName,
     tagline: cfg.tagline,
+    tagline_km: cfg.tagline_km,
     welcomeMessage: cfg.welcomeMessage,
+    welcomeMessage_km: cfg.welcomeMessage_km,
     logo: cfg.logo,
     logoIcon: cfg.logoIcon || cfg.logo,
     telegramLink: cfg.telegramLink,
@@ -47,6 +49,7 @@ router.get("/config", (req, res) => {
     bedrockPort: cfg.bedrockPort,
     releaseDate: cfg.releaseDate,
     season: cfg.season,
+    season_km: cfg.season_km,
     seasonStartDate: cfg.seasonStartDate,
     mapStartDate: cfg.mapStartDate,
     bluemapUrl: cfg.bluemapUrl,

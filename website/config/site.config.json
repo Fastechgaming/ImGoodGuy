@@ -1,7 +1,9 @@
 {
   "serverName": "AngkorSMP",
   "tagline": "A Khmer-inspired Minecraft Survival Multiplayer world",
+  "tagline_km": "ពិភពលោក Minecraft Survival Multiplayer ដែលបំផុសគំនិតពីខ្មែរ",
   "welcomeMessage": "Welcome to AngkorSMP! Build among the ruins, survive the jungle, and write your own chapter of the empire.",
+  "welcomeMessage_km": "សូមស្វាគមន៍មកកាន់ AngkorSMP! សាងសង់ក្នុងចំណោមប្រាសាទបុរាណ រស់រានក្នុងព្រៃ ហើយសរសេរជំពូកផ្ទាល់ខ្លួនរបស់អ្នកលើអាណាចក្រនេះ។",
   "logo": "/images/site/logo-full.png",
   "logoIcon": "/images/site/logo-icon.png",
   "telegramLink": "https://t.me/angkor_smp",
@@ -12,13 +14,33 @@
   "bedrockPort": 19132,
   "releaseDate": "2025-05-31T00:00:00+07:00",
   "season": "Season 2: The Kingdom of Cambodia",
+  "season_km": "រដូវកាលទី ២៖ នគរកម្ពុជា",
   "seasonStartDate": "2026-03-25T00:00:00+07:00",
   "mapStartDate": "2026-03-25T00:00:00+07:00",
   "bluemapUrl": "http://15.235.229.65:25613/",
   "serverFeatures": [
-    { "icon": "🌴", "title": "Chill Community", "desc": "A relaxed, friendly SMP — no drama, just building and surviving together." },
-    { "icon": "🛡️", "title": "No Raiding", "desc": "Bases and builds are protected. Griefing and raiding other players is not allowed." },
-    { "icon": "🗺️", "title": "Live Cambodia Map", "desc": "Explore the world in real time.", "link": "/map.html" }
+    {
+      "icon": "🌴",
+      "title": "Chill Community",
+      "title_km": "សហគមន៍ស្ងប់ស្ងាត់",
+      "desc": "A relaxed, friendly SMP — no drama, just building and surviving together.",
+      "desc_km": "SMP ស្ងប់ ស្និទ្ធស្នាល — គ្មានរឿងវិវាទ មានតែសាងសង់ និងរស់រានជាមួយគ្នា។"
+    },
+    {
+      "icon": "🛡️",
+      "title": "No Raiding",
+      "title_km": "គ្មានការវាយប្លន់",
+      "desc": "Bases and builds are protected. Griefing and raiding other players is not allowed.",
+      "desc_km": "គ្រឹះនិងសំណង់ត្រូវបានការពារ។ ការបំផ្លាញ ឬវាយប្លន់អ្នកលេងផ្សេងទៀតមិនត្រូវបានអនុញ្ញាតទេ។"
+    },
+    {
+      "icon": "🗺️",
+      "title": "Live Cambodia Map",
+      "title_km": "ផែនទីកម្ពុជាបន្តផ្ទាល់",
+      "desc": "Explore the world in real time.",
+      "desc_km": "ស្វែងយល់ពិភពលោកនេះជាបន្តផ្ទាល់។",
+      "link": "/map.html"
+    }
   ],
   "socials": {
     "telegram": "https://t.me/angkor_smp",
