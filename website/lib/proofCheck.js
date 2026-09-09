@@ -22,6 +22,13 @@ const { createWorker } = require("tesseract.js");
 const EDITOR_SOFTWARE = /photoshop|gimp|pixelmator|snapseed|picsart|lightroom|affinity photo|canva/i;
 const MIN_DIMENSION = 300; // a real payment-app screenshot is always bigger than this
 
+// Must match RIEL_PER_USD in public/js/i18n.js - Khmer-language customers are
+// quoted (and told to pay) the Riel-converted price on /checkout, not the
+// USD one, so their genuine receipt shows that Riel figure, never a dollar
+// amount. Without this the OCR check only ever looked for the USD variants
+// and flagged every real Riel payment as suspicious.
+const RIEL_PER_USD = 4000;
+
 // The English trained-data file ships as an npm package (@tesseract.js-data/eng)
 // instead of letting tesseract.js fetch it from jsdelivr on first use - this
 // keeps OCR working even if the server's outbound internet is flaky/blocked,
@@ -33,6 +40,9 @@ function amountVariants(amount) {
   const fixed = n.toFixed(2);
   const variants = new Set([fixed, fixed.replace(".", ",")]);
   if (Number.isInteger(n)) variants.add(String(n));
+  const riel = Math.round(n * RIEL_PER_USD);
+  variants.add(String(riel));
+  variants.add(riel.toLocaleString("en-US")); // e.g. "12,000" - how formatRiel() shows it on /checkout
   return [...variants];
 }
 
@@ -85,7 +95,9 @@ async function analyzeProof(path, order) {
     reasons.push(`Couldn't read any text off the screenshot (${err.message}).`);
   }
   if (text && !textShowsAmount(text, order.amount)) {
-    reasons.push(`The amount $${Number(order.amount).toFixed(2)} doesn't appear anywhere in the screenshot's text.`);
+    const usd = Number(order.amount).toFixed(2);
+    const riel = Math.round(Number(order.amount) * RIEL_PER_USD).toLocaleString("en-US");
+    reasons.push(`Neither $${usd} nor ${riel}៛ appears anywhere in the screenshot's text.`);
   }
 
   return { suspicious: reasons.length > 0, reasons, ocrText: text };
