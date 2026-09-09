@@ -99,7 +99,11 @@ from Telegram with one tap.
    (`lib/proofCheck.js` — OCR + EXIF + image dimensions, no paid API and no
    internet dependency beyond that first-run OCR data, which ships bundled
    in `node_modules`): does the order's amount actually appear in the
-   screenshot's own text, was it saved by known editing software, is it an
+   screenshot's own text (checked in both USD and Riel — Khmer-language
+   customers are quoted the Riel price), does any date on the receipt fall
+   near when the order was actually placed (only checked when a date is
+   found at all — most receipts don't show one, which isn't itself
+   suspicious), was it saved by known editing software, is it an
    implausibly tiny/cropped image?
    - **Nothing looks off** → the order is delivered immediately (same RCON
      delivery command as Accept, below), and you get a Telegram message
