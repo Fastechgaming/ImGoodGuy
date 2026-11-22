@@ -3,6 +3,7 @@ const path = require("path");
 const multer = require("multer");
 const { nanoid } = require("nanoid");
 const store = require("../lib/store");
+const { discountPercent, salePrice } = require("../lib/pricing");
 const { getServerStatus } = require("../lib/minecraft");
 const { normalizeServerName, isValidRawName } = require("../public/js/playername");
 const telegram = require("../telegram/bot");
@@ -70,7 +71,14 @@ router.get("/status", async (req, res) => {
 });
 
 router.get("/items", (req, res) => {
-  res.json(store.getItems());
+  const percent = discountPercent();
+  const catalogue = store.getItems();
+  for (const category of store.CATEGORIES) {
+    catalogue[category] = catalogue[category].map(item => ({
+      ...item, originalPrice: item.price, price: salePrice(item.price, percent), discountPercent: percent,
+    }));
+  }
+  res.json(catalogue);
 });
 
 // Currently-active LiteBans bans, via the plugin. Never an error response -
@@ -160,8 +168,14 @@ router.post("/checkout", async (req, res) => {
       // they asked to buy, just without the discount they no longer qualify for.
     }
 
+    const originalAmount = amount;
+    const percent = discountPercent();
+    amount = salePrice(originalAmount, percent);
+
     const order = {
       id: nanoid(10),
+      originalAmount,
+      discountPercent: percent,
       itemId: item.id,
       itemName: item.name,
       itemImage: item.image,

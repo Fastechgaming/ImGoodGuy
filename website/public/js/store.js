@@ -192,13 +192,18 @@ function armedFor(item, state) {
 
 // Plain price, or once a trade-in is armed: "$20.00 → $5.00" plus a small
 // caption naming the two ranks. Shared by the card and the info popup.
+function festivalPrice(amount, item) {
+  const cents = Math.round(Number(amount) * 100);
+  return Math.round(cents * (100 - (item.discountPercent || 0)) / 100) / 100;
+}
+
 function priceMarkup(item) {
   if (item.comingSoon) return `<div class="price">—</div>`;
   const state = buttonState(item);
   const armed = armedFor(item, state);
   if (armed) {
     const toEntry = ladderEntryForItem(item);
-    const diff = toEntry ? Math.max(0, toEntry.priceUsd - armed.priceUsd) : item.price;
+    const diff = toEntry ? festivalPrice(Math.max(0, toEntry.priceUsd - armed.priceUsd), item) : item.price;
     const toName = (toEntry && toEntry.displayName) || item.name;
     const MARK_FROM = "@@FROM@@";
     const MARK_TO = "@@TO@@";
@@ -215,7 +220,7 @@ function priceMarkup(item) {
         <div class="upgrade-caption">${captionHtml}</div>
       </div>`;
   }
-  return `<div class="price">${escapeHtml(formatPrice(item.price))}</div>`;
+  return `<div class="price">${item.discountPercent > 0 ? `<del class="price-was">${escapeHtml(formatPrice(item.originalPrice))}</del> ` : ""}${escapeHtml(formatPrice(item.price))}${item.discountPercent > 0 ? ` <small>−${Number(item.discountPercent)}%</small>` : ""}</div>`;
 }
 
 // The buy/upgrade controls for one item - identical markup whether it's
@@ -458,7 +463,7 @@ function openConfirm(item, fromRankId) {
 
   const toName = (toEntry && toEntry.displayName) || item.name;
   const displayPrice =
-    fromEntry && toEntry ? Math.max(0, toEntry.priceUsd - fromEntry.priceUsd) : item.price;
+    fromEntry && toEntry ? festivalPrice(Math.max(0, toEntry.priceUsd - fromEntry.priceUsd), item) : item.price;
 
   buyModalBody.innerHTML = `
     <div class="confirm-head">
